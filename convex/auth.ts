@@ -49,7 +49,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         name: name,
         lowercaseName: name.toLowerCase(),
         image,
-        status: "active",
+        status: "pending",
       });
 
       return userId;

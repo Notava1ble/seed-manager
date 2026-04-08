@@ -7,6 +7,9 @@ import App from "./App.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
+document.documentElement.classList.add("dark");
+document.documentElement.style.colorScheme = "dark";
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ConvexAuthProvider client={convex}>
