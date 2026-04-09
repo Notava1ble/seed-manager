@@ -1,40 +1,30 @@
 import { useState } from "react";
-import { Doc } from "../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { useAuthActions } from "@convex-dev/auth/react";
 import {
   Card,
+  CardAction,
+  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Doc } from "../../convex/_generated/dataModel";
 
-function Pending({ user }: { user: Doc<"users"> }) {
-  return (
-    <div className="text-center text-lg space-y-6">
-      <p>
-        Your account is currently unverified and pending approval. Dm a seed
-        manager to get approved.
-      </p>
-
-      <UserCard user={user} />
-    </div>
-  );
-}
-export default Pending;
-
-function UserCard({ user }: { user: Doc<"users"> }) {
+export function UserCard({ user }: { user: Doc<"users"> }) {
   const [showEmail, setShowEmail] = useState(false);
-  const { signOut } = useAuthActions();
+
+  const handleSignOut = () => {
+    // your sign-out logic here
+  };
 
   return (
-    <Card className="w-full max-w-sm mx-auto">
+    <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle>Account Information</CardTitle>
-        <CardDescription>
+        <CardTitle>
           {user?.name} ({showEmail ? user?.email : "••••••••••••"})
-        </CardDescription>
+        </CardTitle>
       </CardHeader>
 
       <CardFooter className="flex-col gap-2 w-full">
@@ -50,7 +40,7 @@ function UserCard({ user }: { user: Doc<"users"> }) {
           variant="outline"
           className="w-full"
           size="sm"
-          onClick={signOut}
+          onClick={handleSignOut}
         >
           Sign Out
         </Button>

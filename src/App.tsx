@@ -11,17 +11,17 @@ export default function App() {
   const user = useQuery(api.users.currentUser);
   return (
     <>
-      <header className="sticky top-0 z-10 border-b border-border bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        Convex + React + Convex Auth
+      <header className="p-4 border-b flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Seed Manager</h1>
+        <p className="text-sm text-muted-foreground">
+          Closed app for team only
+        </p>
       </header>
       <main className="flex min-h-[calc(100vh-57px)] flex-col gap-16 p-8">
-        <h1 className="text-4xl font-bold text-center">
-          Convex + React + Convex Auth
-        </h1>
         <Authenticated>
           {user?.status === "pending" ? (
             <div className="w-fit mx-auto">
-              <Pending username={user.name} />
+              <Pending user={user} />
             </div>
           ) : (
             <div className="text-center text-2xl">
