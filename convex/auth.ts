@@ -1,12 +1,13 @@
 import GitHub from "@auth/core/providers/github";
-import { convexAuth, getAuthUserId } from "@convex-dev/auth/server";
-import { MutationCtx, query, QueryCtx } from "./_generated/server";
+import { convexAuth } from "@convex-dev/auth/server";
+import { MutationCtx } from "./_generated/server";
 
 import { ConvexError } from "convex/values";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     GitHub({
+      issuer: "https://github.com/login/oauth",
       profile(profile) {
         return {
           id: profile.id.toString(),
