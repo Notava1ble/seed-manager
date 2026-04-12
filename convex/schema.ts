@@ -2,9 +2,6 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
 
-// The schema is normally optional, but Convex Auth
-// requires indexes defined on `authTables`.
-// The schema provides more precise TypeScript types.
 export default defineSchema({
   ...authTables,
   users: defineTable({
@@ -18,10 +15,42 @@ export default defineSchema({
       v.literal("deleted"),
       v.literal("banned"),
     ),
+    roles: v.array(
+      v.union(v.literal("admin"), v.literal("host"), v.literal("tester")),
+    ),
+    homeLeagueId: v.optional(v.id("leagues")),
+    hostLeagueId: v.optional(v.id("leagues")),
   })
     .index("email", ["email"])
     .index("lowercase_name", ["lowercaseName"]),
-  numbers: defineTable({
-    value: v.number(),
+  leagues: defineTable({
+    leagueNumber: v.number(),
+    leagueName: v.string(), // Like "League 1"
+  }),
+  seeds: defineTable({
+    leagueId: v.optional(v.id("leagues")),
+    overworld: v.string(),
+    nether: v.string(),
+    end: v.string(),
+    rng: v.string(),
+    type: v.string(),
+    addedBy: v.id("users"),
+    isUsed: v.boolean(),
+    usedAt: v.number(), // unix time
+    usedBy: v.id("users"),
+    upvoteCount: v.number(),
+    downvoteCount: v.number(),
+    commentCount: v.number(),
+  }),
+  comments: defineTable({
+    seedId: v.id("seeds"),
+    author: v.id("users"),
+    body: v.string(),
+    createdAt: v.number(), // unix time
+  }),
+  votes: defineTable({
+    seedId: v.id("seeds"),
+    author: v.id("users"),
+    voteType: v.union(v.literal("upvote"), v.literal("downvote")),
   }),
 });

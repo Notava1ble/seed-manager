@@ -7,7 +7,7 @@ import { ConvexError } from "convex/values";
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     GitHub({
-      issuer: "https://github.com/login/oauth",
+      // issuer: "https://github.com/login/oauth",
       profile(profile) {
         return {
           id: profile.id.toString(),
@@ -39,6 +39,8 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
 
       // Validate name for password provider
       const name = args.profile.username as string;
+      if (typeof name !== "string")
+        throw new Error("User login name does not exist");
 
       if (name.includes("deleted-user")) {
         throw new ConvexError("This username is not allowed");
@@ -51,6 +53,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         lowercaseName: name.toLowerCase(),
         image,
         status: "pending",
+        roles: [],
       });
 
       return userId;
