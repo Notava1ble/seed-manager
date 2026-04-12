@@ -1,10 +1,15 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useQuery } from "convex/react";
-import { NavLink, Navigate, Outlet } from "react-router";
+import { Navigate, Outlet } from "react-router";
 import { api } from "../../../convex/_generated/api";
+import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "../../components/ui/button";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "../../components/ui/sidebar";
 import { Loading } from "../Loading";
-import { cn } from "@/lib/utils";
 
 export function AppLayout() {
   const { signOut } = useAuthActions();
@@ -28,19 +33,16 @@ export function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen max-h-screen h-screen bg-background text-foreground">
-      <nav className="border-b border-border px-6 h-16 py-4">
+    <SidebarProvider className="h-screen min-h-screen flex-col overflow-hidden bg-background text-foreground **:data-[slot=sidebar-container]:top-16 **:data-[slot=sidebar-container]:bottom-auto **:data-[slot=sidebar-container]:h-[calc(100svh-4rem)]">
+      <nav className="h-16 shrink-0 border-b border-border px-6 py-4">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger />
             <div className="flex gap-2 items-end">
-              <h1 className="text-xl font-semibold clas">Seed Checker</h1>
+              <h1 className="text-xl font-semibold">Seed Checker</h1>
               <p className="text-sm font-medium text-muted-foreground">
                 ({user.name ?? "Unknown user"})
               </p>
-            </div>
-            <div className="flex gap-2">
-              <NavItem label="Home" to="/app" />
-              <NavItem label="Admin" to="/app/admin" />
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -59,32 +61,14 @@ export function AppLayout() {
         </div>
       </nav>
 
-      <main className="min-h-[calc(100vh-65px)]">
-        <Outlet />
-      </main>
-    </div>
-  );
-}
-
-function NavItem({ label, to }: { label: string; to: string }) {
-  return (
-    <NavLink
-      className={({ isActive }) => {
-        const currentRouteIsAdmin = location.pathname.startsWith("/app/admin");
-        const shouldBeActive = currentRouteIsAdmin
-          ? to === "/app/admin"
-          : isActive;
-
-        return cn(
-          "block p-2 border-b-2",
-          shouldBeActive
-            ? "border-primary text-primary"
-            : "border-transparent text-muted-foreground hover:text-foreground hover:border-foreground",
-        );
-      }}
-      to={to}
-    >
-      {label}
-    </NavLink>
+      <div className="flex min-h-0 flex-1">
+        <AppSidebar />
+        <SidebarInset className="min-h-0 overflow-auto">
+          <main className="p-6">
+            <Outlet />
+          </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }

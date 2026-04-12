@@ -22,20 +22,20 @@ export function SeedPage() {
       <h2 className="text-2xl font-semibold">{selectedSeed.seedType}</h2>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">Overworld</p>
-          <p className="text-sm">{selectedSeed.overworld}</p>
+          <p className="text-[12px] text-muted-foreground">Overworld</p>
+          <p className="text-[12px]">{selectedSeed.overworld}</p>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground">Nether</p>
-          <p className="text-sm">{selectedSeed.nether}</p>
+          <p className="text-[12px] text-muted-foreground">Nether</p>
+          <p className="text-[12px]">{selectedSeed.nether}</p>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground">End</p>
-          <p className="text-sm">{selectedSeed.end}</p>
+          <p className="text-[12px] text-muted-foreground">End</p>
+          <p className="text-[12px]">{selectedSeed.end}</p>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground">RNG</p>
-          <p className="text-sm">{selectedSeed.rng}</p>
+          <p className="text-[12px] text-muted-foreground">RNG</p>
+          <p className="text-[12px]">{selectedSeed.rng}</p>
         </div>
       </div>
 

@@ -19,7 +19,7 @@ export function LeaguePage() {
 
   return (
     <div className="flex gap-6 h-full">
-      <section className="flex flex-col gap-4 p-6 flex-3 h-full">
+      <section className="flex flex-col gap-4 flex-1 h-full">
         <SeedTable
           seeds={SEEDS}
           onSeedSelect={(selectedId) =>
@@ -29,7 +29,7 @@ export function LeaguePage() {
       </section>
 
       <Separator orientation="vertical" />
-      <aside className="p-6 flex-2">
+      <aside className="p-2 flex-1">
         <Outlet />
       </aside>
     </div>
@@ -46,7 +46,7 @@ function SeedTable({
   const { seedId } = useParams();
   const selectedSeed = SEEDS.find((s) => s.id === Number(seedId));
   return (
-    <Table>
+    <Table className="">
       <TableCaption>All seeds assigned for this league</TableCaption>
       <TableHeader>
         <TableRow>
@@ -58,9 +58,9 @@ function SeedTable({
           <TableHead className="text-center w-2">
             <ArrowUp />
           </TableHead>
-          <TableHead className="text-center w-2">
+          {/* <TableHead className="text-center w-2">
             <ArrowDown />
-          </TableHead>
+          </TableHead>  */}
           <TableHead className="text-center w-2">
             <MessageCircle />
           </TableHead>
@@ -80,10 +80,12 @@ function SeedTable({
               <TableCell>{seed.nether}</TableCell>
               <TableCell>{seed.end}</TableCell>
               <TableCell>{seed.rng}</TableCell>
-              <TableCell className="text-center w-4">{seed.upvotes}</TableCell>
               <TableCell className="text-center w-4">
-                {seed.downvotes}
+                {seed.upvotes - seed.downvotes}
               </TableCell>
+              {/* <TableCell className="text-center w-4">
+                {seed.downvotes}
+              </TableCell> */}
               <TableCell className="text-center w-4">{seed.comments}</TableCell>
             </TableRow>
           );
