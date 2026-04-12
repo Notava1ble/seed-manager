@@ -28,8 +28,8 @@ export function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <nav className="border-b border-border px-6 py-4">
+    <div className="min-h-screen max-h-screen h-screen bg-background text-foreground">
+      <nav className="border-b border-border px-6 h-16 py-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-8">
             <div className="flex gap-2 items-end">
@@ -59,7 +59,7 @@ export function AppLayout() {
         </div>
       </nav>
 
-      <main className="min-h-[calc(100vh-65px)] p-6">
+      <main className="min-h-[calc(100vh-65px)]">
         <Outlet />
       </main>
     </div>

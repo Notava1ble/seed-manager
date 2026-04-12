@@ -8,7 +8,7 @@ import {
 
 export function AdminSidebar() {
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
       <SidebarHeader />
       <SidebarContent>
         <SidebarGroup />
