@@ -28,6 +28,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { VISIBLE_LEAGUES } from "@/routes/app/leagues";
+import { Doc } from "../../convex/_generated/dataModel";
 
 const adminLinks = [
   {
@@ -43,7 +44,7 @@ const adminLinks = [
     exact: false,
   },
   {
-    label: "Admin Seeds",
+    label: "Manage Seeds",
     to: "/app/admin/seeds",
     icon: Sprout,
     exact: false,
@@ -56,9 +57,11 @@ const adminLinks = [
   },
 ] as const;
 
-export function AppSidebar() {
+export function AppSidebar({ user }: { user: Doc<"users"> }) {
   const location = useLocation();
   const isLeagueRoute = isActivePath(location.pathname, "/app/league");
+
+  const isAdmin = user.roles.includes("admin");
 
   return (
     <Sidebar collapsible="icon">
@@ -110,23 +113,25 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Admin</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminLinks.map((link) => (
-                <SidebarNavItem
-                  key={link.to}
-                  exact={link.exact}
-                  icon={link.icon}
-                  label={link.label}
-                  pathname={location.pathname}
-                  to={link.to}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminLinks.map((link) => (
+                  <SidebarNavItem
+                    key={link.to}
+                    exact={link.exact}
+                    icon={link.icon}
+                    label={link.label}
+                    pathname={location.pathname}
+                    to={link.to}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );

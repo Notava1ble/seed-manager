@@ -57,7 +57,7 @@ export function AppLayout() {
       </nav>
 
       <div className="flex min-h-0 flex-1">
-        <AppSidebar />
+        <AppSidebar user={user} />
         <SidebarInset className="min-h-0 overflow-auto">
           <main className="p-6">
             <Outlet />
