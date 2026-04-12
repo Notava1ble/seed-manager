@@ -4,11 +4,7 @@ import { Navigate, Outlet } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "../../components/ui/button";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "../../components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "../../components/ui/sidebar";
 import { Loading } from "../Loading";
 
 export function AppLayout() {
