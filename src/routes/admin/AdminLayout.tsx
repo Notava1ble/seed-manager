@@ -9,7 +9,7 @@ export function AdminLayout() {
     return <Navigate replace to="/app" />;
   }
   return (
-    <main className="p-6">
+    <main>
       <Outlet />
     </main>
   );
