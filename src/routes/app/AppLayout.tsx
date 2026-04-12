@@ -37,7 +37,6 @@ export function AppLayout() {
       <nav className="h-16 shrink-0 border-b border-border px-6 py-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <SidebarTrigger />
             <div className="flex gap-2 items-end">
               <h1 className="text-xl font-semibold">Seed Checker</h1>
               <p className="text-sm font-medium text-muted-foreground">
