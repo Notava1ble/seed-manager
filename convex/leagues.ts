@@ -11,6 +11,35 @@ import type { Doc } from "./_generated/dataModel";
 const MIN_LEAGUE_NAME_LENGTH = 3;
 const MAX_LEAGUE_NAME_LENGTH = 20;
 
+function validateLeagueFields({
+  leagueNumber,
+  leagueName,
+}: {
+  leagueNumber: number;
+  leagueName: string;
+}) {
+  if (!Number.isSafeInteger(leagueNumber) || leagueNumber < 1) {
+    throw new ConvexError({
+      code: "INVALID_LEAGUE_NUMBER",
+      message: "League number must be a positive whole number",
+    });
+  }
+
+  const trimmedLeagueName = leagueName.trim();
+
+  if (
+    trimmedLeagueName.length < MIN_LEAGUE_NAME_LENGTH ||
+    trimmedLeagueName.length > MAX_LEAGUE_NAME_LENGTH
+  ) {
+    throw new ConvexError({
+      code: "INVALID_LEAGUE_NAME",
+      message: "League name must be between 3 and 20 characters",
+    });
+  }
+
+  return trimmedLeagueName;
+}
+
 export function canViewLeague(user: Doc<"users">, league: Doc<"leagues">) {
   const leagueId = league._id;
 
@@ -78,24 +107,7 @@ export const addLeague = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
 
-    if (!Number.isSafeInteger(args.leagueNumber) || args.leagueNumber < 1) {
-      throw new ConvexError({
-        code: "INVALID_LEAGUE_NUMBER",
-        message: "League number must be a positive whole number",
-      });
-    }
-
-    const leagueName = args.leagueName.trim();
-
-    if (
-      leagueName.length < MIN_LEAGUE_NAME_LENGTH ||
-      leagueName.length > MAX_LEAGUE_NAME_LENGTH
-    ) {
-      throw new ConvexError({
-        code: "INVALID_LEAGUE_NAME",
-        message: "League name must be between 3 and 20 characters",
-      });
-    }
+    const leagueName = validateLeagueFields(args);
 
     const existingLeague = await ctx.db
       .query("leagues")
@@ -120,6 +132,49 @@ export const addLeague = mutation({
   },
 });
 
+export const updateLeague = mutation({
+  args: {
+    leagueId: v.id("leagues"),
+    leagueNumber: v.number(),
+    leagueName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    const league = await ctx.db.get("leagues", args.leagueId);
+
+    if (!league) {
+      throw new ConvexError({
+        code: "LEAGUE_NOT_EXIST",
+        message: "The requested league id does not exist",
+      });
+    }
+
+    const leagueName = validateLeagueFields(args);
+
+    if (league.leagueNumber !== args.leagueNumber) {
+      const existingLeague = await ctx.db
+        .query("leagues")
+        .withIndex("by_leagueNumber", (q) =>
+          q.eq("leagueNumber", args.leagueNumber),
+        )
+        .unique();
+
+      if (existingLeague) {
+        throw new ConvexError({
+          code: "DUPLICATE_LEAGUE_NUMBER",
+          message: "A league with this number already exists",
+        });
+      }
+    }
+
+    await ctx.db.patch("leagues", args.leagueId, {
+      leagueNumber: args.leagueNumber,
+      leagueName,
+    });
+  },
+});
+
 export const deleteLeague = mutation({
   args: {
     leagueId: v.id("leagues"),
@@ -136,6 +191,6 @@ export const deleteLeague = mutation({
       });
     }
 
-    await ctx.db.delete(league._id);
+    await ctx.db.delete("leagues", league._id);
   },
 });

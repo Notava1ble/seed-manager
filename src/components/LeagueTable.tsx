@@ -1,4 +1,6 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import {
   Empty,
   EmptyDescription,
@@ -15,34 +17,43 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash, Trophy } from "lucide-react";
-import { Doc, Id } from "../../convex/_generated/dataModel";
-import { api } from "../../convex/_generated/api";
 import { useMutation } from "convex/react";
+import { Pencil, Trash, Trophy } from "lucide-react";
 import { useState } from "react";
-import { Button } from "./ui/button";
+import { api } from "../../convex/_generated/api";
+import { type Doc, type Id } from "../../convex/_generated/dataModel";
 import { AlertDialog } from "./ui/alert-dialog";
 import { DeleteAlert } from "./dialogs/DeleteDialog";
+import { EditLeagueDialog } from "./dialogs/EditLeagueDialog";
 
 export function LeagueTable({ leagues }: { leagues: Doc<"leagues">[] }) {
   const deleteLeague = useMutation(api.leagues.deleteLeague);
   const [isLoading, setIsLoading] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedLeagueId, setSelectedLeagueId] =
     useState<Id<"leagues"> | null>(null);
+  const [editingLeagueId, setEditingLeagueId] = useState<Id<"leagues"> | null>(
+    null,
+  );
 
   const selectedLeague = leagues.find(
     (league) => league._id === selectedLeagueId,
   );
+  const editingLeague = leagues.find(
+    (league) => league._id === editingLeagueId,
+  );
 
   const shouldShowAlert =
     isAlertOpen && selectedLeagueId !== null && selectedLeague !== undefined;
+  const shouldShowEditDialog =
+    isEditDialogOpen && editingLeagueId !== null && editingLeague !== undefined;
 
-  const deleteSelectedLeague = () => {
+  const deleteSelectedLeague = async () => {
     if (!selectedLeague) return;
     try {
       setIsLoading(true);
-      deleteLeague({ leagueId: selectedLeague._id });
+      await deleteLeague({ leagueId: selectedLeague._id });
     } catch (error) {
       console.error("Failed to delete league:", error);
     } finally {
@@ -57,6 +68,20 @@ export function LeagueTable({ leagues }: { leagues: Doc<"leagues">[] }) {
       setSelectedLeagueId(null);
       setIsAlertOpen(false);
     }
+  };
+
+  const closeEditDialog = () => {
+    setEditingLeagueId(null);
+    setIsEditDialogOpen(false);
+  };
+
+  const toggleEditDialog = (open: boolean) => {
+    if (!open) {
+      closeEditDialog();
+      return;
+    }
+
+    setIsEditDialogOpen(true);
   };
 
   if (leagues.length === 0) {
@@ -81,9 +106,14 @@ export function LeagueTable({ leagues }: { leagues: Doc<"leagues">[] }) {
         <DeleteAlert
           isLoading={isLoading}
           label={`Delete ${selectedLeague?.leagueName}?`}
-          onDelete={deleteSelectedLeague}
+          onDelete={() => void deleteSelectedLeague()}
         />
       </AlertDialog>
+      <Dialog open={shouldShowEditDialog} onOpenChange={toggleEditDialog}>
+        {editingLeague ? (
+          <EditLeagueDialog league={editingLeague} onClose={closeEditDialog} />
+        ) : null}
+      </Dialog>
       <Table>
         <TableHeader>
           <TableRow>
@@ -118,18 +148,27 @@ export function LeagueTable({ leagues }: { leagues: Doc<"leagues">[] }) {
                 {league._id}
               </TableCell>
               <TableCell className="flex gap-1 justify-end">
-                <Button variant="ghost" size="sm">
-                  <Pencil className="h-4 w-4" />
+                <Button
+                  aria-label={`Edit ${league.leagueName}`}
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => {
+                    setEditingLeagueId(league._id);
+                    setIsEditDialogOpen(true);
+                  }}
+                >
+                  <Pencil />
                 </Button>
                 <Button
                   variant="destructive"
-                  size="sm"
+                  size="icon-sm"
+                  aria-label={`Delete ${league.leagueName}`}
                   onClick={() => {
                     setSelectedLeagueId(league._id);
                     setIsAlertOpen(true);
                   }}
                 >
-                  <Trash className="h-4 w-4" />
+                  <Trash />
                 </Button>
               </TableCell>
             </TableRow>
