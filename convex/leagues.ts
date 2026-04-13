@@ -192,5 +192,18 @@ export const deleteLeague = mutation({
     }
 
     await ctx.db.delete("leagues", league._id);
+
+    const connectedSeeds = await ctx.db
+      .query("seeds")
+      .withIndex("by_leagueId", (q) => q.eq("leagueId", league._id))
+      .collect();
+
+    await Promise.all(
+      connectedSeeds.map((seed) =>
+        ctx.db.patch(seed._id, {
+          leagueId: undefined,
+        }),
+      ),
+    );
   },
 });
