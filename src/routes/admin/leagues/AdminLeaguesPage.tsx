@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
-import { AddLeagueDialog } from "../../../components/AddLeagueDialog";
+import { AddLeagueDialog } from "@/components/dialogs/AddLeagueDialog";
 import {
   LeagueTable,
   LeagueTableSkeleton,

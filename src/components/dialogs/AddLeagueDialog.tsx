@@ -1,6 +1,6 @@
 import { useMutation } from "convex/react";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { api } from "../../convex/_generated/api";
+import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import {
   DialogClose,
@@ -28,7 +28,7 @@ import {
   sanitizeLeagueNumber,
   validateLeagueForm,
   type LeagueFormErrors,
-} from "../lib/leagueFormUtils";
+} from "../../lib/leagueFormUtils";
 import { ConvexError } from "convex/values";
 
 export function AddLeagueDialog({

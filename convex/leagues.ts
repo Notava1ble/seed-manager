@@ -119,3 +119,23 @@ export const addLeague = mutation({
     });
   },
 });
+
+export const deleteLeague = mutation({
+  args: {
+    leagueId: v.id("leagues"),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    const league = await ctx.db.get("leagues", args.leagueId);
+
+    if (!league) {
+      throw new ConvexError({
+        code: "LEAGUE_NOT_EXIST",
+        message: "The requested league id does not exist",
+      });
+    }
+
+    await ctx.db.delete(league._id);
+  },
+});
