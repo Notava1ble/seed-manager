@@ -26,7 +26,9 @@ export default defineSchema({
   leagues: defineTable({
     leagueNumber: v.number(),
     leagueName: v.string(), // Like "League 1"
-  }),
+    seedCount: v.number(),
+    usedSeedCount: v.number(),
+  }).index("by_leagueNumber", ["leagueNumber"]),
   seeds: defineTable({
     leagueId: v.optional(v.id("leagues")),
     overworld: v.string(),
@@ -41,7 +43,9 @@ export default defineSchema({
     upvoteCount: v.number(),
     downvoteCount: v.number(),
     commentCount: v.number(),
-  }),
+  })
+    .index("by_leagueId", ["leagueId"])
+    .index("by_leagueId_and_isUsed", ["leagueId", "isUsed"]),
   comments: defineTable({
     seedId: v.id("seeds"),
     author: v.id("users"),
