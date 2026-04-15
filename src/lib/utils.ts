@@ -19,3 +19,6 @@ export function sortLeaguesByNumberAndName(
 export function getLeagueCountLabel(leagueCount: number) {
   return leagueCount === 1 ? "1 league" : `${leagueCount} leagues`;
 }
+export function getSeedCountLabel(seedCount: number) {
+  return seedCount === 1 ? "1 seed" : `${seedCount} seeds`;
+}

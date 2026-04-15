@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as leagues from "../leagues.js";
 import type * as lib_permissions from "../lib/permissions.js";
+import type * as seeds from "../seeds.js";
 import type * as users from "../users.js";
 
 import type {
@@ -25,6 +26,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   leagues: typeof leagues;
   "lib/permissions": typeof lib_permissions;
+  seeds: typeof seeds;
   users: typeof users;
 }>;
 

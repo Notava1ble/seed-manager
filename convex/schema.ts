@@ -35,7 +35,15 @@ export default defineSchema({
     nether: v.string(),
     end: v.string(),
     rng: v.string(),
-    type: v.string(),
+    type: v.optional(
+      v.union(
+        v.literal("BURIED_TREASURE"),
+        v.literal("VILLAGE"),
+        v.literal("DESERT_TEMPLE"),
+        v.literal("RUINED_PORTAL"),
+        v.literal("SHIPWRECK"),
+      ),
+    ),
     addedBy: v.id("users"),
     isUsed: v.boolean(),
     usedAt: v.number(), // unix time
