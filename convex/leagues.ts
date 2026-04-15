@@ -43,7 +43,11 @@ export const listLeagues = query({
   handler: async (ctx) => {
     const user = await requireActiveUser(ctx);
 
-    const leagues = await ctx.db.query("leagues").collect();
+    const leagues = await ctx.db
+      .query("leagues")
+      .withIndex("by_leagueNumber")
+      .order("desc")
+      .collect();
 
     return leagues.filter((l) => canViewLeague(user, l));
   },
