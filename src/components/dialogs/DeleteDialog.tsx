@@ -20,8 +20,8 @@ export function DeleteAlert({
     <AlertDialogContent>
       <AlertDialogTitle>{label}</AlertDialogTitle>
       <AlertDialogDescription>
-        This action cannot be undone. This will permanently delete the league
-        and all associated seeds.
+        This action cannot be undone. This will permanently delete the league.
+        All connected seeds will become unasigned.
       </AlertDialogDescription>
       <AlertDialogFooter>
         <AlertDialogCancel>Cancel</AlertDialogCancel>
