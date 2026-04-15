@@ -1,7 +1,17 @@
+import { useState } from "react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import {
+  Card,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useConvexAuth, useQuery } from "convex/react";
 import { Navigate } from "react-router";
 import { api } from "../../../convex/_generated/api";
-import Pending from "../../Authenticated/Pending";
+import type { Doc } from "../../../convex/_generated/dataModel";
 
 export function PendingPage() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -25,6 +35,48 @@ export function PendingPage() {
     <PendingShell>
       <Pending user={pendingUser} />
     </PendingShell>
+  );
+}
+
+function Pending({ user }: { user: Doc<"users"> }) {
+  const [showEmail, setShowEmail] = useState(false);
+  const { signOut } = useAuthActions();
+
+  return (
+    <div className="space-y-6 text-center text-lg">
+      <p>
+        Your account is currently unverified and pending approval. Dm a seed
+        manager to get approved.
+      </p>
+
+      <Card className="mx-auto w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>Account Information</CardTitle>
+          <CardDescription>
+            {user.name} ({showEmail ? user.email : "************"})
+          </CardDescription>
+        </CardHeader>
+
+        <CardFooter className="w-full flex-col gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => setShowEmail((prev) => !prev)}
+          >
+            {showEmail ? "Hide Email" : "Show Email"}
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            size="sm"
+            onClick={() => void signOut()}
+          >
+            Sign Out
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }
 
