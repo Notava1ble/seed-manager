@@ -1,3 +1,5 @@
+import { useQuery } from "convex/react";
+import { useMemo } from "react";
 import { NavLink, useLocation } from "react-router";
 import {
   ChevronRight,
@@ -18,6 +20,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSkeleton,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
@@ -27,8 +30,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { VISIBLE_LEAGUES } from "@/routes/app/leagues";
-import { Doc } from "../../convex/_generated/dataModel";
+import { sortLeaguesByNumberAndName } from "@/lib/utils";
+import { api } from "../../convex/_generated/api";
+import type { Doc } from "../../convex/_generated/dataModel";
 
 const adminLinks = [
   {
@@ -59,6 +63,11 @@ const adminLinks = [
 
 export function AppSidebar({ user }: { user: Doc<"users"> }) {
   const location = useLocation();
+  const allLeagues = useQuery(api.leagues.listLeagues);
+  const leagues = useMemo(
+    () => sortLeaguesByNumberAndName(allLeagues ?? []),
+    [allLeagues],
+  );
   const isLeagueRoute = isActivePath(location.pathname, "/app/league");
 
   const isAdmin = user.roles.includes("admin");
@@ -93,19 +102,38 @@ export function AppSidebar({ user }: { user: Doc<"users"> }) {
                 </SidebarMenuButton>
                 <CollapsibleContent>
                   <SidebarMenuSub>
-                    {VISIBLE_LEAGUES.map((league) => (
-                      <SidebarMenuSubItem key={league.id}>
-                        <SidebarMenuSubButton
-                          isActive={isActivePath(
-                            location.pathname,
-                            `/app/league/${league.id}`,
-                          )}
-                          render={<NavLink to={`/app/league/${league.id}`} />}
-                        >
-                          <span>{league.name}</span>
+                    {allLeagues === undefined ? (
+                      <>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSkeleton />
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSkeleton />
+                        </SidebarMenuSubItem>
+                      </>
+                    ) : leagues.length === 0 ? (
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton aria-disabled tabIndex={-1}>
+                          <span>No leagues</span>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
-                    ))}
+                    ) : (
+                      leagues.map((league) => (
+                        <SidebarMenuSubItem key={league._id}>
+                          <SidebarMenuSubButton
+                            isActive={isActivePath(
+                              location.pathname,
+                              `/app/league/${league._id}`,
+                            )}
+                            render={
+                              <NavLink to={`/app/league/${league._id}`} />
+                            }
+                          >
+                            <span>{league.leagueName}</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))
+                    )}
                   </SidebarMenuSub>
                 </CollapsibleContent>
               </Collapsible>
