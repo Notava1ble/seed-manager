@@ -1,10 +1,14 @@
+import type { SeedType } from "@/lib/seedConsts";
+import { Id } from "../../../convex/_generated/dataModel";
+
 export type Seed = {
   id: number;
+  leagueId?: Id<"leagues">;
   overworld: string;
   nether: string;
   end: string;
   rng: string;
-  seedType: string;
+  seedType: SeedType;
   upvotes: number;
   downvotes: number;
   comments: number;
