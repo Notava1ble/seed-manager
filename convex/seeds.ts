@@ -322,6 +322,64 @@ export const updateSeedRating = mutation({
   },
 });
 
+export const markSeedUsed = mutation({
+  args: {
+    seedId: v.id("seeds"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireActiveUser(ctx);
+    const seed = await ctx.db.get("seeds", args.seedId);
+
+    if (!seed) {
+      throw new ConvexError({
+        code: "SEED_NOT_FOUND",
+        message: "The requested seed does not exist",
+      });
+    }
+
+    if (seed.leagueId === undefined) {
+      throw new ConvexError({
+        code: "SEED_UNASSIGNED",
+        message: "Only assigned seeds can be marked used",
+      });
+    }
+
+    const league = await ctx.db.get("leagues", seed.leagueId);
+
+    if (!league) {
+      throw new ConvexError({
+        code: "LEAGUE_NOT_EXIST",
+        message: "The seed's league does not exist",
+      });
+    }
+
+    const canMarkAsAdmin = user.roles.includes("admin");
+    const canMarkAsHost =
+      user.roles.includes("host") && seed.leagueId === user.hostLeagueId;
+
+    if (!canMarkAsAdmin && !canMarkAsHost) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Only admins and hosts for this league can mark this seed used",
+      });
+    }
+
+    if (seed.isUsed) {
+      return;
+    }
+
+    await ctx.db.patch("seeds", seed._id, {
+      isUsed: true,
+      usedAt: Date.now(),
+      usedBy: user._id,
+    });
+
+    await ctx.db.patch("leagues", league._id, {
+      usedSeedCount: league.usedSeedCount + 1,
+    });
+  },
+});
+
 export const importSeeds = mutation({
   args: {
     seeds: v.array(seedUploadValidator),

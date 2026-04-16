@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
-import { Sprout } from "lucide-react";
+import { CheckCircle2, Sprout } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
@@ -9,6 +9,17 @@ import {
   SeedRatingActions,
   type SeedRating,
 } from "@/components/SeedFeedbackActions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyDescription,
@@ -23,6 +34,9 @@ import { SEED_TYPES } from "@/lib/consts";
 export function SeedPage() {
   const { leagueId, seedId } = useParams();
   const [ratingError, setRatingError] = useState<string | null>(null);
+  const [usedError, setUsedError] = useState<string | null>(null);
+  const [isMarkingUsed, setIsMarkingUsed] = useState(false);
+  const [isMarkUsedDialogOpen, setIsMarkUsedDialogOpen] = useState(false);
   const selectedLeagueId = leagueId as Id<"leagues"> | undefined;
   const selectedSeedId = seedId as Id<"seeds"> | undefined;
   const user = useQuery(api.users.currentUser);
@@ -33,6 +47,7 @@ export function SeedPage() {
       : "skip",
   );
   const updateSeedRating = useMutation(api.seeds.updateSeedRating);
+  const markSeedUsed = useMutation(api.seeds.markSeedUsed);
 
   const handleRatingChange = async (rating: SeedRating) => {
     if (!selectedSeedId) {
@@ -49,6 +64,28 @@ export function SeedPage() {
           ? error.data.message
           : "Could not update this seed's rating",
       );
+    }
+  };
+
+  const handleMarkUsed = async () => {
+    if (!selectedSeedId) {
+      return;
+    }
+
+    setUsedError(null);
+    setIsMarkingUsed(true);
+
+    try {
+      await markSeedUsed({ seedId: selectedSeedId });
+      setIsMarkUsedDialogOpen(false);
+    } catch (error) {
+      setUsedError(
+        error instanceof ConvexError
+          ? error.data.message
+          : "Could not mark this seed used",
+      );
+    } finally {
+      setIsMarkingUsed(false);
     }
   };
 
@@ -78,9 +115,12 @@ export function SeedPage() {
         <p className="text-xs font-medium uppercase tracking-[0.3em] text-muted-foreground">
           Seed Details
         </p>
-        <h2 className="text-2xl font-semibold">
-          {seed.type ? SEED_TYPES[seed.type] : "Unspecified seed"}
-        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-2xl font-semibold">
+            {seed.type ? SEED_TYPES[seed.type] : "Unspecified seed"}
+          </h2>
+          {seed.isUsed && <Badge variant="outline">Used</Badge>}
+        </div>
       </div>
 
       <Separator />
@@ -103,6 +143,60 @@ export function SeedPage() {
         />
       </div>
       {ratingError && <p className="text-xs text-destructive">{ratingError}</p>}
+
+      {canMarkUsed(seed, user) && (
+        <>
+          <Separator />
+          <div className="flex flex-col items-start gap-2">
+            <AlertDialog
+              open={isMarkUsedDialogOpen}
+              onOpenChange={setIsMarkUsedDialogOpen}
+            >
+              <Button
+                disabled={seed.isUsed || isMarkingUsed}
+                onClick={() => {
+                  setUsedError(null);
+                  setIsMarkUsedDialogOpen(true);
+                }}
+                type="button"
+                variant={seed.isUsed ? "outline" : "destructive"}
+              >
+                <CheckCircle2 data-icon="inline-start" />
+                {seed.isUsed ? "Seed marked used" : "Mark seed used"}
+              </Button>
+              <AlertDialogContent>
+                <AlertDialogTitle>Mark this seed as used?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. Used seeds stay visible in
+                  history, but they leave active league selection.
+                </AlertDialogDescription>
+                {usedError && (
+                  <p className="text-xs text-destructive">{usedError}</p>
+                )}
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isMarkingUsed}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={isMarkingUsed}
+                    onClick={() => void handleMarkUsed()}
+                    variant="destructive"
+                  >
+                    {isMarkingUsed ? "Marking used" : "Mark used"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <p className="text-xs text-muted-foreground">
+              Used seeds stay visible in history, but leave active league
+              selection.
+            </p>
+            {usedError && !isMarkUsedDialogOpen && (
+              <p className="text-xs text-destructive">{usedError}</p>
+            )}
+          </div>
+        </>
+      )}
       {/* TODO: Comments section */}
     </div>
   );
@@ -136,6 +230,26 @@ function canEditRating(
     user.roles.includes("host") &&
     seed.leagueId === user.hostLeagueId
   );
+}
+
+function canMarkUsed(
+  seed: {
+    leagueId?: Id<"leagues">;
+  },
+  user: {
+    roles: Array<"admin" | "host" | "tester">;
+    hostLeagueId?: Id<"leagues">;
+  } | null,
+) {
+  if (!user || seed.leagueId === undefined) {
+    return false;
+  }
+
+  if (user.roles.includes("admin")) {
+    return true;
+  }
+
+  return user.roles.includes("host") && seed.leagueId === user.hostLeagueId;
 }
 
 function SeedDetailValue({ label, value }: { label: string; value: string }) {

@@ -370,7 +370,7 @@ function AddSeedDialog({
                 render={<Button variant="outline" />}
                 type="button"
               >
-                Cancel
+                Close
               </DialogClose>
               <Button type="submit">Add seed</Button>
             </DialogFooter>
@@ -458,7 +458,7 @@ function AddSeedDialog({
                 render={<Button variant="outline" />}
                 type="button"
               >
-                Cancel
+                Close
               </DialogClose>
               <Button
                 disabled={
