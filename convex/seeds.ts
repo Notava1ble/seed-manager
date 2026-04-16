@@ -1,8 +1,13 @@
 import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
-import { requireAdmin } from "./lib/permissions";
+import {
+  canViewLeague,
+  requireActiveUser,
+  requireAdmin,
+} from "./lib/permissions";
 
+const MAX_LEAGUE_SEED_LIST_COUNT = 500;
 const MAX_SEED_IMPORT_COUNT = 500;
 const NUMERIC_SEED_PATTERN = /^[0-9]+$/;
 
@@ -47,6 +52,55 @@ export const listAllSeeds = query({
   },
 });
 
+export const listSeedsByLeague = query({
+  args: {
+    leagueId: v.id("leagues"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireActiveUser(ctx);
+    const league = await ctx.db.get("leagues", args.leagueId);
+
+    if (!league || !canViewLeague(user, league)) {
+      return [];
+    }
+
+    return await ctx.db
+      .query("seeds")
+      .withIndex("by_leagueId_and_isUsed", (q) =>
+        q.eq("leagueId", args.leagueId).eq("isUsed", false),
+      )
+      .take(MAX_LEAGUE_SEED_LIST_COUNT);
+  },
+});
+
+export const getSeedForLeague = query({
+  args: {
+    seedId: v.id("seeds"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireActiveUser(ctx);
+    const seed = await ctx.db.get("seeds", args.seedId);
+
+    if (!seed) {
+      return null;
+    }
+    if (seed.leagueId === undefined) {
+      if (!canViewLeague(user, undefined)) {
+        return null;
+      }
+      return seed;
+    }
+
+    const league = await ctx.db.get("leagues", seed.leagueId);
+
+    if (!league || !canViewLeague(user, league)) {
+      return null;
+    }
+
+    return seed;
+  },
+});
+
 export const importSeeds = mutation({
   args: {
     seeds: v.array(seedUploadValidator),
@@ -54,23 +108,28 @@ export const importSeeds = mutation({
   handler: async (ctx, args) => {
     const user = await requireAdmin(ctx);
     const normalizedSeeds = await normalizeSeeds(ctx, args.seeds);
+    const uniqueSeeds = new Map<string, SeedUploadInput>();
     const leagueSeedCounts = new Map<Id<"leagues">, number>();
 
+    let insertedCount = 0;
     let skipCount = 0;
 
     for (const seed of normalizedSeeds) {
+      if (uniqueSeeds.has(seed.overworld)) {
+        skipCount += 1;
+        continue;
+      }
+
+      uniqueSeeds.set(seed.overworld, seed);
+    }
+
+    for (const seed of uniqueSeeds.values()) {
       const existing = await ctx.db
         .query("seeds")
         .withIndex("by_owseed", (q) => q.eq("overworld", seed.overworld))
         .unique();
 
       if (existing) {
-        if (args.seeds.length === 1) {
-          throw new ConvexError({
-            code: "SEED_ALREADY_EXISTS",
-            message: "Seed already exists",
-          });
-        }
         skipCount += 1;
         continue;
       }
@@ -85,6 +144,7 @@ export const importSeeds = mutation({
         downvoteCount: 0,
         commentCount: 0,
       });
+      insertedCount += 1;
 
       if (seed.leagueId) {
         leagueSeedCounts.set(
@@ -109,7 +169,7 @@ export const importSeeds = mutation({
       });
     }
 
-    return { insertedCount: normalizedSeeds.length, skipCount: skipCount };
+    return { insertedCount, skipCount };
   },
 });
 

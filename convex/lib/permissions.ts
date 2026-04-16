@@ -3,11 +3,18 @@ import { QueryCtx, MutationCtx } from "../_generated/server";
 import { getUser } from "../users";
 import { Doc } from "../_generated/dataModel";
 
-export function canViewLeague(user: Doc<"users">, league: Doc<"leagues">) {
-  const leagueId = league._id;
+export function canViewLeague(
+  user: Doc<"users">,
+  league: Doc<"leagues"> | undefined,
+) {
+  const leagueId = league?._id;
 
   if (user.roles.includes("admin")) {
     return true;
+  }
+
+  if (leagueId === undefined) {
+    return false;
   }
 
   const hasTesterAccess =

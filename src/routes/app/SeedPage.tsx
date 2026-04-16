@@ -1,52 +1,102 @@
+import { useQuery } from "convex/react";
+import { Sprout } from "lucide-react";
 import { useParams } from "react-router";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { SeedVoting } from "@/components/SeedFeedbackActions";
-import { SEEDS } from "./seeds";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SEED_TYPES } from "@/lib/consts";
 
 export function SeedPage() {
-  const { seedId } = useParams();
-  const selectedSeed = SEEDS.find((s) => s.id === Number(seedId));
+  const { leagueId, seedId } = useParams();
+  const selectedLeagueId = leagueId as Id<"leagues"> | undefined;
+  const selectedSeedId = seedId as Id<"seeds"> | undefined;
+  const seed = useQuery(
+    api.seeds.getSeedForLeague,
+    selectedLeagueId && selectedSeedId ? { seedId: selectedSeedId } : "skip",
+  );
 
-  if (!selectedSeed) {
+  if (seed === undefined) {
+    return <SeedDetailsSkeleton />;
+  }
+
+  if (!seed) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
-        Seed not found
-      </div>
+      <Empty className="min-h-72">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Sprout />
+          </EmptyMedia>
+          <EmptyTitle>Seed not found</EmptyTitle>
+          <EmptyDescription>
+            This seed is not assigned to the current league.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-        Seed Details
-      </p>
-      <h2 className="text-2xl font-semibold">{selectedSeed.seedType}</h2>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <p className="text-[12px] text-muted-foreground">Overworld</p>
-          <p className="text-[12px]">{selectedSeed.overworld}</p>
-        </div>
-        <div>
-          <p className="text-[12px] text-muted-foreground">Nether</p>
-          <p className="text-[12px]">{selectedSeed.nether}</p>
-        </div>
-        <div>
-          <p className="text-[12px] text-muted-foreground">End</p>
-          <p className="text-[12px]">{selectedSeed.end}</p>
-        </div>
-        <div>
-          <p className="text-[12px] text-muted-foreground">RNG</p>
-          <p className="text-[12px]">{selectedSeed.rng}</p>
-        </div>
+    <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <p className="text-xs font-medium uppercase tracking-[0.3em] text-muted-foreground">
+          Seed Details
+        </p>
+        <h2 className="text-2xl font-semibold">
+          {seed.type ? SEED_TYPES[seed.type] : "Unspecified seed"}
+        </h2>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 pt-2">
+      <Separator />
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SeedDetailValue label="Overworld" value={seed.overworld} />
+        <SeedDetailValue label="Nether" value={seed.nether} />
+        <SeedDetailValue label="End" value={seed.end} />
+        <SeedDetailValue label="RNG" value={seed.rng} />
+      </div>
+
+      <div className="pt-2">
         <SeedVoting
-          comments={selectedSeed.comments}
-          downvotes={selectedSeed.downvotes}
-          upvotes={selectedSeed.upvotes}
+          comments={seed.commentCount}
+          downvotes={seed.downvoteCount}
+          upvotes={seed.upvoteCount}
         />
       </div>
       {/* TODO: Comments section */}
+    </div>
+  );
+}
+
+function SeedDetailValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="truncate font-mono text-xs">{value}</p>
+    </div>
+  );
+}
+
+function SeedDetailsSkeleton() {
+  return (
+    <div className="flex flex-col gap-4">
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-8 w-52" />
+      <Separator />
+      <div className="grid gap-4 sm:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Skeleton key={index} className="h-10 w-full" />
+        ))}
+      </div>
+      <Skeleton className="h-10 w-full" />
     </div>
   );
 }

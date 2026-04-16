@@ -1,5 +1,5 @@
-import { AlertCircleIcon, XIcon } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { AlertCircleIcon, CheckCircle2Icon, XIcon } from "lucide-react";
+import { type ChangeEvent, type FormEvent, useState } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -36,11 +36,13 @@ import {
   sanitizeSeedNumber,
   type SeedFormErrors,
   type SeedFormValues,
+  type SeedUploadInput,
 } from "@/lib/seedFormUtils";
 import { validateManualSeedForm } from "@/lib/validators";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ConvexError } from "convex/values";
+import { parseSeedJsonImportFile } from "@/lib/seedJsonImport";
 
 const EMPTY_SEED_FORM_VALUES: SeedFormValues = {
   type: null,
@@ -52,6 +54,10 @@ const EMPTY_SEED_FORM_VALUES: SeedFormValues = {
 };
 
 type ImportTab = "manual" | "json";
+type JsonImportResult = {
+  insertedCount: number;
+  skipCount: number;
+};
 
 function AddSeedDialog({
   leagues,
@@ -67,15 +73,26 @@ function AddSeedDialog({
     EMPTY_SEED_FORM_VALUES,
   );
   const [manualErrors, setManualErrors] = useState<SeedFormErrors>({});
-  const [, setJsonFile] = useState<File | null>(null);
-  const [jsonErrors, setJsonErrors] = useState<SeedFormErrors>({});
+  const [jsonFileName, setJsonFileName] = useState("");
+  const [jsonSeeds, setJsonSeeds] = useState<SeedUploadInput[] | null>(null);
+  const [jsonErrors, setJsonErrors] = useState<string[]>([]);
+  const [jsonImportError, setJsonImportError] = useState<string | null>(null);
+  const [jsonImportResult, setJsonImportResult] =
+    useState<JsonImportResult | null>(null);
+  const [isReadingJson, setIsReadingJson] = useState(false);
+  const [isImportingJson, setIsImportingJson] = useState(false);
 
   const resetForm = () => {
     setActiveTab("manual");
     setManualValues(EMPTY_SEED_FORM_VALUES);
     setManualErrors({});
-    setJsonFile(null);
-    setJsonErrors({});
+    setJsonFileName("");
+    setJsonSeeds(null);
+    setJsonErrors([]);
+    setJsonImportError(null);
+    setJsonImportResult(null);
+    setIsReadingJson(false);
+    setIsImportingJson(false);
   };
 
   const closeDialog = () => {
@@ -97,7 +114,8 @@ function AddSeedDialog({
 
     setActiveTab(value);
     setManualErrors({});
-    setJsonErrors({});
+    setJsonErrors([]);
+    setJsonImportError(null);
   };
 
   const handleManualImport = async (e: FormEvent<HTMLFormElement>) => {
@@ -120,8 +138,12 @@ function AddSeedDialog({
     }
 
     try {
-      await importSeeds({ seeds: validatedData.data });
-      // Potentially show a sonnar notifying how many seeds were imported.
+      const result = await importSeeds({ seeds: validatedData.data });
+
+      if (result.insertedCount === 0) {
+        setManualErrors({ form: "Seed already exists" });
+        return;
+      }
 
       closeDialog();
     } catch (error) {
@@ -129,12 +151,69 @@ function AddSeedDialog({
         form:
           error instanceof ConvexError
             ? error.data.message
-            : "Could not add this league",
+            : "Could not add this seed",
       });
     } finally {
       // TODO: Add submitting state and disable inputs while submitting
     }
   };
+
+  const handleJsonFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0] ?? null;
+
+    setJsonFileName(file?.name ?? "");
+    setJsonSeeds(null);
+    setJsonErrors([]);
+    setJsonImportError(null);
+    setJsonImportResult(null);
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      setIsReadingJson(true);
+      const result = await parseSeedJsonImportFile(file, leagues);
+
+      if (result.success) {
+        setJsonSeeds(result.seeds);
+        return;
+      }
+
+      setJsonErrors(result.errors);
+    } catch {
+      setJsonErrors(["file: Could not read the uploaded file"]);
+    } finally {
+      setIsReadingJson(false);
+    }
+  };
+
+  const handleJsonImport = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setJsonImportError(null);
+    setJsonImportResult(null);
+
+    if (!jsonSeeds) {
+      setJsonErrors(["file: Upload a valid JSON file before importing"]);
+      return;
+    }
+
+    setIsImportingJson(true);
+
+    try {
+      const result = await importSeeds({ seeds: jsonSeeds });
+      setJsonImportResult(result);
+    } catch (error) {
+      setJsonImportError(
+        error instanceof ConvexError
+          ? error.data.message
+          : "Could not import seeds from this file",
+      );
+    } finally {
+      setIsImportingJson(false);
+    }
+  };
+
   return (
     <DialogContent
       className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl"
@@ -169,7 +248,12 @@ function AddSeedDialog({
         </TabsList>
 
         <TabsContent value="manual">
-          <form className="flex flex-col gap-4" onSubmit={handleManualImport}>
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={(event) => {
+              void handleManualImport(event);
+            }}
+          >
             <FieldGroup>
               <Field data-invalid={Boolean(manualErrors.type)}>
                 <FieldLabel htmlFor="seed-type">Seed type</FieldLabel>
@@ -296,31 +380,76 @@ function AddSeedDialog({
         <TabsContent value="json">
           <form
             className="flex flex-col gap-4"
-            onSubmit={(event) => event.preventDefault()}
+            onSubmit={(event) => {
+              void handleJsonImport(event);
+            }}
           >
             <FieldGroup>
-              <Field data-invalid={Boolean(jsonErrors.file)}>
+              <Field data-invalid={jsonErrors.length > 0}>
                 <FieldLabel htmlFor="seed-json-file">JSON file</FieldLabel>
                 <Input
                   id="seed-json-file"
                   accept=".json,application/json"
-                  aria-invalid={Boolean(jsonErrors.file)}
-                  onChange={(event) =>
-                    setJsonFile(event.currentTarget.files?.[0] ?? null)
-                  }
+                  aria-invalid={jsonErrors.length > 0}
+                  onChange={(event) => {
+                    void handleJsonFileChange(event);
+                  }}
                   type="file"
                 />
                 <FieldDescription>
-                  Import a JSON array or an object with a seeds array. Each seed
-                  needs type, overworld, nether, end, rng, and optional
-                  leagueId. Limit {MAX_SEED_IMPORT_COUNT} seeds.
+                  Upload a JSON array or an object with a seeds array. Each seed
+                  must contain only type, leagueNumber, overworld, nether, end,
+                  and rng. Limit {MAX_SEED_IMPORT_COUNT} seeds.
                 </FieldDescription>
-                <FieldError>{jsonErrors.file}</FieldError>
+                <FieldError>{jsonErrors[0]}</FieldError>
               </Field>
             </FieldGroup>
 
-            {jsonErrors.form && (
-              <ErrorAlert title="Import failed" message={jsonErrors.form} />
+            {isReadingJson && (
+              <Alert>
+                <AlertCircleIcon />
+                <AlertTitle>Reading JSON</AlertTitle>
+                <AlertDescription>
+                  Checking the uploaded file before import.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {!isReadingJson && jsonSeeds && !jsonImportResult && (
+              <Alert>
+                <CheckCircle2Icon />
+                <AlertTitle>
+                  {jsonSeeds.length === 1
+                    ? "1 valid seed"
+                    : `${jsonSeeds.length} valid seeds`}
+                </AlertTitle>
+                <AlertDescription>
+                  {jsonFileName} passed validation. Duplicate overworld seeds
+                  already in the database will be skipped.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {jsonErrors.length > 0 && (
+              <ErrorAlert
+                title="JSON schema errors"
+                message={jsonErrors.join("\n")}
+              />
+            )}
+
+            {jsonImportError && (
+              <ErrorAlert title="Import failed" message={jsonImportError} />
+            )}
+
+            {jsonImportResult && (
+              <Alert>
+                <CheckCircle2Icon />
+                <AlertTitle>Import complete</AlertTitle>
+                <AlertDescription>
+                  {jsonImportResult.insertedCount} seeds imported.{" "}
+                  {jsonImportResult.skipCount} duplicates skipped.
+                </AlertDescription>
+              </Alert>
             )}
 
             <DialogFooter>
@@ -331,7 +460,17 @@ function AddSeedDialog({
               >
                 Cancel
               </DialogClose>
-              <Button type="submit">Import JSON</Button>
+              <Button
+                disabled={
+                  isReadingJson ||
+                  isImportingJson ||
+                  !jsonSeeds ||
+                  Boolean(jsonImportResult)
+                }
+                type="submit"
+              >
+                {isImportingJson ? "Importing" : "Import JSON"}
+              </Button>
             </DialogFooter>
           </form>
         </TabsContent>
