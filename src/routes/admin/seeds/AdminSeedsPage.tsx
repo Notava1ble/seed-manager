@@ -49,11 +49,9 @@ export function AdminSeedsPage() {
               <Plus data-icon="inline-start" />
               Add seed
             </DialogTrigger>
-            <AddSeedDialog
-              onClose={closeAddDialog}
-              isOpen={isAddDialogOpen}
-              leagues={leagues || []}
-            />
+            {isAddDialogOpen && (
+              <AddSeedDialog onClose={closeAddDialog} leagues={leagues || []} />
+            )}
           </Dialog>
         </div>
       </div>

@@ -52,6 +52,7 @@ export default defineSchema({
     downvoteCount: v.number(),
     commentCount: v.number(),
   })
+    .index("by_owseed", ["overworld"])
     .index("by_leagueId", ["leagueId"])
     .index("by_leagueId_and_isUsed", ["leagueId", "isUsed"]),
   comments: defineTable({

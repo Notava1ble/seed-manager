@@ -1,5 +1,41 @@
-import { query } from "./_generated/server";
+import { ConvexError, v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { requireAdmin } from "./lib/permissions";
+
+const MAX_SEED_IMPORT_COUNT = 500;
+const NUMERIC_SEED_PATTERN = /^[0-9]+$/;
+
+const seedTypeValidator = v.union(
+  v.literal("BURIED_TREASURE"),
+  v.literal("VILLAGE"),
+  v.literal("DESERT_TEMPLE"),
+  v.literal("RUINED_PORTAL"),
+  v.literal("SHIPWRECK"),
+);
+
+const seedUploadValidator = v.object({
+  leagueId: v.optional(v.id("leagues")),
+  overworld: v.string(),
+  nether: v.string(),
+  end: v.string(),
+  rng: v.string(),
+  type: seedTypeValidator,
+});
+
+type SeedUploadInput = {
+  leagueId?: Id<"leagues">;
+  overworld: string;
+  nether: string;
+  end: string;
+  rng: string;
+  type:
+    | "BURIED_TREASURE"
+    | "VILLAGE"
+    | "DESERT_TEMPLE"
+    | "RUINED_PORTAL"
+    | "SHIPWRECK";
+};
 
 export const listAllSeeds = query({
   args: {},
@@ -10,3 +46,125 @@ export const listAllSeeds = query({
     return allSeeds;
   },
 });
+
+export const importSeeds = mutation({
+  args: {
+    seeds: v.array(seedUploadValidator),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAdmin(ctx);
+    const normalizedSeeds = await normalizeSeeds(ctx, args.seeds);
+    const leagueSeedCounts = new Map<Id<"leagues">, number>();
+
+    let skipCount = 0;
+
+    for (const seed of normalizedSeeds) {
+      const existing = await ctx.db
+        .query("seeds")
+        .withIndex("by_owseed", (q) => q.eq("overworld", seed.overworld))
+        .unique();
+
+      if (existing) {
+        if (args.seeds.length === 1) {
+          throw new ConvexError({
+            code: "SEED_ALREADY_EXISTS",
+            message: "Seed already exists",
+          });
+        }
+        skipCount += 1;
+        continue;
+      }
+
+      await ctx.db.insert("seeds", {
+        ...seed,
+        addedBy: user._id,
+        isUsed: false,
+        usedAt: 0,
+        usedBy: user._id,
+        upvoteCount: 0,
+        downvoteCount: 0,
+        commentCount: 0,
+      });
+
+      if (seed.leagueId) {
+        leagueSeedCounts.set(
+          seed.leagueId,
+          (leagueSeedCounts.get(seed.leagueId) ?? 0) + 1,
+        );
+      }
+    }
+
+    for (const [leagueId, seedCount] of leagueSeedCounts) {
+      const league = await ctx.db.get("leagues", leagueId);
+
+      if (!league) {
+        throw new ConvexError({
+          code: "LEAGUE_NOT_EXIST",
+          message: "The requested league id does not exist",
+        });
+      }
+
+      await ctx.db.patch("leagues", leagueId, {
+        seedCount: league.seedCount + seedCount,
+      });
+    }
+
+    return { insertedCount: normalizedSeeds.length, skipCount: skipCount };
+  },
+});
+
+async function normalizeSeeds(ctx: MutationCtx, seeds: SeedUploadInput[]) {
+  if (seeds.length === 0) {
+    throw new ConvexError({
+      code: "EMPTY_SEED_IMPORT",
+      message: "Import at least one seed",
+    });
+  }
+
+  if (seeds.length > MAX_SEED_IMPORT_COUNT) {
+    throw new ConvexError({
+      code: "SEED_IMPORT_LIMIT_EXCEEDED",
+      message: `Import up to ${MAX_SEED_IMPORT_COUNT} seeds at a time`,
+    });
+  }
+
+  const uniqueLeagueIds = new Set<Id<"leagues">>();
+  const normalizedSeeds = seeds.map((s) => ({
+    ...s,
+    overworld: validateNumericSeedString(s.overworld, "Overworld seed"),
+    nether: validateNumericSeedString(s.nether, "Nether seed"),
+    end: validateNumericSeedString(s.end, "End seed"),
+    rng: validateNumericSeedString(s.rng, "RNG seed"),
+  }));
+
+  for (const seed of normalizedSeeds) {
+    if (seed.leagueId) {
+      uniqueLeagueIds.add(seed.leagueId);
+    }
+  }
+
+  const leagues = await Promise.all(
+    Array.from(uniqueLeagueIds).map((l) => ctx.db.get("leagues", l)),
+  );
+  if (leagues.length !== uniqueLeagueIds.size) {
+    throw new ConvexError({
+      code: "LEAGUE_NOT_EXIST",
+      message: "The requested league id does not exist",
+    });
+  }
+
+  return normalizedSeeds;
+}
+
+function validateNumericSeedString(value: string, label: string) {
+  const trimmedValue = value.trim();
+
+  if (!NUMERIC_SEED_PATTERN.test(trimmedValue)) {
+    throw new ConvexError({
+      code: "INVALID_SEED_VALUE",
+      message: `${label} must contain only numbers`,
+    });
+  }
+
+  return trimmedValue;
+}

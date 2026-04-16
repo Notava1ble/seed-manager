@@ -1,4 +1,4 @@
-import { ConvexError, GenericId, v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import {
   canViewLeague,
@@ -154,7 +154,7 @@ export const deleteLeague = mutation({
 
     await Promise.all(
       connectedSeeds.map((seed) =>
-        ctx.db.patch(seed._id, {
+        ctx.db.patch("seeds", seed._id, {
           leagueId: undefined,
         }),
       ),
