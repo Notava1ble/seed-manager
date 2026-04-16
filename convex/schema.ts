@@ -22,7 +22,8 @@ export default defineSchema({
     hostLeagueId: v.optional(v.id("leagues")),
   })
     .index("email", ["email"])
-    .index("lowercase_name", ["lowercaseName"]),
+    .index("lowercase_name", ["lowercaseName"])
+    .index("by_status", ["status"]),
   leagues: defineTable({
     leagueNumber: v.number(),
     leagueName: v.string(), // Like "League 1"

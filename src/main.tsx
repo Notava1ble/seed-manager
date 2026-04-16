@@ -45,8 +45,9 @@ createRoot(document.getElementById("root")!).render(
             <Route path="admin" element={<AdminLayout />}>
               <Route index element={<AdminIndexPage />} />
 
-              <Route path="users" element={<AdminUsersPage />} />
-              <Route path="users/:userId" element={<AdminUserDetailsPage />} />
+              <Route path="users" element={<AdminUsersPage />}>
+                <Route path=":userId" element={<AdminUserDetailsPage />} />
+              </Route>
 
               <Route path="seeds" element={<AdminSeedsPage />} />
               <Route path="seeds/:seedId" element={<AdminSeedDetailsPage />} />
