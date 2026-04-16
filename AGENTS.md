@@ -2,7 +2,7 @@ ALWAYS USE BUN WHEN POSSIBLE.
 
 When prompted to brainstorm, use short, concise and meaningful ideas, rather than fully planned responses. Ask questions, and ecourage collaboration. Keep the response relatively short.
 
-For project overview and usage, read `seed-manager-routing.plan.md` and `seed-manager-v1.plan.md`.
+For project overview and usage, read `seed-manager-routing.plan.md` and `seed-manager-v1.plan.md`..
 
 <!-- convex-ai-start -->
 
