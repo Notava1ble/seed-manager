@@ -23,6 +23,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import AddSeedDialog from "@/components/dialogs/AddSeedDialog";
 import { getSeedCountLabel } from "@/lib/utils";
+import { SEED_TYPES } from "@/lib/consts";
 
 const placeholder = () => undefined;
 
@@ -88,7 +89,8 @@ export function AdminSeedsPage() {
                 <TableHead className="border-r">End</TableHead>
                 <TableHead className="border-r">RNG</TableHead>
                 <TableHead className="border-r">League</TableHead>
-                <TableHead className="border-r text-right">Score</TableHead>
+                <TableHead className="border-r">Status</TableHead>
+                <TableHead className="border-r">Rating</TableHead>
                 <TableHead className="border-r text-right">Comments</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -97,7 +99,7 @@ export function AdminSeedsPage() {
               {seeds.map((seed) => (
                 <TableRow key={seed._id}>
                   <TableCell className="border-r font-medium">
-                    {seed.type}
+                    {seed.type ? SEED_TYPES[seed.type] : "Unspecified"}
                   </TableCell>
                   <TableCell className="max-w-48 truncate border-r font-mono text-muted-foreground">
                     {seed.overworld}
@@ -113,10 +115,18 @@ export function AdminSeedsPage() {
                   </TableCell>
                   <TableCell className="max-w-48 truncate border-r font-mono text-muted-foreground">
                     {leagues?.find((l) => l._id === seed.leagueId)
-                      ?.leagueName ?? "Unspecified"}
+                      ?.leagueName ?? "Unassigned"}
                   </TableCell>
-                  <TableCell className="border-r text-right tabular-nums">
-                    {seed.upvoteCount - seed.downvoteCount}
+                  <TableCell className="border-r">
+                    <SeedStatusBadge
+                      isUsed={seed.isUsed}
+                      leagueId={seed.leagueId}
+                      claimedBy={seed.claimedBy}
+                      rating={seed.rating}
+                    />
+                  </TableCell>
+                  <TableCell className="border-r">
+                    <SeedRatingBadge rating={seed.rating} />
                   </TableCell>
                   <TableCell className="border-r text-right tabular-nums">
                     {seed.commentCount}
@@ -165,7 +175,8 @@ function AdminSeedTableSkeleton() {
             <TableHead className="border-r">End</TableHead>
             <TableHead className="border-r">RNG</TableHead>
             <TableHead className="border-r">League</TableHead>
-            <TableHead className="border-r text-right">Score</TableHead>
+            <TableHead className="border-r">Status</TableHead>
+            <TableHead className="border-r">Rating</TableHead>
             <TableHead className="border-r text-right">Comments</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -177,22 +188,25 @@ function AdminSeedTableSkeleton() {
                 <Skeleton className="h-5 w-24" />
               </TableCell>
               <TableCell className="border-r">
-                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-5 w-32" />
               </TableCell>
               <TableCell className="border-r">
-                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-5 w-32" />
               </TableCell>
               <TableCell className="border-r">
-                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-5 w-32" />
               </TableCell>
               <TableCell className="border-r">
-                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-5 w-32" />
               </TableCell>
               <TableCell className="border-r">
                 <Skeleton className="h-5 w-32" />
               </TableCell>
               <TableCell className="border-r">
                 <Skeleton className="ml-auto h-5 w-8" />
+              </TableCell>
+              <TableCell className="border-r">
+                <Skeleton className="h-5 w-16" />
               </TableCell>
               <TableCell className="border-r">
                 <Skeleton className="ml-auto h-5 w-8" />
@@ -208,5 +222,47 @@ function AdminSeedTableSkeleton() {
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+function SeedStatusBadge({
+  isUsed,
+  leagueId,
+  claimedBy,
+  rating,
+}: {
+  isUsed: boolean;
+  leagueId?: string;
+  claimedBy?: string;
+  rating?: "Good" | "Bad";
+}) {
+  if (isUsed) {
+    return <Badge variant="outline">Used</Badge>;
+  }
+
+  if (leagueId) {
+    return <Badge variant="secondary">Assigned</Badge>;
+  }
+
+  if (rating === "Bad") {
+    return <Badge variant="destructive">Rejected</Badge>;
+  }
+
+  if (claimedBy) {
+    return <Badge variant="outline">Claimed</Badge>;
+  }
+
+  return <Badge variant="outline">Unassigned</Badge>;
+}
+
+function SeedRatingBadge({ rating }: { rating?: "Good" | "Bad" }) {
+  if (!rating) {
+    return <Badge variant="outline">Unrated</Badge>;
+  }
+
+  return (
+    <Badge variant={rating === "Good" ? "secondary" : "destructive"}>
+      {rating}
+    </Badge>
   );
 }

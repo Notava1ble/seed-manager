@@ -1,57 +1,57 @@
-import { ArrowBigDown, ArrowBigUp, MessageCircle } from "lucide-react";
+import { MessageCircle, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
-type SeedFeedbackActionsProps = {
-  upvotes: number;
-  downvotes: number;
+export type SeedRating = "Good" | "Bad";
+
+type SeedRatingActionsProps = {
+  rating?: SeedRating;
   comments: number;
+  canEditRating?: boolean;
   className?: string;
-  onUpvote?: () => void;
-  onDownvote?: () => void;
+  onRatingChange?: (rating: SeedRating) => void;
   onComment?: () => void;
 };
 
-export function SeedVoting({
-  upvotes,
-  downvotes,
+export function SeedRatingActions({
+  rating,
   comments,
+  canEditRating = false,
   className,
-  onUpvote,
-  onDownvote,
+  onRatingChange,
   onComment,
-}: SeedFeedbackActionsProps) {
+}: SeedRatingActionsProps) {
   return (
-    <div className="flex items-center gap-3 w-full justify-between">
-      <ButtonGroup
-        aria-label="Seed feedback actions"
+    <div className="flex w-full items-center justify-between gap-3">
+      <ToggleGroup
+        aria-label="Seed rating"
         className={cn("shadow-xs", className)}
+        disabled={!canEditRating}
+        onValueChange={(value) => {
+          const nextRating = value[value.length - 1];
+
+          if (nextRating !== "Good" && nextRating !== "Bad") {
+            return;
+          }
+
+          if (nextRating !== rating) {
+            onRatingChange?.(nextRating);
+          }
+        }}
+        value={rating ? [rating] : []}
+        variant="outline"
       >
-        <Button
-          aria-label={`Upvote seed. ${upvotes} upvotes`}
-          onClick={onUpvote}
-          size="lg"
-          type="button"
-          variant="outline"
-        >
-          <ArrowBigUp data-icon="inline-start" />
-          <span className="tabular-nums">{upvotes}</span>
-          <span className="sr-only">upvotes</span>
-        </Button>
-        <Button
-          aria-label={`Downvote seed. ${downvotes} downvotes`}
-          onClick={onDownvote}
-          size="lg"
-          type="button"
-          variant="outline"
-        >
-          <ArrowBigDown data-icon="inline-start" />
-          <span className="tabular-nums">{downvotes}</span>
-          <span className="sr-only">downvotes</span>
-        </Button>
-      </ButtonGroup>
+        <ToggleGroupItem aria-label="Mark seed good" size="lg" value="Good">
+          <ThumbsUp data-icon="inline-start" />
+          Good
+        </ToggleGroupItem>
+        <ToggleGroupItem aria-label="Mark seed bad" size="lg" value="Bad">
+          <ThumbsDown data-icon="inline-start" />
+          Bad
+        </ToggleGroupItem>
+      </ToggleGroup>
       <Button
         aria-label={`Open comments. ${comments} comments`}
         onClick={onComment}

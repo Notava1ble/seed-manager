@@ -31,6 +31,8 @@ export default defineSchema({
   }).index("by_leagueNumber", ["leagueNumber"]),
   seeds: defineTable({
     leagueId: v.optional(v.id("leagues")),
+    claimedBy: v.optional(v.id("users")),
+    rating: v.optional(v.union(v.literal("Good"), v.literal("Bad"))),
     overworld: v.string(),
     nether: v.string(),
     end: v.string(),
@@ -46,24 +48,29 @@ export default defineSchema({
     ),
     addedBy: v.id("users"),
     isUsed: v.boolean(),
-    usedAt: v.number(), // unix time
-    usedBy: v.id("users"),
-    upvoteCount: v.number(),
-    downvoteCount: v.number(),
+    usedAt: v.optional(v.number()), // unix time
+    usedBy: v.optional(v.id("users")),
     commentCount: v.number(),
   })
     .index("by_owseed", ["overworld"])
     .index("by_leagueId", ["leagueId"])
-    .index("by_leagueId_and_isUsed", ["leagueId", "isUsed"]),
+    .index("by_leagueId_and_isUsed", ["leagueId", "isUsed"])
+    .index("by_leagueId_and_rating_and_isUsed", [
+      "leagueId",
+      "rating",
+      "isUsed",
+    ])
+    .index("by_claimedBy_and_rating", ["claimedBy", "rating"])
+    .index("by_leagueId_and_claimedBy_and_rating_and_isUsed", [
+      "leagueId",
+      "claimedBy",
+      "rating",
+      "isUsed",
+    ]),
   comments: defineTable({
     seedId: v.id("seeds"),
     author: v.id("users"),
     body: v.string(),
     createdAt: v.number(), // unix time
-  }),
-  votes: defineTable({
-    seedId: v.id("seeds"),
-    author: v.id("users"),
-    voteType: v.union(v.literal("upvote"), v.literal("downvote")),
   }),
 });

@@ -1,5 +1,6 @@
 import { useQuery } from "convex/react";
-import { ArrowUp, MessageCircle, Sprout } from "lucide-react";
+import { MessageCircle, ShieldCheck, Sprout, TimerReset } from "lucide-react";
+import { useState } from "react";
 import { Outlet, useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
@@ -15,27 +16,51 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Switch } from "@/components/ui/switch";
 import { SEED_TYPES } from "@/lib/consts";
 import { cn } from "@/lib/utils";
 
 export function LeaguePage() {
   const { leagueId } = useParams();
   const navigate = useNavigate();
+  const [showAllAssigned, setShowAllAssigned] = useState(false);
   const selectedLeagueId = leagueId as Id<"leagues"> | undefined;
   const seeds = useQuery(
     api.seeds.listSeedsByLeague,
-    selectedLeagueId ? { leagueId: selectedLeagueId } : "skip",
+    selectedLeagueId ? { leagueId: selectedLeagueId, showAllAssigned } : "skip",
   );
 
   return (
     <div className="flex h-full min-h-0 gap-6">
-      <section className="flex min-h-0 flex-1 flex-col gap-4">
+      <section className="flex min-h-0 flex-9 flex-col gap-4">
+        <Field orientation="horizontal" className="items-center justify-end">
+          <Switch
+            checked={showAllAssigned}
+            id="show-all-assigned-seeds"
+            onCheckedChange={setShowAllAssigned}
+          />
+          <FieldContent>
+            <FieldLabel htmlFor="show-all-assigned-seeds">
+              Show all assigned seeds
+            </FieldLabel>
+            <FieldDescription>
+              Include used seeds and seeds currently marked bad.
+            </FieldDescription>
+          </FieldContent>
+        </Field>
+
         {seeds === undefined ? (
           <SeedTableSkeleton />
         ) : (
@@ -49,7 +74,7 @@ export function LeaguePage() {
       </section>
 
       <Separator orientation="vertical" />
-      <aside className="min-w-0 flex-1 p-2">
+      <aside className="min-w-0 flex-3 p-2">
         <Outlet />
       </aside>
     </div>
@@ -91,8 +116,11 @@ function SeedTable({
             <TableHead className="border-r">Nether</TableHead>
             <TableHead className="border-r">End</TableHead>
             <TableHead className="border-r">RNG</TableHead>
-            <TableHead className="w-12 border-r text-center">
-              <ArrowUp />
+            <TableHead className="w-20 border-r text-center">
+              <TimerReset />
+            </TableHead>
+            <TableHead className="w-20 border-r text-center">
+              <ShieldCheck />
             </TableHead>
             <TableHead className="w-12 text-center">
               <MessageCircle />
@@ -116,8 +144,11 @@ function SeedTable({
                 <SeedValueCell value={seed.nether} />
                 <SeedValueCell value={seed.end} />
                 <SeedValueCell value={seed.rng} />
-                <TableCell className="border-r text-center tabular-nums">
-                  {seed.upvoteCount - seed.downvoteCount}
+                <TableCell className="border-r text-center">
+                  <SeedUsedBadge isUsed={seed.isUsed} />
+                </TableCell>
+                <TableCell className="border-r text-center">
+                  <SeedRatingBadge rating={seed.rating} />
                 </TableCell>
                 <TableCell className="text-center tabular-nums">
                   {seed.commentCount}
@@ -128,6 +159,22 @@ function SeedTable({
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+function SeedUsedBadge({ isUsed }: { isUsed: boolean }) {
+  return <Badge variant="outline">{isUsed ? "Used" : "Open"}</Badge>;
+}
+
+function SeedRatingBadge({ rating }: { rating?: "Good" | "Bad" }) {
+  if (!rating) {
+    return <Badge variant="outline">Unrated</Badge>;
+  }
+
+  return (
+    <Badge variant={rating === "Good" ? "secondary" : "destructive"}>
+      {rating}
+    </Badge>
   );
 }
 
@@ -145,8 +192,8 @@ function SeedTableSkeleton() {
       <Skeleton className="h-9 w-48" />
       <div className="overflow-hidden rounded-md border">
         <div className="flex flex-col gap-2 p-3">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <Skeleton key={index} className="h-9 w-full" />
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-8 w-full" />
           ))}
         </div>
       </div>

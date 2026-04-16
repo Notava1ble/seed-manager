@@ -1,9 +1,14 @@
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
 import { Sprout } from "lucide-react";
+import { useState } from "react";
 import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { SeedVoting } from "@/components/SeedFeedbackActions";
+import {
+  SeedRatingActions,
+  type SeedRating,
+} from "@/components/SeedFeedbackActions";
 import {
   Empty,
   EmptyDescription,
@@ -17,14 +22,37 @@ import { SEED_TYPES } from "@/lib/consts";
 
 export function SeedPage() {
   const { leagueId, seedId } = useParams();
+  const [ratingError, setRatingError] = useState<string | null>(null);
   const selectedLeagueId = leagueId as Id<"leagues"> | undefined;
   const selectedSeedId = seedId as Id<"seeds"> | undefined;
+  const user = useQuery(api.users.currentUser);
   const seed = useQuery(
     api.seeds.getSeedForLeague,
-    selectedLeagueId && selectedSeedId ? { seedId: selectedSeedId } : "skip",
+    selectedLeagueId && selectedSeedId
+      ? { leagueId: selectedLeagueId, seedId: selectedSeedId }
+      : "skip",
   );
+  const updateSeedRating = useMutation(api.seeds.updateSeedRating);
 
-  if (seed === undefined) {
+  const handleRatingChange = async (rating: SeedRating) => {
+    if (!selectedSeedId) {
+      return;
+    }
+
+    setRatingError(null);
+
+    try {
+      await updateSeedRating({ seedId: selectedSeedId, rating });
+    } catch (error) {
+      setRatingError(
+        error instanceof ConvexError
+          ? error.data.message
+          : "Could not update this seed's rating",
+      );
+    }
+  };
+
+  if (seed === undefined || user === undefined) {
     return <SeedDetailsSkeleton />;
   }
 
@@ -65,14 +93,48 @@ export function SeedPage() {
       </div>
 
       <div className="pt-2">
-        <SeedVoting
+        <SeedRatingActions
+          canEditRating={canEditRating(seed, user)}
           comments={seed.commentCount}
-          downvotes={seed.downvoteCount}
-          upvotes={seed.upvoteCount}
+          onRatingChange={(rating) => {
+            void handleRatingChange(rating);
+          }}
+          rating={seed.rating}
         />
       </div>
+      {ratingError && <p className="text-xs text-destructive">{ratingError}</p>}
       {/* TODO: Comments section */}
     </div>
+  );
+}
+
+function canEditRating(
+  seed: {
+    claimedBy?: Id<"users">;
+    leagueId?: Id<"leagues">;
+  },
+  user: {
+    _id: Id<"users">;
+    roles: Array<"admin" | "host" | "tester">;
+    hostLeagueId?: Id<"leagues">;
+  } | null,
+) {
+  if (!user) {
+    return false;
+  }
+
+  if (user.roles.includes("admin")) {
+    return true;
+  }
+
+  if (seed.claimedBy === user._id) {
+    return true;
+  }
+
+  return (
+    seed.leagueId !== undefined &&
+    user.roles.includes("host") &&
+    seed.leagueId === user.hostLeagueId
   );
 }
 
