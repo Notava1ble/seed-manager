@@ -3,6 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
   Table,
   TableBody,
   TableCell,
@@ -10,11 +18,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Plus, Trash } from "lucide-react";
+import { Pencil, Plus, Sprout, Trash } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import AddSeedDialog from "@/components/dialogs/AddSeedDialog";
-import { LeagueTableSkeleton } from "@/components/LeagueTable";
 import { getSeedCountLabel } from "@/lib/utils";
 
 const placeholder = () => undefined;
@@ -56,7 +63,21 @@ export function AdminSeedsPage() {
         </div>
       </div>
 
-      {!isLoading ? (
+      {isLoading ? (
+        <AdminSeedTableSkeleton />
+      ) : seeds.length === 0 ? (
+        <Empty className="min-h-72">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Sprout />
+            </EmptyMedia>
+            <EmptyTitle>No seeds yet</EmptyTitle>
+            <EmptyDescription>
+              Add seeds to start review and league assignment.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : (
         <div className="overflow-hidden rounded-md border">
           <Table>
             <TableHeader>
@@ -127,9 +148,65 @@ export function AdminSeedsPage() {
             </TableBody>
           </Table>
         </div>
-      ) : (
-        <LeagueTableSkeleton />
       )}
     </section>
+  );
+}
+
+function AdminSeedTableSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-md border" aria-busy="true">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="border-r text-left">Seed Type</TableHead>
+            <TableHead className="border-r">Overworld</TableHead>
+            <TableHead className="border-r">Nether</TableHead>
+            <TableHead className="border-r">End</TableHead>
+            <TableHead className="border-r">RNG</TableHead>
+            <TableHead className="border-r">League</TableHead>
+            <TableHead className="border-r text-right">Score</TableHead>
+            <TableHead className="border-r text-right">Comments</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <TableRow key={index}>
+              <TableCell className="border-r">
+                <Skeleton className="h-5 w-24" />
+              </TableCell>
+              <TableCell className="border-r">
+                <Skeleton className="h-5 w-40" />
+              </TableCell>
+              <TableCell className="border-r">
+                <Skeleton className="h-5 w-40" />
+              </TableCell>
+              <TableCell className="border-r">
+                <Skeleton className="h-5 w-40" />
+              </TableCell>
+              <TableCell className="border-r">
+                <Skeleton className="h-5 w-40" />
+              </TableCell>
+              <TableCell className="border-r">
+                <Skeleton className="h-5 w-32" />
+              </TableCell>
+              <TableCell className="border-r">
+                <Skeleton className="ml-auto h-5 w-8" />
+              </TableCell>
+              <TableCell className="border-r">
+                <Skeleton className="ml-auto h-5 w-8" />
+              </TableCell>
+              <TableCell>
+                <div className="flex justify-end gap-1">
+                  <Skeleton className="size-7" />
+                  <Skeleton className="size-7" />
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
