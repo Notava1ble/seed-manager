@@ -1,0 +1,5 @@
+- [ ] Implement the seed quick actions as a dropdown for admins, and the seed detail where they can view most information
+- [ ] Implement the ability for hosts and admins to mark a seed as used
+- [ ] Implement comments (not required for beta release)
+- [ ] Implement user invitations and management (!IMPORTANT)
+- [ ] Admin dashboard and the user dashbaord can be left for later.

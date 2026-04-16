@@ -257,6 +257,13 @@ export const vouchSeed = mutation({
       });
     }
 
+    if (!canViewLeague(user, league)) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "You cannot assign seeds to this league",
+      });
+    }
+
     const isNewLeagueAssignment = seed.leagueId === undefined;
 
     await ctx.db.patch("seeds", seed._id, {
@@ -354,7 +361,9 @@ export const importSeeds = mutation({
         end: seed.end,
         rng: seed.rng,
         type: seed.type,
-        ...(seed.leagueId ? { leagueId: seed.leagueId } : {}),
+        ...(seed.leagueId
+          ? { leagueId: seed.leagueId, rating: "Good" as const }
+          : {}),
         addedBy: user._id,
         isUsed: false,
         commentCount: 0,
