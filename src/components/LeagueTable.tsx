@@ -132,22 +132,22 @@ export function LeagueTable({ leagues }: { leagues: Doc<"leagues">[] }) {
               <TableCell className="border-r">
                 <Badge variant="secondary">League {league.leagueNumber}</Badge>
               </TableCell>
-              <TableCell className="font-medium border-r">
+              <TableCell className="font-medium border-r font-mono">
                 {league.leagueName}
               </TableCell>
-              <TableCell className="text-left tabular-nums border-r">
+              <TableCell className="text-left tabular-nums border-r font-mono">
                 {league.seedCount}
               </TableCell>
-              <TableCell className="text-left tabular-nums border-r">
+              <TableCell className="text-left tabular-nums border-r font-mono">
                 {league.usedSeedCount}
               </TableCell>
-              <TableCell className="text-left tabular-nums border-r">
+              <TableCell className="text-left tabular-nums border-r font-mono">
                 {league.seedCount - league.usedSeedCount}
               </TableCell>
-              <TableCell className="truncate font-mono text-muted-foreground border-r">
+              <TableCell className="truncate text-muted-foreground border-r font-mono">
                 {league._id}
               </TableCell>
-              <TableCell className="flex gap-1 justify-end">
+              <TableCell className="flex gap-1 justify-end font-mono">
                 <Button
                   aria-label={`Edit ${league.leagueName}`}
                   variant="ghost"
