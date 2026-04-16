@@ -67,7 +67,7 @@ export function AdminSeedsPage() {
       {isLoading ? (
         <AdminSeedTableSkeleton />
       ) : seeds.length === 0 ? (
-        <Empty className="min-h-72">
+        <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <Sprout />
