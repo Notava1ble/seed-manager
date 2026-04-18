@@ -120,15 +120,20 @@ function ManagedUserForm({
   user: Doc<"users">;
 }) {
   const updateManagedUser = useMutation(api.users.updateManagedUser);
-  const [roles, setRoles] = useState<ManagedRole[]>(getManagedRoles(user));
+  const savedValues = useMemo(() => getManagedUserValues(user), [user]);
+  const [roles, setRoles] = useState<ManagedRole[]>(savedValues.roles);
   const [homeLeagueId, setHomeLeagueId] = useState<Id<"leagues"> | null>(
-    user.homeLeagueId ?? null,
+    savedValues.homeLeagueId,
   );
   const [hostLeagueId, setHostLeagueId] = useState<Id<"leagues"> | null>(
-    user.hostLeagueId ?? null,
+    savedValues.hostLeagueId,
   );
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const hasChanges =
+    !haveSameManagedRoles(roles, savedValues.roles) ||
+    homeLeagueId !== savedValues.homeLeagueId ||
+    hostLeagueId !== savedValues.hostLeagueId;
 
   const setRole = (role: ManagedRole, checked: boolean) => {
     setRoles((currentRoles) => {
@@ -144,6 +149,11 @@ function ManagedUserForm({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (!hasChanges || isSubmitting) {
+      return;
+    }
+
     setFormError(null);
     setIsSubmitting(true);
 
@@ -159,6 +169,13 @@ function ManagedUserForm({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const resetChanges = () => {
+    setFormError(null);
+    setRoles(savedValues.roles);
+    setHomeLeagueId(savedValues.homeLeagueId);
+    setHostLeagueId(savedValues.hostLeagueId);
   };
 
   return (
@@ -276,10 +293,20 @@ function ManagedUserForm({
 
       <FieldError>{formError}</FieldError>
 
-      <Button disabled={isSubmitting} type="submit">
-        <UserCog data-icon="inline-start" />
-        {isSubmitting ? "Saving..." : "Save changes"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button disabled={isSubmitting || !hasChanges} type="submit">
+          <UserCog data-icon="inline-start" />
+          {isSubmitting ? "Saving..." : "Save changes"}
+        </Button>
+        <Button
+          disabled={isSubmitting || !hasChanges}
+          onClick={resetChanges}
+          type="button"
+          variant="outline"
+        >
+          Reset changes
+        </Button>
+      </div>
     </form>
   );
 }
@@ -366,6 +393,24 @@ function UserDetailsSkeleton() {
 
 function getManagedRoles(user: Doc<"users">): ManagedRole[] {
   return user.roles.filter(isManagedRole);
+}
+
+function getManagedUserValues(user: Doc<"users">) {
+  return {
+    roles: getManagedRoles(user),
+    homeLeagueId: user.homeLeagueId ?? null,
+    hostLeagueId: user.hostLeagueId ?? null,
+  };
+}
+
+function haveSameManagedRoles(
+  firstRoles: ManagedRole[],
+  secondRoles: ManagedRole[],
+) {
+  return (
+    firstRoles.length === secondRoles.length &&
+    firstRoles.every((role) => secondRoles.includes(role))
+  );
 }
 
 function isManagedRole(role: unknown): role is ManagedRole {
