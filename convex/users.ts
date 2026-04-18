@@ -1,12 +1,7 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
-import {
-  mutation,
-  query,
-  type MutationCtx,
-  type QueryCtx,
-} from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { getUser, requireAdmin } from "./lib/permissions";
 
 const MAX_ACTIVE_USER_LIST_COUNT = 1000;
 
@@ -16,14 +11,6 @@ const MANAGED_ROLE_ORDER = ["host", "tester"] as const;
 
 type UserRole = (typeof ALL_ROLE_ORDER)[number];
 type ManagedRole = (typeof MANAGED_ROLE_ORDER)[number];
-
-export async function getUser(ctx: QueryCtx | MutationCtx) {
-  const userId = await getAuthUserId(ctx);
-  if (userId === null) {
-    return null;
-  }
-  return await ctx.db.get("users", userId);
-}
 
 export const currentUser = query({
   args: {},
@@ -35,7 +22,7 @@ export const currentUser = query({
 export const listActiveUsers = query({
   args: {},
   handler: async (ctx) => {
-    await requireAdminUser(ctx);
+    await requireAdmin(ctx);
 
     const users = await ctx.db
       .query("users")
@@ -55,7 +42,7 @@ export const activateUserByGithubUsername = mutation({
     hostLeagueId: v.optional(v.id("leagues")),
   },
   handler: async (ctx, args) => {
-    await requireAdminUser(ctx);
+    await requireAdmin(ctx);
 
     const lowercaseName = normalizeGithubUsername(args.username);
     const user = await ctx.db
@@ -106,7 +93,7 @@ export const updateManagedUser = mutation({
     hostLeagueId: v.optional(v.id("leagues")),
   },
   handler: async (ctx, args) => {
-    await requireAdminUser(ctx);
+    await requireAdmin(ctx);
 
     const user = await ctx.db.get("users", args.userId);
 
@@ -153,26 +140,6 @@ function normalizeGithubUsername(username: string) {
   }
 
   return lowercaseName;
-}
-
-async function requireAdminUser(ctx: QueryCtx | MutationCtx) {
-  const user = await getUser(ctx);
-
-  if (!user) {
-    throw new ConvexError({
-      code: "UNAUTHORIZED",
-      message: "Sign in required",
-    });
-  }
-
-  if (user.status !== "active" || !user.roles.includes("admin")) {
-    throw new ConvexError({
-      code: "FORBIDDEN",
-      message: "Admin access required",
-    });
-  }
-
-  return user;
 }
 
 async function assertLeagueExists(

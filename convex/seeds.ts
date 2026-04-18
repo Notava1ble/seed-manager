@@ -488,7 +488,7 @@ async function normalizeSeeds(ctx: MutationCtx, seeds: SeedUploadInput[]) {
   const leagues = await Promise.all(
     Array.from(uniqueLeagueIds).map((l) => ctx.db.get("leagues", l)),
   );
-  if (leagues.length !== uniqueLeagueIds.size) {
+  if (leagues.some((league) => league === null)) {
     throw new ConvexError({
       code: "LEAGUE_NOT_EXIST",
       message: "The requested league id does not exist",

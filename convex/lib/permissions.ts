@@ -1,7 +1,16 @@
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
-import { QueryCtx, MutationCtx } from "../_generated/server";
-import { getUser } from "../users";
-import { Doc } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+
+export async function getUser(ctx: QueryCtx | MutationCtx) {
+  const userId = await getAuthUserId(ctx);
+  if (userId === null) {
+    return null;
+  }
+
+  return await ctx.db.get("users", userId);
+}
 
 export function canViewLeague(
   user: Doc<"users">,
