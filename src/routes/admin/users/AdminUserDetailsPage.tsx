@@ -1,14 +1,14 @@
 import { type FormEvent, type ReactNode, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { ShieldAlert, UserCog, Users } from "lucide-react";
 import { useParams } from "react-router";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
+import { LeagueAccessSelect } from "@/components/LeagueAccessSelect";
+import { ManagedRoleFields } from "@/components/ManagedRoleFields";
+import { UserRoleBadges } from "@/components/UserRoleBadges";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Empty,
   EmptyDescription,
@@ -17,32 +17,20 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import {
-  Field,
-  FieldContent,
-  FieldDescription,
   FieldError,
   FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
 } from "@/components/ui/field";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getErrorMessage } from "@/lib/errors";
+import {
+  getLeagueLabel,
+  getManagedUserValues,
+  getUserLabel,
+  haveSameManagedRoles,
+  type ManagedRole,
+} from "@/lib/userAccess";
 import { cn, sortLeaguesByNumberAndName } from "@/lib/utils";
-
-type ManagedRole = "host" | "tester";
-type UserRole = "admin" | ManagedRole;
-
-const EMPTY_LEAGUE_VALUE = null;
 
 export function AdminUserDetailsPage() {
   const { userId } = useParams();
@@ -135,18 +123,6 @@ function ManagedUserForm({
     homeLeagueId !== savedValues.homeLeagueId ||
     hostLeagueId !== savedValues.hostLeagueId;
 
-  const setRole = (role: ManagedRole, checked: boolean) => {
-    setRoles((currentRoles) => {
-      if (checked) {
-        return currentRoles.includes(role)
-          ? currentRoles
-          : [...currentRoles, role];
-      }
-
-      return currentRoles.filter((currentRole) => currentRole !== role);
-    });
-  };
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -184,111 +160,33 @@ function ManagedUserForm({
       onSubmit={(event) => void handleSubmit(event)}
     >
       <FieldGroup>
-        <FieldSet>
-          <FieldLegend>Roles</FieldLegend>
-          <FieldDescription>
-            Admin access is not editable here.
-          </FieldDescription>
-          <FieldGroup data-slot="checkbox-group">
-            <Field orientation="horizontal">
-              <Checkbox
-                checked={roles.includes("tester")}
-                disabled={isSubmitting}
-                id="managed-role-tester"
-                onCheckedChange={(checked) =>
-                  setRole("tester", checked === true)
-                }
-              />
-              <FieldContent>
-                <FieldLabel htmlFor="managed-role-tester">Tester</FieldLabel>
-                <FieldDescription>
-                  Can claim and review unassigned seeds.
-                </FieldDescription>
-              </FieldContent>
-            </Field>
+        <ManagedRoleFields
+          description="Admin access is not editable here."
+          disabled={isSubmitting}
+          idPrefix="managed"
+          onRolesChange={setRoles}
+          roles={roles}
+        />
 
-            <Field orientation="horizontal">
-              <Checkbox
-                checked={roles.includes("host")}
-                disabled={isSubmitting}
-                id="managed-role-host"
-                onCheckedChange={(checked) => setRole("host", checked === true)}
-              />
-              <FieldContent>
-                <FieldLabel htmlFor="managed-role-host">Host</FieldLabel>
-                <FieldDescription>
-                  Can manage seeds in their host league.
-                </FieldDescription>
-              </FieldContent>
-            </Field>
-          </FieldGroup>
-        </FieldSet>
+        <LeagueAccessSelect
+          description="A tester cannot see their home league through tester access."
+          disabled={isSubmitting}
+          id="managed-home-league"
+          label="Home league"
+          leagues={leagues}
+          onValueChange={setHomeLeagueId}
+          value={homeLeagueId}
+        />
 
-        <Field>
-          <FieldLabel htmlFor="managed-home-league">Home league</FieldLabel>
-          <Select
-            disabled={isSubmitting}
-            itemToStringLabel={(leagueId) =>
-              leagueId === null
-                ? "No league"
-                : (leagues.find((league) => league._id === leagueId)
-                    ?.leagueName ?? "Unknown league")
-            }
-            onValueChange={(nextValue) => setHomeLeagueId(nextValue)}
-            value={homeLeagueId}
-          >
-            <SelectTrigger id="managed-home-league" className="w-full">
-              <SelectValue placeholder="No league" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Home league</SelectLabel>
-                <SelectItem value={EMPTY_LEAGUE_VALUE}>No league</SelectItem>
-                {leagues.map((league) => (
-                  <SelectItem key={league._id} value={league._id}>
-                    {league.leagueName}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <FieldDescription>
-            A tester cannot see their home league through tester access.
-          </FieldDescription>
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor="managed-host-league">Host league</FieldLabel>
-          <Select
-            disabled={isSubmitting}
-            itemToStringLabel={(leagueId) =>
-              leagueId === null
-                ? "No league"
-                : (leagues.find((league) => league._id === leagueId)
-                    ?.leagueName ?? "Unknown league")
-            }
-            onValueChange={(nextValue) => setHostLeagueId(nextValue)}
-            value={hostLeagueId}
-          >
-            <SelectTrigger id="managed-host-league" className="w-full">
-              <SelectValue placeholder="No league" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Host league</SelectLabel>
-                <SelectItem value={EMPTY_LEAGUE_VALUE}>No league</SelectItem>
-                {leagues.map((league) => (
-                  <SelectItem key={league._id} value={league._id}>
-                    {league.leagueName}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <FieldDescription>
-            A host can manage seeds only in their host league.
-          </FieldDescription>
-        </Field>
+        <LeagueAccessSelect
+          description="A host can manage seeds only in their host league."
+          disabled={isSubmitting}
+          id="managed-host-league"
+          label="Host league"
+          leagues={leagues}
+          onValueChange={setHostLeagueId}
+          value={hostLeagueId}
+        />
       </FieldGroup>
 
       <FieldError>{formError}</FieldError>
@@ -333,7 +231,7 @@ function UserIdentitySummary({
       <UserDetailValue
         className="col-span-2"
         label="Roles"
-        value={<RoleBadges roles={user.roles} />}
+        value={<UserRoleBadges roles={user.roles} />}
       />
     </div>
   );
@@ -356,25 +254,6 @@ function UserDetailValue({
   );
 }
 
-function RoleBadges({ roles }: { roles: UserRole[] }) {
-  if (roles.length === 0) {
-    return <Badge variant="outline">No roles</Badge>;
-  }
-
-  return (
-    <div className="flex flex-wrap gap-1">
-      {roles.map((role) => (
-        <Badge
-          key={role}
-          variant={role === "admin" ? "destructive" : "secondary"}
-        >
-          {role}
-        </Badge>
-      ))}
-    </div>
-  );
-}
-
 function UserDetailsSkeleton() {
   return (
     <div className="flex flex-col gap-4">
@@ -389,69 +268,4 @@ function UserDetailsSkeleton() {
       <Skeleton className="h-36 w-full" />
     </div>
   );
-}
-
-function getManagedRoles(user: Doc<"users">): ManagedRole[] {
-  return user.roles.filter(isManagedRole);
-}
-
-function getManagedUserValues(user: Doc<"users">) {
-  return {
-    roles: getManagedRoles(user),
-    homeLeagueId: user.homeLeagueId ?? null,
-    hostLeagueId: user.hostLeagueId ?? null,
-  };
-}
-
-function haveSameManagedRoles(
-  firstRoles: ManagedRole[],
-  secondRoles: ManagedRole[],
-) {
-  return (
-    firstRoles.length === secondRoles.length &&
-    firstRoles.every((role) => secondRoles.includes(role))
-  );
-}
-
-function isManagedRole(role: unknown): role is ManagedRole {
-  return role === "host" || role === "tester";
-}
-
-function getLeagueLabel(
-  leagues: Doc<"leagues">[],
-  leagueId: Id<"leagues"> | undefined,
-) {
-  if (!leagueId) {
-    return "No league";
-  }
-
-  return (
-    leagues.find((league) => league._id === leagueId)?.leagueName ??
-    "Unknown league"
-  );
-}
-
-function getUserLabel(user: Doc<"users">) {
-  return user.name ?? user.lowercaseName ?? user.email ?? "Unnamed user";
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof ConvexError) {
-    const data = error.data;
-
-    if (
-      typeof data === "object" &&
-      data !== null &&
-      "message" in data &&
-      typeof data.message === "string"
-    ) {
-      return data.message;
-    }
-  }
-
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return fallback;
 }

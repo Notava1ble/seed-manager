@@ -2,9 +2,8 @@ import { MessageCircle, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import type { SeedRating } from "@/lib/seedStatus";
 import { cn } from "@/lib/utils";
-
-export type SeedRating = "Good" | "Bad";
 
 type SeedRatingActionsProps = {
   rating?: SeedRating;

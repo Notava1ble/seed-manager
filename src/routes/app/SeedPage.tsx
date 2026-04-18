@@ -1,14 +1,13 @@
 import { useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { CheckCircle2, Sprout } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import {
-  SeedRatingActions,
-  type SeedRating,
-} from "@/components/SeedFeedbackActions";
+import { SeedRatingActions } from "@/components/SeedFeedbackActions";
+import { SeedRating } from "@/lib/seedStatus";
+import { SeedStatusBadge } from "@/components/SeedStatusBadge";
+import { SeedValueDisplay } from "@/components/SeedValueDisplay";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +17,6 @@ import {
   AlertDialogFooter,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -30,6 +28,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SEED_TYPES } from "@/lib/consts";
+import { getErrorMessage } from "@/lib/errors";
 
 export function SeedPage() {
   const { leagueId, seedId } = useParams();
@@ -60,9 +59,7 @@ export function SeedPage() {
       await updateSeedRating({ seedId: selectedSeedId, rating });
     } catch (error) {
       setRatingError(
-        error instanceof ConvexError
-          ? error.data.message
-          : "Could not update this seed's rating",
+        getErrorMessage(error, "Could not update this seed's rating"),
       );
     }
   };
@@ -79,11 +76,7 @@ export function SeedPage() {
       await markSeedUsed({ seedId: selectedSeedId });
       setIsMarkUsedDialogOpen(false);
     } catch (error) {
-      setUsedError(
-        error instanceof ConvexError
-          ? error.data.message
-          : "Could not mark this seed used",
-      );
+      setUsedError(getErrorMessage(error, "Could not mark this seed used"));
     } finally {
       setIsMarkingUsed(false);
     }
@@ -119,17 +112,17 @@ export function SeedPage() {
           <h2 className="text-2xl font-semibold">
             {seed.type ? SEED_TYPES[seed.type] : "Unspecified seed"}
           </h2>
-          {seed.isUsed && <Badge variant="outline">Used</Badge>}
+          {seed.isUsed && <SeedStatusBadge status="used" />}
         </div>
       </div>
 
       <Separator />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <SeedDetailValue label="Overworld" value={seed.overworld} />
-        <SeedDetailValue label="Nether" value={seed.nether} />
-        <SeedDetailValue label="End" value={seed.end} />
-        <SeedDetailValue label="RNG" value={seed.rng} />
+        <SeedValueDisplay label="Overworld" value={seed.overworld} />
+        <SeedValueDisplay label="Nether" value={seed.nether} />
+        <SeedValueDisplay label="End" value={seed.end} />
+        <SeedValueDisplay label="RNG" value={seed.rng} />
       </div>
 
       <div className="pt-2">
@@ -250,15 +243,6 @@ function canMarkUsed(
   }
 
   return user.roles.includes("host") && seed.leagueId === user.hostLeagueId;
-}
-
-function SeedDetailValue({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="truncate font-mono text-xs">{value}</p>
-    </div>
-  );
 }
 
 function SeedDetailsSkeleton() {

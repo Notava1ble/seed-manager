@@ -4,6 +4,7 @@ import { ShieldCheck, UserPlus, Users } from "lucide-react";
 import { Outlet, useNavigate, useParams } from "react-router";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
+import { UserRoleBadges } from "@/components/UserRoleBadges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -24,10 +25,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { getLeagueLabel, getUserLabel } from "@/lib/userAccess";
 import { cn, sortLeaguesByNumberAndName } from "@/lib/utils";
 import { InviteUserDialog } from "./InviteUserDialog";
-
-type UserRole = "admin" | "host" | "tester";
 
 export function AdminUsersPage() {
   const { userId } = useParams();
@@ -163,7 +163,7 @@ function AdminUsersTable({
                 {user.email ?? "No email"}
               </TableCell>
               <TableCell className="border-r">
-                <RoleBadges roles={user.roles} />
+                <UserRoleBadges roles={user.roles} />
               </TableCell>
               <TableCell className="border-r text-muted-foreground">
                 {getLeagueLabel(leagues, user.homeLeagueId)}
@@ -185,25 +185,6 @@ function AdminUsersTable({
           ))}
         </TableBody>
       </Table>
-    </div>
-  );
-}
-
-function RoleBadges({ roles }: { roles: UserRole[] }) {
-  if (roles.length === 0) {
-    return <Badge variant="outline">No roles</Badge>;
-  }
-
-  return (
-    <div className="flex flex-wrap gap-1">
-      {roles.map((role) => (
-        <Badge
-          key={role}
-          variant={role === "admin" ? "destructive" : "secondary"}
-        >
-          {role}
-        </Badge>
-      ))}
     </div>
   );
 }
@@ -252,24 +233,6 @@ function AdminUsersTableSkeleton() {
       </Table>
     </div>
   );
-}
-
-function getLeagueLabel(
-  leagues: Doc<"leagues">[],
-  leagueId: Id<"leagues"> | undefined,
-) {
-  if (!leagueId) {
-    return "No league";
-  }
-
-  return (
-    leagues.find((league) => league._id === leagueId)?.leagueName ??
-    "Unknown league"
-  );
-}
-
-function getUserLabel(user: Doc<"users">) {
-  return user.name ?? user.lowercaseName ?? user.email ?? "Unnamed user";
 }
 
 function getUserCountLabel(userCount: number) {

@@ -1,12 +1,12 @@
 import { type FormEvent, useState } from "react";
 import { useMutation } from "convex/react";
-import { ConvexError } from "convex/values";
 import { ShieldAlert } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
+import { LeagueAccessSelect } from "@/components/LeagueAccessSelect";
+import { ManagedRoleFields } from "@/components/ManagedRoleFields";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DialogClose,
   DialogContent,
@@ -22,24 +22,11 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
-  FieldLegend,
-  FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-
-type ManagedRole = "host" | "tester";
-
-const EMPTY_LEAGUE_VALUE = null;
+import { getErrorMessage } from "@/lib/errors";
+import type { ManagedRole } from "@/lib/userAccess";
 
 export function InviteUserDialog({
   leagues,
@@ -59,18 +46,6 @@ export function InviteUserDialog({
   const [hostLeagueId, setHostLeagueId] = useState<Id<"leagues"> | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const setRole = (role: ManagedRole, checked: boolean) => {
-    setRoles((currentRoles) => {
-      if (checked) {
-        return currentRoles.includes(role)
-          ? currentRoles
-          : [...currentRoles, role];
-      }
-
-      return currentRoles.filter((currentRole) => currentRole !== role);
-    });
-  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -138,113 +113,33 @@ export function InviteUserDialog({
             <FieldError>{usernameError}</FieldError>
           </Field>
 
-          <FieldSet>
-            <FieldLegend>Roles</FieldLegend>
-            <FieldDescription>
-              Choose tester and host access for this user.
-            </FieldDescription>
-            <FieldGroup data-slot="checkbox-group">
-              <Field orientation="horizontal">
-                <Checkbox
-                  checked={roles.includes("tester")}
-                  disabled={isSubmitting}
-                  id="invite-role-tester"
-                  onCheckedChange={(checked) =>
-                    setRole("tester", checked === true)
-                  }
-                />
-                <FieldContent>
-                  <FieldLabel htmlFor="invite-role-tester">Tester</FieldLabel>
-                  <FieldDescription>
-                    Can claim and review unassigned seeds.
-                  </FieldDescription>
-                </FieldContent>
-              </Field>
+          <ManagedRoleFields
+            description="Choose tester and host access for this user."
+            disabled={isSubmitting}
+            idPrefix="invite"
+            onRolesChange={setRoles}
+            roles={roles}
+          />
 
-              <Field orientation="horizontal">
-                <Checkbox
-                  checked={roles.includes("host")}
-                  disabled={isSubmitting}
-                  id="invite-role-host"
-                  onCheckedChange={(checked) =>
-                    setRole("host", checked === true)
-                  }
-                />
-                <FieldContent>
-                  <FieldLabel htmlFor="invite-role-host">Host</FieldLabel>
-                  <FieldDescription>
-                    Can manage seeds in their host league.
-                  </FieldDescription>
-                </FieldContent>
-              </Field>
-            </FieldGroup>
-          </FieldSet>
+          <LeagueAccessSelect
+            description="A tester cannot see their home league through tester access."
+            disabled={isSubmitting}
+            id="invite-home-league"
+            label="Home league"
+            leagues={leagues}
+            onValueChange={setHomeLeagueId}
+            value={homeLeagueId}
+          />
 
-          <Field>
-            <FieldLabel htmlFor="invite-home-league">Home league</FieldLabel>
-            <Select
-              disabled={isSubmitting}
-              itemToStringLabel={(leagueId) =>
-                leagueId === null
-                  ? "No league"
-                  : (leagues.find((league) => league._id === leagueId)
-                      ?.leagueName ?? "Unknown league")
-              }
-              onValueChange={(nextValue) => setHomeLeagueId(nextValue)}
-              value={homeLeagueId}
-            >
-              <SelectTrigger id="invite-home-league" className="w-full">
-                <SelectValue placeholder="No league" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Home league</SelectLabel>
-                  <SelectItem value={EMPTY_LEAGUE_VALUE}>No league</SelectItem>
-                  {leagues.map((league) => (
-                    <SelectItem key={league._id} value={league._id}>
-                      {league.leagueName}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <FieldDescription>
-              A tester cannot see their home league through tester access.
-            </FieldDescription>
-          </Field>
-
-          <Field>
-            <FieldLabel htmlFor="invite-host-league">Host league</FieldLabel>
-            <Select
-              disabled={isSubmitting}
-              itemToStringLabel={(leagueId) =>
-                leagueId === null
-                  ? "No league"
-                  : (leagues.find((league) => league._id === leagueId)
-                      ?.leagueName ?? "Unknown league")
-              }
-              onValueChange={(nextValue) => setHostLeagueId(nextValue)}
-              value={hostLeagueId}
-            >
-              <SelectTrigger id="invite-host-league" className="w-full">
-                <SelectValue placeholder="No league" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Host league</SelectLabel>
-                  <SelectItem value={EMPTY_LEAGUE_VALUE}>No league</SelectItem>
-                  {leagues.map((league) => (
-                    <SelectItem key={league._id} value={league._id}>
-                      {league.leagueName}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <FieldDescription>
-              A host can manage seeds only in their host league.
-            </FieldDescription>
-          </Field>
+          <LeagueAccessSelect
+            description="A host can manage seeds only in their host league."
+            disabled={isSubmitting}
+            id="invite-host-league"
+            label="Host league"
+            leagues={leagues}
+            onValueChange={setHostLeagueId}
+            value={hostLeagueId}
+          />
 
           <Field orientation="horizontal">
             <Switch
@@ -292,25 +187,4 @@ export function InviteUserDialog({
       </form>
     </DialogContent>
   );
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof ConvexError) {
-    const data = error.data;
-
-    if (
-      typeof data === "object" &&
-      data !== null &&
-      "message" in data &&
-      typeof data.message === "string"
-    ) {
-      return data.message;
-    }
-  }
-
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return fallback;
 }

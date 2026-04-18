@@ -1,8 +1,8 @@
-import { ConvexError } from "convex/values";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { SeedValueDisplay } from "@/components/SeedValueDisplay";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { getErrorMessage } from "@/lib/errors";
 
 export function AppIndexPage() {
   const [selectedLeagueId, setSelectedLeagueId] =
@@ -64,7 +65,7 @@ export function AppIndexPage() {
     try {
       await claimSeed({});
     } catch (claimError) {
-      setError(getConvexErrorMessage(claimError, "Could not claim a seed"));
+      setError(getErrorMessage(claimError, "Could not claim a seed"));
     } finally {
       setIsClaiming(false);
     }
@@ -88,7 +89,7 @@ export function AppIndexPage() {
       });
       setSelectedLeagueId(null);
     } catch (vouchError) {
-      setError(getConvexErrorMessage(vouchError, "Could not vouch this seed"));
+      setError(getErrorMessage(vouchError, "Could not vouch this seed"));
     } finally {
       setIsVouching(false);
     }
@@ -140,10 +141,13 @@ export function AppIndexPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-y-4 pt-4 sm:grid-cols-4">
-                  <SeedValue label="Overworld" value={claimedSeed.overworld} />
-                  <SeedValue label="Nether" value={claimedSeed.nether} />
-                  <SeedValue label="End" value={claimedSeed.end} />
-                  <SeedValue label="RNG" value={claimedSeed.rng} />
+                  <SeedValueDisplay
+                    label="Overworld"
+                    value={claimedSeed.overworld}
+                  />
+                  <SeedValueDisplay label="Nether" value={claimedSeed.nether} />
+                  <SeedValueDisplay label="End" value={claimedSeed.end} />
+                  <SeedValueDisplay label="RNG" value={claimedSeed.rng} />
                 </div>
               </div>
 
@@ -229,17 +233,4 @@ export function AppIndexPage() {
       </Card>
     </div>
   );
-}
-
-function SeedValue({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="truncate font-mono text-xs">{value}</p>
-    </div>
-  );
-}
-
-function getConvexErrorMessage(error: unknown, fallback: string) {
-  return error instanceof ConvexError ? error.data.message : fallback;
 }

@@ -11,7 +11,7 @@ import {
   sanitizeLeagueNumber,
   validateLeagueForm,
 } from "@/lib/leagueFormUtils";
-import { ConvexError } from "convex/values";
+import { getErrorMessage } from "@/lib/errors";
 import {
   DialogClose,
   DialogContent,
@@ -77,10 +77,7 @@ export function EditLeagueDialog({
       closeDialog();
     } catch (error) {
       setErrors({
-        form:
-          error instanceof ConvexError
-            ? error.data.message
-            : "Could not update this league",
+        form: getErrorMessage(error, "Could not update this league"),
       });
     } finally {
       setIsSubmitting(false);

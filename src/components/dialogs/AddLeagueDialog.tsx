@@ -29,7 +29,7 @@ import {
   validateLeagueForm,
   type LeagueFormErrors,
 } from "../../lib/leagueFormUtils";
-import { ConvexError } from "convex/values";
+import { getErrorMessage } from "@/lib/errors";
 
 export function AddLeagueDialog({
   isOpen,
@@ -79,10 +79,7 @@ export function AddLeagueDialog({
       closeDialog();
     } catch (error) {
       setErrors({
-        form:
-          error instanceof ConvexError
-            ? error.data.message
-            : "Could not add this league",
+        form: getErrorMessage(error, "Could not add this league"),
       });
     } finally {
       setIsSubmitting(false);

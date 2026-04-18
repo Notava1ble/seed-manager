@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { SeedRatingBadge } from "@/components/SeedRatingBadge";
+import { SeedStatusBadge } from "@/components/SeedStatusBadge";
+import { SeedValueTableCell } from "@/components/SeedValueTableCell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -24,6 +27,7 @@ import { api } from "../../../../convex/_generated/api";
 import AddSeedDialog from "@/components/dialogs/AddSeedDialog";
 import { getSeedCountLabel } from "@/lib/utils";
 import { SEED_TYPES } from "@/lib/consts";
+import { getSeedStatus } from "@/lib/seedStatus";
 
 const placeholder = () => undefined;
 
@@ -101,29 +105,16 @@ export function AdminSeedsPage() {
                   <TableCell className="border-r font-medium">
                     {seed.type ? SEED_TYPES[seed.type] : "Unspecified"}
                   </TableCell>
-                  <TableCell className="max-w-48 truncate border-r font-mono text-muted-foreground">
-                    {seed.overworld}
-                  </TableCell>
-                  <TableCell className="max-w-48 truncate border-r font-mono text-muted-foreground">
-                    {seed.nether}
-                  </TableCell>
-                  <TableCell className="max-w-48 truncate border-r font-mono text-muted-foreground">
-                    {seed.end}
-                  </TableCell>
-                  <TableCell className="max-w-48 truncate border-r font-mono text-muted-foreground">
-                    {seed.rng}
-                  </TableCell>
+                  <SeedValueTableCell value={seed.overworld} />
+                  <SeedValueTableCell value={seed.nether} />
+                  <SeedValueTableCell value={seed.end} />
+                  <SeedValueTableCell value={seed.rng} />
                   <TableCell className="max-w-48 truncate border-r font-mono text-muted-foreground">
                     {leagues?.find((l) => l._id === seed.leagueId)
                       ?.leagueName ?? "Unassigned"}
                   </TableCell>
                   <TableCell className="border-r">
-                    <SeedStatusBadge
-                      isUsed={seed.isUsed}
-                      leagueId={seed.leagueId}
-                      claimedBy={seed.claimedBy}
-                      rating={seed.rating}
-                    />
+                    <SeedStatusBadge status={getSeedStatus(seed)} />
                   </TableCell>
                   <TableCell className="border-r">
                     <SeedRatingBadge rating={seed.rating} />
@@ -222,47 +213,5 @@ function AdminSeedTableSkeleton() {
         </TableBody>
       </Table>
     </div>
-  );
-}
-
-function SeedStatusBadge({
-  isUsed,
-  leagueId,
-  claimedBy,
-  rating,
-}: {
-  isUsed: boolean;
-  leagueId?: string;
-  claimedBy?: string;
-  rating?: "Good" | "Bad";
-}) {
-  if (isUsed) {
-    return <Badge variant="outline">Used</Badge>;
-  }
-
-  if (leagueId) {
-    return <Badge variant="secondary">Assigned</Badge>;
-  }
-
-  if (rating === "Bad") {
-    return <Badge variant="destructive">Rejected</Badge>;
-  }
-
-  if (claimedBy) {
-    return <Badge variant="outline">Claimed</Badge>;
-  }
-
-  return <Badge variant="outline">Unassigned</Badge>;
-}
-
-function SeedRatingBadge({ rating }: { rating?: "Good" | "Bad" }) {
-  if (!rating) {
-    return <Badge variant="outline">Unrated</Badge>;
-  }
-
-  return (
-    <Badge variant={rating === "Good" ? "secondary" : "destructive"}>
-      {rating}
-    </Badge>
   );
 }

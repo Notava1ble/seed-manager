@@ -4,6 +4,9 @@ import { useState } from "react";
 import { Outlet, useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
+import { SeedRatingBadge } from "@/components/SeedRatingBadge";
+import { SeedStatusBadge } from "@/components/SeedStatusBadge";
+import { SeedValueTableCell } from "@/components/SeedValueTableCell";
 import {
   Empty,
   EmptyDescription,
@@ -21,7 +24,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import {
   Field,
   FieldContent,
@@ -140,12 +142,12 @@ function SeedTable({
                 <TableCell className="border-r text-left font-medium">
                   {seed.type ? SEED_TYPES[seed.type] : "Unspecified"}
                 </TableCell>
-                <SeedValueCell value={seed.overworld} />
-                <SeedValueCell value={seed.nether} />
-                <SeedValueCell value={seed.end} />
-                <SeedValueCell value={seed.rng} />
+                <SeedValueTableCell value={seed.overworld} />
+                <SeedValueTableCell value={seed.nether} />
+                <SeedValueTableCell value={seed.end} />
+                <SeedValueTableCell value={seed.rng} />
                 <TableCell className="border-r text-center">
-                  <SeedUsedBadge isUsed={seed.isUsed} />
+                  <SeedStatusBadge status={seed.isUsed ? "used" : "open"} />
                 </TableCell>
                 <TableCell className="border-r text-center">
                   <SeedRatingBadge rating={seed.rating} />
@@ -159,30 +161,6 @@ function SeedTable({
         </TableBody>
       </Table>
     </div>
-  );
-}
-
-function SeedUsedBadge({ isUsed }: { isUsed: boolean }) {
-  return <Badge variant="outline">{isUsed ? "Used" : "Open"}</Badge>;
-}
-
-function SeedRatingBadge({ rating }: { rating?: "Good" | "Bad" }) {
-  if (!rating) {
-    return <Badge variant="outline">Unrated</Badge>;
-  }
-
-  return (
-    <Badge variant={rating === "Good" ? "secondary" : "destructive"}>
-      {rating}
-    </Badge>
-  );
-}
-
-function SeedValueCell({ value }: { value: string }) {
-  return (
-    <TableCell className="max-w-40 truncate border-r font-mono text-muted-foreground">
-      {value}
-    </TableCell>
   );
 }
 

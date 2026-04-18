@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SEED_TYPES, seedTypesArray } from "@/lib/consts";
+import { getErrorMessage } from "@/lib/errors";
 import {
   MAX_SEED_IMPORT_COUNT,
   preventNonNumericSeedInput,
@@ -41,7 +42,6 @@ import {
 import { validateManualSeedForm } from "@/lib/validators";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { ConvexError } from "convex/values";
 import { parseSeedJsonImportFile } from "@/lib/seedJsonImport";
 
 const EMPTY_SEED_FORM_VALUES: SeedFormValues = {
@@ -130,10 +130,7 @@ function AddSeedDialog({
 
     const validatedData = validateManualSeedForm.safeParse(preparedData);
     if (!validatedData.success) {
-      console.error(validatedData.error); // TODO: Properly set the error states
-      setManualErrors({
-        form: "Validation Errors occured. For more info, check the dev tools.",
-      });
+      setManualErrors(getManualSeedFormErrors(validatedData.error.issues));
       return;
     }
 
@@ -148,10 +145,7 @@ function AddSeedDialog({
       closeDialog();
     } catch (error) {
       setManualErrors({
-        form:
-          error instanceof ConvexError
-            ? error.data.message
-            : "Could not add this seed",
+        form: getErrorMessage(error, "Could not add this seed"),
       });
     } finally {
       // TODO: Add submitting state and disable inputs while submitting
@@ -205,9 +199,7 @@ function AddSeedDialog({
       setJsonImportResult(result);
     } catch (error) {
       setJsonImportError(
-        error instanceof ConvexError
-          ? error.data.message
-          : "Could not import seeds from this file",
+        getErrorMessage(error, "Could not import seeds from this file"),
       );
     } finally {
       setIsImportingJson(false);
@@ -521,6 +513,36 @@ function ErrorAlert({ title, message }: { title: string; message: string }) {
         {message}
       </AlertDescription>
     </Alert>
+  );
+}
+
+function getManualSeedFormErrors(
+  issues: Array<{ message: string; path: PropertyKey[] }>,
+) {
+  const errors: SeedFormErrors = {};
+
+  for (const issue of issues) {
+    const field = issue.path.find(isSeedFormField);
+
+    if (field) {
+      errors[field] ??= issue.message;
+      continue;
+    }
+
+    errors.form ??= issue.message;
+  }
+
+  return errors;
+}
+
+function isSeedFormField(value: unknown): value is keyof SeedFormValues {
+  return (
+    value === "type" ||
+    value === "leagueId" ||
+    value === "overworld" ||
+    value === "nether" ||
+    value === "end" ||
+    value === "rng"
   );
 }
 
