@@ -145,19 +145,18 @@ export const deleteLeague = mutation({
       });
     }
 
-    await ctx.db.delete("leagues", league._id);
-
-    const connectedSeeds = await ctx.db
+    const connectedSeed = await ctx.db
       .query("seeds")
       .withIndex("by_leagueId", (q) => q.eq("leagueId", league._id))
-      .collect();
+      .first();
 
-    await Promise.all(
-      connectedSeeds.map((seed) =>
-        ctx.db.patch("seeds", seed._id, {
-          leagueId: undefined,
-        }),
-      ),
-    );
+    if (connectedSeed) {
+      throw new ConvexError({
+        code: "LEAGUE_HAS_SEEDS",
+        message: "Move or delete connected seeds before deleting this league",
+      });
+    }
+
+    await ctx.db.delete("leagues", league._id);
   },
 });
