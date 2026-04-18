@@ -3,7 +3,7 @@ import { useMutation } from "convex/react";
 import { ShieldAlert } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
-import { LeagueAccessSelect } from "@/components/LeagueAccessSelect";
+import { LeagueAccessMultiSelect } from "@/components/LeagueAccessMultiSelect";
 import { ManagedRoleFields } from "@/components/ManagedRoleFields";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -42,8 +42,8 @@ export function InviteUserDialog({
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [roles, setRoles] = useState<ManagedRole[]>([]);
   const [makeAdmin, setMakeAdmin] = useState(false);
-  const [homeLeagueId, setHomeLeagueId] = useState<Id<"leagues"> | null>(null);
-  const [hostLeagueId, setHostLeagueId] = useState<Id<"leagues"> | null>(null);
+  const [homeLeagueId, setHomeLeagueId] = useState<Id<"leagues">[]>([]);
+  const [hostLeagueId, setHostLeagueId] = useState<Id<"leagues">[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -65,8 +65,8 @@ export function InviteUserDialog({
         username: trimmedUsername,
         roles,
         makeAdmin,
-        homeLeagueId: homeLeagueId ?? undefined,
-        hostLeagueId: hostLeagueId ?? undefined,
+        homeLeagueId,
+        hostLeagueId,
       });
       onSuccess(activatedUserId);
     } catch (error) {
@@ -121,21 +121,21 @@ export function InviteUserDialog({
             roles={roles}
           />
 
-          <LeagueAccessSelect
-            description="A tester cannot see their home league through tester access."
+          <LeagueAccessMultiSelect
+            description="A tester cannot see their home leagues through tester access."
             disabled={isSubmitting}
             id="invite-home-league"
-            label="Home league"
+            label="Home leagues"
             leagues={leagues}
             onValueChange={setHomeLeagueId}
             value={homeLeagueId}
           />
 
-          <LeagueAccessSelect
-            description="A host can manage seeds only in their host league."
+          <LeagueAccessMultiSelect
+            description="A host can manage seeds only in their host leagues."
             disabled={isSubmitting}
             id="invite-host-league"
-            label="Host league"
+            label="Host leagues"
             leagues={leagues}
             onValueChange={setHostLeagueId}
             value={hostLeagueId}

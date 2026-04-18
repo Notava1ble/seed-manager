@@ -3,8 +3,6 @@ import type { Doc, Id } from "../../convex/_generated/dataModel";
 export type ManagedRole = "host" | "tester";
 export type UserRole = "admin" | ManagedRole;
 
-export const EMPTY_LEAGUE_VALUE = null;
-
 export function getLeagueLabel(
   leagues: Doc<"leagues">[],
   leagueId: Id<"leagues"> | null | undefined,
@@ -19,6 +17,19 @@ export function getLeagueLabel(
   );
 }
 
+export function getLeagueListLabel(
+  leagues: Doc<"leagues">[],
+  leagueIds: Id<"leagues">[] | undefined,
+) {
+  if (!leagueIds || leagueIds.length === 0) {
+    return "No leagues";
+  }
+
+  return leagueIds
+    .map((leagueId) => getLeagueLabel(leagues, leagueId))
+    .join(", ");
+}
+
 export function getUserLabel(user: Doc<"users">) {
   return user.name ?? user.lowercaseName ?? user.email ?? "Unnamed user";
 }
@@ -30,8 +41,8 @@ export function getManagedRoles(user: Doc<"users">): ManagedRole[] {
 export function getManagedUserValues(user: Doc<"users">) {
   return {
     roles: getManagedRoles(user),
-    homeLeagueId: user.homeLeagueId ?? null,
-    hostLeagueId: user.hostLeagueId ?? null,
+    homeLeagueId: user.homeLeagueId ?? [],
+    hostLeagueId: user.hostLeagueId ?? [],
   };
 }
 
@@ -42,6 +53,16 @@ export function haveSameManagedRoles(
   return (
     firstRoles.length === secondRoles.length &&
     firstRoles.every((role) => secondRoles.includes(role))
+  );
+}
+
+export function haveSameLeagueIds(
+  firstLeagueIds: Id<"leagues">[],
+  secondLeagueIds: Id<"leagues">[],
+) {
+  return (
+    firstLeagueIds.length === secondLeagueIds.length &&
+    firstLeagueIds.every((leagueId) => secondLeagueIds.includes(leagueId))
   );
 }
 

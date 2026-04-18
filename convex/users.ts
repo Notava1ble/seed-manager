@@ -38,8 +38,8 @@ export const activateUserByGithubUsername = mutation({
     username: v.string(),
     roles: v.array(managedRoleValidator),
     makeAdmin: v.boolean(),
-    homeLeagueId: v.optional(v.id("leagues")),
-    hostLeagueId: v.optional(v.id("leagues")),
+    homeLeagueId: v.array(v.id("leagues")),
+    hostLeagueId: v.array(v.id("leagues")),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -71,14 +71,14 @@ export const activateUserByGithubUsername = mutation({
       });
     }
 
-    await assertLeagueExists(ctx, args.homeLeagueId);
-    await assertLeagueExists(ctx, args.hostLeagueId);
+    const homeLeagueId = await normalizeLeagueIds(ctx, args.homeLeagueId);
+    const hostLeagueId = await normalizeLeagueIds(ctx, args.hostLeagueId);
 
     await ctx.db.patch("users", user._id, {
       status: "active",
       roles: normalizeRoles(args.roles, args.makeAdmin),
-      homeLeagueId: args.homeLeagueId,
-      hostLeagueId: args.hostLeagueId,
+      homeLeagueId,
+      hostLeagueId,
     });
 
     return user._id;
@@ -89,8 +89,8 @@ export const updateManagedUser = mutation({
   args: {
     userId: v.id("users"),
     roles: v.array(managedRoleValidator),
-    homeLeagueId: v.optional(v.id("leagues")),
-    hostLeagueId: v.optional(v.id("leagues")),
+    homeLeagueId: v.array(v.id("leagues")),
+    hostLeagueId: v.array(v.id("leagues")),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -118,13 +118,13 @@ export const updateManagedUser = mutation({
       });
     }
 
-    await assertLeagueExists(ctx, args.homeLeagueId);
-    await assertLeagueExists(ctx, args.hostLeagueId);
+    const homeLeagueId = await normalizeLeagueIds(ctx, args.homeLeagueId);
+    const hostLeagueId = await normalizeLeagueIds(ctx, args.hostLeagueId);
 
     await ctx.db.patch("users", user._id, {
       roles: normalizeManagedRoles(args.roles),
-      homeLeagueId: args.homeLeagueId,
-      hostLeagueId: args.hostLeagueId,
+      homeLeagueId,
+      hostLeagueId,
     });
   },
 });
@@ -142,22 +142,24 @@ function normalizeGithubUsername(username: string) {
   return lowercaseName;
 }
 
-async function assertLeagueExists(
+async function normalizeLeagueIds(
   ctx: QueryCtx | MutationCtx,
-  leagueId: Id<"leagues"> | undefined,
+  leagueIds: Id<"leagues">[],
 ) {
-  if (leagueId === undefined) {
-    return;
-  }
+  const uniqueLeagueIds = Array.from(new Set(leagueIds));
 
-  const league = await ctx.db.get("leagues", leagueId);
+  const leagues = await Promise.all(
+    uniqueLeagueIds.map((leagueId) => ctx.db.get("leagues", leagueId)),
+  );
 
-  if (!league) {
+  if (leagues.some((league) => league === null)) {
     throw new ConvexError({
       code: "LEAGUE_NOT_EXIST",
       message: "The requested league does not exist",
     });
   }
+
+  return uniqueLeagueIds;
 }
 
 function normalizeRoles(roles: ManagedRole[], makeAdmin: boolean) {

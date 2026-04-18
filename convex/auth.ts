@@ -54,6 +54,8 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         image,
         status: "pending",
         roles: [],
+        homeLeagueId: [],
+        hostLeagueId: [],
       });
 
       return userId;

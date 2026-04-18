@@ -300,7 +300,7 @@ export const updateSeedRating = mutation({
     const canRateAsHost =
       seed.leagueId !== undefined &&
       user.roles.includes("host") &&
-      seed.leagueId === user.hostLeagueId;
+      (user.hostLeagueId ?? []).includes(seed.leagueId);
 
     if (!canRateAsAdmin && !canRateAsOriginalTester && !canRateAsHost) {
       throw new ConvexError({
@@ -355,7 +355,8 @@ export const markSeedUsed = mutation({
 
     const canMarkAsAdmin = user.roles.includes("admin");
     const canMarkAsHost =
-      user.roles.includes("host") && seed.leagueId === user.hostLeagueId;
+      user.roles.includes("host") &&
+      (user.hostLeagueId ?? []).includes(seed.leagueId);
 
     if (!canMarkAsAdmin && !canMarkAsHost) {
       throw new ConvexError({

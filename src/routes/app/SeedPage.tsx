@@ -203,7 +203,7 @@ function canEditRating(
   user: {
     _id: Id<"users">;
     roles: Array<"admin" | "host" | "tester">;
-    hostLeagueId?: Id<"leagues">;
+    hostLeagueId?: Id<"leagues">[];
   } | null,
 ) {
   if (!user) {
@@ -221,7 +221,7 @@ function canEditRating(
   return (
     seed.leagueId !== undefined &&
     user.roles.includes("host") &&
-    seed.leagueId === user.hostLeagueId
+    (user.hostLeagueId ?? []).includes(seed.leagueId)
   );
 }
 
@@ -231,7 +231,7 @@ function canMarkUsed(
   },
   user: {
     roles: Array<"admin" | "host" | "tester">;
-    hostLeagueId?: Id<"leagues">;
+    hostLeagueId?: Id<"leagues">[];
   } | null,
 ) {
   if (!user || seed.leagueId === undefined) {
@@ -242,7 +242,10 @@ function canMarkUsed(
     return true;
   }
 
-  return user.roles.includes("host") && seed.leagueId === user.hostLeagueId;
+  return (
+    user.roles.includes("host") &&
+    (user.hostLeagueId ?? []).includes(seed.leagueId)
+  );
 }
 
 function SeedDetailsSkeleton() {

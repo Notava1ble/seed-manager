@@ -25,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getLeagueLabel, getUserLabel } from "@/lib/userAccess";
+import { getLeagueListLabel, getUserLabel } from "@/lib/userAccess";
 import { cn, sortLeaguesByNumberAndName } from "@/lib/utils";
 import { InviteUserDialog } from "./InviteUserDialog";
 
@@ -136,8 +136,8 @@ function AdminUsersTable({
             <TableHead className="border-r text-left">User</TableHead>
             <TableHead className="border-r">Email</TableHead>
             <TableHead className="border-r">Roles</TableHead>
-            <TableHead className="border-r">Home league</TableHead>
-            <TableHead className="border-r">Host league</TableHead>
+            <TableHead className="border-r">Home leagues</TableHead>
+            <TableHead className="border-r">Host leagues</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -166,10 +166,10 @@ function AdminUsersTable({
                 <UserRoleBadges roles={user.roles} />
               </TableCell>
               <TableCell className="border-r text-muted-foreground">
-                {getLeagueLabel(leagues, user.homeLeagueId)}
+                {getLeagueListLabel(leagues, user.homeLeagueId)}
               </TableCell>
               <TableCell className="border-r text-muted-foreground">
-                {getLeagueLabel(leagues, user.hostLeagueId)}
+                {getLeagueListLabel(leagues, user.hostLeagueId)}
               </TableCell>
               <TableCell>
                 {user.roles.includes("admin") ? (
@@ -198,8 +198,8 @@ function AdminUsersTableSkeleton() {
             <TableHead className="border-r text-left">User</TableHead>
             <TableHead className="border-r">Email</TableHead>
             <TableHead className="border-r">Roles</TableHead>
-            <TableHead className="border-r">Home league</TableHead>
-            <TableHead className="border-r">Host league</TableHead>
+            <TableHead className="border-r">Home leagues</TableHead>
+            <TableHead className="border-r">Host leagues</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>

@@ -26,11 +26,14 @@ export function canViewLeague(
     return false;
   }
 
+  const homeLeagueIds = user.homeLeagueId ?? [];
+  const hostLeagueIds = user.hostLeagueId ?? [];
+
   const hasTesterAccess =
-    user.roles.includes("tester") && leagueId !== user.homeLeagueId;
+    user.roles.includes("tester") && !homeLeagueIds.includes(leagueId);
 
   const hasHostAccess =
-    user.roles.includes("host") && leagueId === user.hostLeagueId;
+    user.roles.includes("host") && hostLeagueIds.includes(leagueId);
 
   return hasTesterAccess || hasHostAccess;
 }

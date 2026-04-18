@@ -18,8 +18,8 @@ export default defineSchema({
     roles: v.array(
       v.union(v.literal("admin"), v.literal("host"), v.literal("tester")),
     ),
-    homeLeagueId: v.optional(v.id("leagues")),
-    hostLeagueId: v.optional(v.id("leagues")),
+    homeLeagueId: v.optional(v.array(v.id("leagues"))),
+    hostLeagueId: v.optional(v.array(v.id("leagues"))),
   })
     .index("email", ["email"])
     .index("lowercase_name", ["lowercaseName"])

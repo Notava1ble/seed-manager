@@ -4,7 +4,7 @@ import { ShieldAlert, UserCog, Users } from "lucide-react";
 import { useParams } from "react-router";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
-import { LeagueAccessSelect } from "@/components/LeagueAccessSelect";
+import { LeagueAccessMultiSelect } from "@/components/LeagueAccessMultiSelect";
 import { ManagedRoleFields } from "@/components/ManagedRoleFields";
 import { UserRoleBadges } from "@/components/UserRoleBadges";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -24,9 +24,10 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/errors";
 import {
-  getLeagueLabel,
+  getLeagueListLabel,
   getManagedUserValues,
   getUserLabel,
+  haveSameLeagueIds,
   haveSameManagedRoles,
   type ManagedRole,
 } from "@/lib/userAccess";
@@ -110,18 +111,18 @@ function ManagedUserForm({
   const updateManagedUser = useMutation(api.users.updateManagedUser);
   const savedValues = useMemo(() => getManagedUserValues(user), [user]);
   const [roles, setRoles] = useState<ManagedRole[]>(savedValues.roles);
-  const [homeLeagueId, setHomeLeagueId] = useState<Id<"leagues"> | null>(
+  const [homeLeagueId, setHomeLeagueId] = useState<Id<"leagues">[]>(
     savedValues.homeLeagueId,
   );
-  const [hostLeagueId, setHostLeagueId] = useState<Id<"leagues"> | null>(
+  const [hostLeagueId, setHostLeagueId] = useState<Id<"leagues">[]>(
     savedValues.hostLeagueId,
   );
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const hasChanges =
     !haveSameManagedRoles(roles, savedValues.roles) ||
-    homeLeagueId !== savedValues.homeLeagueId ||
-    hostLeagueId !== savedValues.hostLeagueId;
+    !haveSameLeagueIds(homeLeagueId, savedValues.homeLeagueId) ||
+    !haveSameLeagueIds(hostLeagueId, savedValues.hostLeagueId);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -137,8 +138,8 @@ function ManagedUserForm({
       await updateManagedUser({
         userId: user._id,
         roles,
-        homeLeagueId: homeLeagueId ?? undefined,
-        hostLeagueId: hostLeagueId ?? undefined,
+        homeLeagueId,
+        hostLeagueId,
       });
     } catch (error) {
       setFormError(getErrorMessage(error, "Could not update this user"));
@@ -168,21 +169,21 @@ function ManagedUserForm({
           roles={roles}
         />
 
-        <LeagueAccessSelect
-          description="A tester cannot see their home league through tester access."
+        <LeagueAccessMultiSelect
+          description="A tester cannot see their home leagues through tester access."
           disabled={isSubmitting}
           id="managed-home-league"
-          label="Home league"
+          label="Home leagues"
           leagues={leagues}
           onValueChange={setHomeLeagueId}
           value={homeLeagueId}
         />
 
-        <LeagueAccessSelect
-          description="A host can manage seeds only in their host league."
+        <LeagueAccessMultiSelect
+          description="A host can manage seeds only in their host leagues."
           disabled={isSubmitting}
           id="managed-host-league"
-          label="Host league"
+          label="Host leagues"
           leagues={leagues}
           onValueChange={setHostLeagueId}
           value={hostLeagueId}
@@ -221,12 +222,12 @@ function UserIdentitySummary({
       <UserDetailValue label="Email" value={user.email ?? "No email"} />
       <UserDetailValue label="Status" value={user.status} />
       <UserDetailValue
-        label="Home league"
-        value={getLeagueLabel(leagues, user.homeLeagueId)}
+        label="Home leagues"
+        value={getLeagueListLabel(leagues, user.homeLeagueId)}
       />
       <UserDetailValue
-        label="Host league"
-        value={getLeagueLabel(leagues, user.hostLeagueId)}
+        label="Host leagues"
+        value={getLeagueListLabel(leagues, user.hostLeagueId)}
       />
       <UserDetailValue
         className="col-span-2"

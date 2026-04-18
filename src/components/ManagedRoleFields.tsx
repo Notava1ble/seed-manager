@@ -57,7 +57,7 @@ export function ManagedRoleFields({
           <FieldContent>
             <FieldLabel htmlFor={`${idPrefix}-role-host`}>Host</FieldLabel>
             <FieldDescription>
-              Can manage seeds in their host league.
+              Can manage seeds in their host leagues.
             </FieldDescription>
           </FieldContent>
         </Field>
