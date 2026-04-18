@@ -4,6 +4,14 @@ When prompted to brainstorm, use short, concise and meaningful ideas, rather tha
 
 For project overview and usage, read `seed-manager-routing.plan.md` and `seed-manager-v1.plan.md`..
 
+## Code quality
+
+Do not try to create components and abstract function that are only used once.
+
+Prefer using one file per react component, unless it makes since not to. For helper functions however, try and put them in the lib folder.
+
+When writing ui, check for components to reuse. Also, search the codebase for similar ui that is hard coded, and suggest to me in you should extract that ui as a component before taking action.
+
 <!-- convex-ai-start -->
 
 This project uses [Convex](https://convex.dev) as its backend.
