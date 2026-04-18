@@ -7,7 +7,7 @@ export const seedValueValidator = z
   .string("Seed values must be strings")
   .trim()
   .min(1, "Seed value is required")
-  .regex(/^[0-9]+$/, "Seed values must contain only numbers");
+  .regex(/^-?[0-9]+$/, "Seed values must be a whole number");
 
 export const validateManualSeedForm = z.array(
   z.object({

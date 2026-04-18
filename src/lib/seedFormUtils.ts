@@ -27,8 +27,13 @@ export type SeedUploadInput = {
   rng: string;
 };
 
+export type SeedJsonUploadInput = Omit<SeedUploadInput, "leagueId">;
+
 export function sanitizeSeedNumber(value: string) {
-  return value.replace(/\D/g, "");
+  const sign = value.startsWith("-") ? "-" : "";
+  const digits = value.replace(/\D/g, "");
+
+  return `${sign}${digits}`;
 }
 
 export function preventNonNumericSeedInput(
@@ -49,8 +54,12 @@ export function preventNonNumericSeedInput(
   ];
 
   const isDigit = /^[0-9]$/.test(event.key);
+  const isMinusSign =
+    event.key === "-" &&
+    event.currentTarget.selectionStart === 0 &&
+    !event.currentTarget.value.includes("-");
 
-  if (!isDigit && !allowedKeys.includes(event.key)) {
+  if (!isDigit && !isMinusSign && !allowedKeys.includes(event.key)) {
     event.preventDefault();
   }
 }

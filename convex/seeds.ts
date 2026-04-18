@@ -10,7 +10,7 @@ import {
 const MAX_LEAGUE_SEED_LIST_COUNT = 500;
 const MAX_ADMIN_SEED_LIST_COUNT = 1000;
 const MAX_SEED_IMPORT_COUNT = 500;
-const NUMERIC_SEED_PATTERN = /^[0-9]+$/;
+const NUMERIC_SEED_PATTERN = /^-?[0-9]+$/;
 
 const seedTypeValidator = v.union(
   v.literal("BURIED_TREASURE"),
@@ -504,7 +504,7 @@ function validateNumericSeedString(value: string, label: string) {
   if (!NUMERIC_SEED_PATTERN.test(trimmedValue)) {
     throw new ConvexError({
       code: "INVALID_SEED_VALUE",
-      message: `${label} must contain only numbers`,
+      message: `${label} must be a whole number`,
     });
   }
 

@@ -37,7 +37,7 @@ import {
   sanitizeSeedNumber,
   type SeedFormErrors,
   type SeedFormValues,
-  type SeedUploadInput,
+  type SeedJsonUploadInput,
 } from "@/lib/seedFormUtils";
 import { validateManualSeedForm } from "@/lib/validators";
 import { useMutation } from "convex/react";
@@ -74,7 +74,9 @@ function AddSeedDialog({
   );
   const [manualErrors, setManualErrors] = useState<SeedFormErrors>({});
   const [jsonFileName, setJsonFileName] = useState("");
-  const [jsonSeeds, setJsonSeeds] = useState<SeedUploadInput[] | null>(null);
+  const [jsonSeeds, setJsonSeeds] = useState<SeedJsonUploadInput[] | null>(
+    null,
+  );
   const [jsonErrors, setJsonErrors] = useState<string[]>([]);
   const [jsonImportError, setJsonImportError] = useState<string | null>(null);
   const [jsonImportResult, setJsonImportResult] =
@@ -167,7 +169,7 @@ function AddSeedDialog({
 
     try {
       setIsReadingJson(true);
-      const result = await parseSeedJsonImportFile(file, leagues);
+      const result = await parseSeedJsonImportFile(file);
 
       if (result.success) {
         setJsonSeeds(result.seeds);
@@ -188,14 +190,21 @@ function AddSeedDialog({
     setJsonImportResult(null);
 
     if (!jsonSeeds) {
-      setJsonErrors(["file: Upload a valid JSON file before importing"]);
+      setJsonErrors(["file: Upload a valid JSONL file before importing"]);
       return;
     }
 
     setIsImportingJson(true);
 
     try {
-      const result = await importSeeds({ seeds: jsonSeeds });
+      const seeds = jsonSeeds.map(({ type, overworld, nether, end, rng }) => ({
+        type,
+        overworld,
+        nether,
+        end,
+        rng,
+      }));
+      const result = await importSeeds({ seeds });
       setJsonImportResult(result);
     } catch (error) {
       setJsonImportError(
@@ -229,14 +238,14 @@ function AddSeedDialog({
       <DialogHeader>
         <DialogTitle>Add seeds</DialogTitle>
         <DialogDescription>
-          Import seed records from JSON or add one seed manually.
+          Import seed records from JSONL or add one seed manually.
         </DialogDescription>
       </DialogHeader>
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="manual">Manual input</TabsTrigger>
-          <TabsTrigger value="json">JSON import</TabsTrigger>
+          <TabsTrigger value="json">JSONL import</TabsTrigger>
         </TabsList>
 
         <TabsContent value="manual">
@@ -378,10 +387,10 @@ function AddSeedDialog({
           >
             <FieldGroup>
               <Field data-invalid={jsonErrors.length > 0}>
-                <FieldLabel htmlFor="seed-json-file">JSON file</FieldLabel>
+                <FieldLabel htmlFor="seed-json-file">JSONL file</FieldLabel>
                 <Input
                   id="seed-json-file"
-                  accept=".json,application/json"
+                  accept=".jsonl,.ndjson,application/x-ndjson,application/jsonl,text/plain"
                   aria-invalid={jsonErrors.length > 0}
                   onChange={(event) => {
                     void handleJsonFileChange(event);
@@ -389,9 +398,9 @@ function AddSeedDialog({
                   type="file"
                 />
                 <FieldDescription>
-                  Upload a JSON array or an object with a seeds array. Each seed
-                  must contain only type, leagueNumber, overworld, nether, end,
-                  and rng. Limit {MAX_SEED_IMPORT_COUNT} seeds.
+                  Upload one JSON object per line. Only stored seed fields are
+                  imported, and league fields in the file are ignored. Limit{" "}
+                  {MAX_SEED_IMPORT_COUNT} seeds.
                 </FieldDescription>
                 <FieldError>{jsonErrors[0]}</FieldError>
               </Field>
@@ -400,7 +409,7 @@ function AddSeedDialog({
             {isReadingJson && (
               <Alert>
                 <AlertCircleIcon />
-                <AlertTitle>Reading JSON</AlertTitle>
+                <AlertTitle>Reading JSONL</AlertTitle>
                 <AlertDescription>
                   Checking the uploaded file before import.
                 </AlertDescription>
@@ -417,14 +426,15 @@ function AddSeedDialog({
                 </AlertTitle>
                 <AlertDescription>
                   {jsonFileName} passed validation. Duplicate overworld seeds
-                  already in the database will be skipped.
+                  already in the database will be skipped. Imported seeds stay
+                  unassigned.
                 </AlertDescription>
               </Alert>
             )}
 
             {jsonErrors.length > 0 && (
               <ErrorAlert
-                title="JSON schema errors"
+                title="JSONL schema errors"
                 message={jsonErrors.join("\n")}
               />
             )}
@@ -439,7 +449,8 @@ function AddSeedDialog({
                 <AlertTitle>Import complete</AlertTitle>
                 <AlertDescription>
                   {jsonImportResult.insertedCount} seeds imported.{" "}
-                  {jsonImportResult.skipCount} duplicates skipped.
+                  {jsonImportResult.skipCount} duplicates skipped. Imported
+                  seeds are unassigned.
                 </AlertDescription>
               </Alert>
             )}
@@ -461,7 +472,7 @@ function AddSeedDialog({
                 }
                 type="submit"
               >
-                {isImportingJson ? "Importing" : "Import JSON"}
+                {isImportingJson ? "Importing" : "Import JSONL"}
               </Button>
             </DialogFooter>
           </form>
@@ -493,8 +504,8 @@ function SeedNumberField({
         inputMode="numeric"
         onChange={(event) => onChange(event.currentTarget.value)}
         onKeyDown={preventNonNumericSeedInput}
-        pattern="[0-9]*"
-        placeholder="123456789"
+        pattern="-?[0-9]*"
+        placeholder="-198106162748994949"
         required
         type="text"
         value={value}
