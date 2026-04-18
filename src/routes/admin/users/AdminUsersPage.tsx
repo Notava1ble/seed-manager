@@ -75,8 +75,8 @@ export function AdminUsersPage() {
   };
 
   return (
-    <div className="flex h-full min-h-0 gap-6">
-      <section className="flex min-h-0 flex-9 flex-col gap-5">
+    <div className="flex h-full min-h-0 gap-6 overflow-hidden">
+      <section className="flex min-h-0 min-w-0 flex-9 flex-col gap-5 overflow-y-auto overscroll-contain pr-2">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-col gap-1">
             <h2 className="mt-2 text-2xl font-semibold">Manage users</h2>
@@ -162,7 +162,7 @@ export function AdminUsersPage() {
       </section>
 
       <Separator orientation="vertical" />
-      <aside className="min-w-0 flex-3 p-2">
+      <aside className="min-h-0 min-w-0 flex-3 overflow-y-auto overscroll-contain p-2">
         <Outlet />
       </aside>
     </div>
