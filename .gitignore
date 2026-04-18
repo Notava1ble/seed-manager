@@ -25,3 +25,4 @@ dist-ssr
 
 *.plan.md
 *.idea.md
+seeds.jsonl
