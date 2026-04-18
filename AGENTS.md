@@ -8,7 +8,7 @@ For project overview and usage, read `seed-manager-routing.plan.md` and `seed-ma
 
 Do not try to create components and abstract function that are only used once.
 
-Prefer using one file per react component, unless it makes since not to. For helper functions however, try and put them in the lib folder.
+Prefer using one file per react component, unless it makes since not to. For helper functions however, try and put them in the lib folder. Do not put everything into onve file.
 
 When writing ui, check for components to reuse. Also, search the codebase for similar ui that is hard coded. If yes, let me know.
 
