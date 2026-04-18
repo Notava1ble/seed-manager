@@ -25,6 +25,7 @@ import {
   FieldLegend,
   FieldSet,
 } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -44,14 +45,14 @@ export function InviteUserDialog({
   leagues,
   onClose,
   onSuccess,
-  username,
 }: {
   leagues: Doc<"leagues">[];
   onClose: () => void;
   onSuccess: (activatedUserId: Id<"users">) => void;
-  username: string;
 }) {
   const activateUser = useMutation(api.users.activateUserByGithubUsername);
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [roles, setRoles] = useState<ManagedRole[]>([]);
   const [makeAdmin, setMakeAdmin] = useState(false);
   const [homeLeagueId, setHomeLeagueId] = useState<Id<"leagues"> | null>(null);
@@ -73,12 +74,20 @@ export function InviteUserDialog({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    const trimmedUsername = username.trim();
+    if (trimmedUsername.length === 0) {
+      setUsernameError("Enter a GitHub username");
+      return;
+    }
+
+    setUsernameError(null);
     setFormError(null);
     setIsSubmitting(true);
 
     try {
       const activatedUserId = await activateUser({
-        username,
+        username: trimmedUsername,
         roles,
         makeAdmin,
         homeLeagueId: homeLeagueId ?? undefined,
@@ -98,10 +107,10 @@ export function InviteUserDialog({
       className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl"
     >
       <DialogHeader>
-        <DialogTitle>Activate user</DialogTitle>
+        <DialogTitle>Invite user</DialogTitle>
         <DialogDescription>
-          Set initial access for @{username}. This user will become active after
-          saving.
+          Enter a GitHub username and set their initial access. The user must
+          have signed in once before they can be activated.
         </DialogDescription>
       </DialogHeader>
 
@@ -110,6 +119,25 @@ export function InviteUserDialog({
         onSubmit={(event) => void handleSubmit(event)}
       >
         <FieldGroup>
+          <Field data-invalid={Boolean(usernameError)}>
+            <FieldLabel htmlFor="invite-github-username">
+              GitHub username
+            </FieldLabel>
+            <Input
+              id="invite-github-username"
+              aria-invalid={Boolean(usernameError)}
+              autoComplete="off"
+              disabled={isSubmitting}
+              onChange={(event) => {
+                setUsername(event.currentTarget.value);
+                setUsernameError(null);
+              }}
+              placeholder="github-user"
+              value={username}
+            />
+            <FieldError>{usernameError}</FieldError>
+          </Field>
+
           <FieldSet>
             <FieldLegend>Roles</FieldLegend>
             <FieldDescription>
@@ -258,7 +286,7 @@ export function InviteUserDialog({
             Cancel
           </DialogClose>
           <Button disabled={isSubmitting} type="submit">
-            {isSubmitting ? "Activating..." : "Activate user"}
+            {isSubmitting ? "Inviting..." : "Invite user"}
           </Button>
         </DialogFooter>
       </form>

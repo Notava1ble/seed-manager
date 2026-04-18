@@ -1,4 +1,4 @@
-import { type FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { ShieldCheck, UserPlus, Users } from "lucide-react";
 import { Outlet, useNavigate, useParams } from "react-router";
@@ -6,7 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import {
   Empty,
   EmptyDescription,
@@ -14,14 +14,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -47,29 +39,13 @@ export function AdminUsersPage() {
     [allLeagues],
   );
   const isLoading = activeUsers === undefined || allLeagues === undefined;
-  const [inviteUsername, setInviteUsername] = useState("");
-  const [inviteError, setInviteError] = useState<string | null>(null);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
-
-  const openInviteDialog = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (inviteUsername.trim().length === 0) {
-      setInviteError("Enter a GitHub username");
-      return;
-    }
-
-    setInviteError(null);
-    setIsInviteDialogOpen(true);
-  };
 
   const closeInviteDialog = () => {
     setIsInviteDialogOpen(false);
   };
 
   const handleInviteSuccess = (activatedUserId: Id<"users">) => {
-    setInviteUsername("");
-    setInviteError(null);
     setIsInviteDialogOpen(false);
     void navigate(`/app/admin/users/${activatedUserId}`);
   };
@@ -84,56 +60,28 @@ export function AdminUsersPage() {
               Activate signed-in users and manage their roles and league access.
             </p>
           </div>
-          <Badge variant="outline">
-            {isLoading ? "Loading" : getUserCountLabel(activeUsers.length)}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">
+              {isLoading ? "Loading" : getUserCountLabel(activeUsers.length)}
+            </Badge>
+            <Dialog
+              open={isInviteDialogOpen}
+              onOpenChange={setIsInviteDialogOpen}
+            >
+              <DialogTrigger render={<Button type="button" />}>
+                <UserPlus data-icon="inline-start" />
+                Invite user
+              </DialogTrigger>
+              {isInviteDialogOpen ? (
+                <InviteUserDialog
+                  leagues={leagues}
+                  onClose={closeInviteDialog}
+                  onSuccess={handleInviteSuccess}
+                />
+              ) : null}
+            </Dialog>
+          </div>
         </div>
-
-        <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-          <form
-            className="flex flex-col gap-2 sm:max-w-xl"
-            onSubmit={openInviteDialog}
-          >
-            <FieldGroup>
-              <Field data-invalid={Boolean(inviteError)}>
-                <FieldLabel htmlFor="invite-github-username">
-                  Invite by GitHub username
-                </FieldLabel>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input
-                    id="invite-github-username"
-                    aria-invalid={Boolean(inviteError)}
-                    autoComplete="off"
-                    onChange={(event) => {
-                      setInviteUsername(event.currentTarget.value);
-                      setInviteError(null);
-                    }}
-                    placeholder="github-user"
-                    value={inviteUsername}
-                  />
-                  <Button type="submit">
-                    <UserPlus data-icon="inline-start" />
-                    Invite user
-                  </Button>
-                </div>
-                <FieldDescription>
-                  The user must have signed in once before they can be
-                  activated.
-                </FieldDescription>
-                <FieldError>{inviteError}</FieldError>
-              </Field>
-            </FieldGroup>
-          </form>
-
-          {isInviteDialogOpen ? (
-            <InviteUserDialog
-              leagues={leagues}
-              onClose={closeInviteDialog}
-              onSuccess={handleInviteSuccess}
-              username={inviteUsername.trim()}
-            />
-          ) : null}
-        </Dialog>
 
         {isLoading ? (
           <AdminUsersTableSkeleton />
