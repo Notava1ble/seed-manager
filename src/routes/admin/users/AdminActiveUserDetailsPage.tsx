@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { ShieldAlert, UserCog, Users } from "lucide-react";
 import { useParams } from "react-router";
@@ -6,7 +6,6 @@ import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { LeagueAccessMultiSelect } from "@/components/LeagueAccessMultiSelect";
 import { ManagedRoleFields } from "@/components/ManagedRoleFields";
-import { UserRoleBadges } from "@/components/UserRoleBadges";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,19 +17,19 @@ import {
 } from "@/components/ui/empty";
 import { FieldError, FieldGroup } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/errors";
 import {
-  getLeagueListLabel,
   getManagedUserValues,
   getUserLabel,
   haveSameLeagueIds,
   haveSameManagedRoles,
   type ManagedRole,
 } from "@/lib/userAccess";
-import { cn, sortLeaguesByNumberAndName } from "@/lib/utils";
+import { sortLeaguesByNumberAndName } from "@/lib/utils";
+import { AdminUserDetailsSkeleton } from "./AdminUserDetailsSkeleton";
+import { UserIdentitySummary } from "./UserIdentitySummary";
 
-export function AdminUserDetailsPage() {
+export function AdminActiveUserDetailsPage() {
   const { userId } = useParams();
   const activeUsers = useQuery(api.users.listActiveUsers);
   const allLeagues = useQuery(api.leagues.listLeagues);
@@ -44,7 +43,7 @@ export function AdminUserDetailsPage() {
   );
 
   if (activeUsers === undefined || allLeagues === undefined) {
-    return <UserDetailsSkeleton />;
+    return <AdminUserDetailsSkeleton />;
   }
 
   if (!user) {
@@ -85,7 +84,7 @@ export function AdminUserDetailsPage() {
           <ShieldAlert />
           <AlertTitle>Admin user is read-only</AlertTitle>
           <AlertDescription>
-            Admin accounts are managed through the database dashbaord.
+            Admin accounts are managed through the database dashboard.
           </AlertDescription>
         </Alert>
       ) : (
@@ -204,66 +203,5 @@ function ManagedUserForm({
         </Button>
       </div>
     </form>
-  );
-}
-
-function UserIdentitySummary({
-  leagues,
-  user,
-}: {
-  leagues: Doc<"leagues">[];
-  user: Doc<"users">;
-}) {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <UserDetailValue label="Email" value={user.email ?? "No email"} />
-      <UserDetailValue label="Status" value={user.status} />
-      <UserDetailValue
-        label="Home leagues"
-        value={getLeagueListLabel(leagues, user.homeLeagueId)}
-      />
-      <UserDetailValue
-        label="Host leagues"
-        value={getLeagueListLabel(leagues, user.hostLeagueId)}
-      />
-      <UserDetailValue
-        className="col-span-2"
-        label="Roles"
-        value={<UserRoleBadges roles={user.roles} />}
-      />
-    </div>
-  );
-}
-
-function UserDetailValue({
-  label,
-  className,
-  value,
-}: {
-  label: string;
-  className?: string;
-  value: ReactNode;
-}) {
-  return (
-    <div className={cn("flex min-w-0 flex-col gap-1", className)}>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <div className="min-h-5 text-xs font-medium">{value}</div>
-    </div>
-  );
-}
-
-function UserDetailsSkeleton() {
-  return (
-    <div className="flex flex-col gap-4">
-      <Skeleton className="h-4 w-32" />
-      <Skeleton className="h-8 w-52" />
-      <Separator />
-      <div className="grid gap-4 sm:grid-cols-2">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <Skeleton key={index} className="h-10 w-full" />
-        ))}
-      </div>
-      <Skeleton className="h-36 w-full" />
-    </div>
   );
 }

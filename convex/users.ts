@@ -3,7 +3,7 @@ import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { getUser, requireAdmin } from "./lib/permissions";
 
-const MAX_ACTIVE_USER_LIST_COUNT = 1000;
+const MAX_USER_LIST_COUNT = 1000;
 
 const managedRoleValidator = v.union(v.literal("host"), v.literal("tester"));
 const ALL_ROLE_ORDER = ["admin", "host", "tester"] as const;
@@ -27,7 +27,21 @@ export const listActiveUsers = query({
     const users = await ctx.db
       .query("users")
       .withIndex("by_status", (q) => q.eq("status", "active"))
-      .take(MAX_ACTIVE_USER_LIST_COUNT);
+      .take(MAX_USER_LIST_COUNT);
+
+    return users;
+  },
+});
+
+export const listPendingUsers = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+
+    const users = await ctx.db
+      .query("users")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .take(MAX_USER_LIST_COUNT);
 
     return users;
   },

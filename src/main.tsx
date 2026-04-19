@@ -9,8 +9,10 @@ import { AdminIndexPage } from "./routes/admin/AdminIndexPage";
 import { AdminLeaguesPage } from "./routes/admin/leagues/AdminLeaguesPage";
 import { AdminSeedDetailsPage } from "./routes/admin/seeds/AdminSeedDetailsPage";
 import { AdminSeedsPage } from "./routes/admin/seeds/AdminSeedsPage";
-import { AdminUserDetailsPage } from "./routes/admin/users/AdminUserDetailsPage";
-import { AdminUsersPage } from "./routes/admin/users/AdminUsersPage";
+import { AdminActiveUserDetailsPage } from "./routes/admin/users/AdminActiveUserDetailsPage";
+import { AdminActiveUsersPage } from "./routes/admin/users/AdminActiveUsersPage";
+import { AdminPendingUserDetailsPage } from "./routes/admin/users/AdminPendingUserDetailsPage";
+import { AdminPendingUsersPage } from "./routes/admin/users/AdminPendingUsersPage";
 import { AppIndexPage } from "./routes/app/AppIndexPage";
 import { AppLayout } from "./routes/app/AppLayout";
 import { LeaguePage } from "./routes/app/LeaguePage";
@@ -45,8 +47,23 @@ createRoot(document.getElementById("root")!).render(
             <Route path="admin" element={<AdminLayout />}>
               <Route index element={<AdminIndexPage />} />
 
-              <Route path="users" element={<AdminUsersPage />}>
-                <Route path=":userId" element={<AdminUserDetailsPage />} />
+              <Route path="users">
+                <Route
+                  index
+                  element={<Navigate replace to="/app/admin/users/active" />}
+                />
+                <Route path="active" element={<AdminActiveUsersPage />}>
+                  <Route
+                    path=":userId"
+                    element={<AdminActiveUserDetailsPage />}
+                  />
+                </Route>
+                <Route path="pending" element={<AdminPendingUsersPage />}>
+                  <Route
+                    path=":userId"
+                    element={<AdminPendingUserDetailsPage />}
+                  />
+                </Route>
               </Route>
 
               <Route path="seeds" element={<AdminSeedsPage />} />

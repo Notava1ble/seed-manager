@@ -36,18 +36,6 @@ import type { Doc } from "../../convex/_generated/dataModel";
 
 const adminLinks = [
   {
-    label: "Admin Dashboard",
-    to: "/app/admin",
-    icon: ShieldCheck,
-    exact: true,
-  },
-  {
-    label: "Users",
-    to: "/app/admin/users",
-    icon: Users,
-    exact: false,
-  },
-  {
     label: "Manage Seeds",
     to: "/app/admin/seeds",
     icon: Sprout,
@@ -61,6 +49,17 @@ const adminLinks = [
   },
 ] as const;
 
+const adminUserLinks = [
+  {
+    label: "Active Users",
+    to: "/app/admin/users/active",
+  },
+  {
+    label: "Pending Users",
+    to: "/app/admin/users/pending",
+  },
+] as const;
+
 export function AppSidebar({ user }: { user: Doc<"users"> }) {
   const location = useLocation();
   const allLeagues = useQuery(api.leagues.listLeagues);
@@ -69,6 +68,7 @@ export function AppSidebar({ user }: { user: Doc<"users"> }) {
     [allLeagues],
   );
   const isLeagueRoute = isActivePath(location.pathname, "/app/league");
+  const isUsersRoute = isActivePath(location.pathname, "/app/admin/users");
 
   const isAdmin = user.roles.includes("admin");
 
@@ -146,6 +146,44 @@ export function AppSidebar({ user }: { user: Doc<"users"> }) {
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
+                <SidebarNavItem
+                  exact
+                  icon={ShieldCheck}
+                  label="Admin Dashboard"
+                  pathname={location.pathname}
+                  to="/app/admin"
+                />
+
+                <Collapsible
+                  className="group/collapsible"
+                  defaultOpen={isUsersRoute}
+                  render={<SidebarMenuItem />}
+                >
+                  <SidebarMenuButton
+                    isActive={isUsersRoute}
+                    render={<CollapsibleTrigger />}
+                    tooltip="Users"
+                  >
+                    <Users />
+                    <span>Users</span>
+                    <ChevronRight className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
+                  </SidebarMenuButton>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {adminUserLinks.map((link) => (
+                        <SidebarMenuSubItem key={link.to}>
+                          <SidebarMenuSubButton
+                            isActive={isActivePath(location.pathname, link.to)}
+                            render={<NavLink to={link.to} />}
+                          >
+                            <span>{link.label}</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </Collapsible>
+
                 {adminLinks.map((link) => (
                   <SidebarNavItem
                     key={link.to}
