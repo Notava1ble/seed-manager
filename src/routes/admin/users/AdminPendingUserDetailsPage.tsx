@@ -154,14 +154,14 @@ function PendingActivationForm({
     setIsSubmitting(true);
 
     try {
-      const activatedUserId = await activateUser({
+      await activateUser({
         username: user.lowercaseName,
         roles,
         makeAdmin,
         homeLeagueId,
         hostLeagueId,
       });
-      void navigate(`/app/admin/users/active/${activatedUserId}`);
+      void navigate("/app/admin/users/pending");
     } catch (error) {
       setFormError(getErrorMessage(error, "Could not activate this user"));
     } finally {
