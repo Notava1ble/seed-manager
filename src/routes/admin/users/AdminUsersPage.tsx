@@ -15,7 +15,12 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -39,10 +44,17 @@ export function AdminUsersPage() {
     [allLeagues],
   );
   const isLoading = activeUsers === undefined || allLeagues === undefined;
+  const isUserSheetOpen = Boolean(userId);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
   const closeInviteDialog = () => {
     setIsInviteDialogOpen(false);
+  };
+
+  const handleUserSheetOpenChange = (open: boolean) => {
+    if (!open) {
+      void navigate("/app/admin/users");
+    }
   };
 
   const handleInviteSuccess = (activatedUserId: Id<"users">) => {
@@ -51,8 +63,8 @@ export function AdminUsersPage() {
   };
 
   return (
-    <div className="flex h-full min-h-0 gap-6 overflow-hidden">
-      <section className="flex min-h-0 min-w-0 flex-9 flex-col gap-5 overflow-y-auto overscroll-contain pr-2">
+    <div className="h-full min-h-0 overflow-hidden">
+      <section className="flex h-full min-h-0 min-w-0 flex-col gap-5 overflow-y-auto overscroll-contain pr-2 pb-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-col gap-1">
             <h2 className="mt-2 text-2xl font-semibold">Manage users</h2>
@@ -109,10 +121,17 @@ export function AdminUsersPage() {
         )}
       </section>
 
-      <Separator orientation="vertical" />
-      <aside className="min-h-0 min-w-0 flex-3 overflow-y-auto overscroll-contain p-2">
-        <Outlet />
-      </aside>
+      <Sheet open={isUserSheetOpen} onOpenChange={handleUserSheetOpenChange}>
+        <SheetContent
+          className="overflow-y-auto p-6 data-[side=right]:sm:max-w-xl"
+          side="right"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>User details</SheetTitle>
+          </SheetHeader>
+          <Outlet />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
