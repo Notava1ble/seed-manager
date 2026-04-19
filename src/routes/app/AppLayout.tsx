@@ -30,7 +30,7 @@ export function AppLayout() {
 
   return (
     <SidebarProvider className="h-screen min-h-screen flex-col overflow-hidden bg-background text-foreground **:data-[slot=sidebar-container]:top-16 **:data-[slot=sidebar-container]:bottom-auto **:data-[slot=sidebar-container]:h-[calc(100svh-4rem)]">
-      <nav className="h-16 shrink-0 border-b border-border px-6 py-4">
+      <nav className="h-16 border-border border-b bg-sidebar shrink-0 px-6 py-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex gap-2 items-end">
