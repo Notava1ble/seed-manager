@@ -1,6 +1,5 @@
 import { useQuery } from "convex/react";
 import { MessageCircle, ShieldCheck, Sprout, TimerReset } from "lucide-react";
-import { useState } from "react";
 import { Outlet, useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
@@ -24,45 +23,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Switch } from "@/components/ui/switch";
 import { SEED_TYPES } from "@/lib/consts";
 import { cn } from "@/lib/utils";
 
 export function LeaguePage() {
   const { leagueId } = useParams();
   const navigate = useNavigate();
-  const [showAllAssigned, setShowAllAssigned] = useState(false);
   const selectedLeagueId = leagueId as Id<"leagues"> | undefined;
   const seeds = useQuery(
     api.seeds.listSeedsByLeague,
-    selectedLeagueId ? { leagueId: selectedLeagueId, showAllAssigned } : "skip",
+    selectedLeagueId ? { leagueId: selectedLeagueId } : "skip",
   );
 
   return (
     <div className="flex h-full min-h-0 gap-6">
       <section className="flex min-h-0 flex-9 flex-col gap-4">
-        <Field orientation="horizontal" className="items-center justify-end">
-          <Switch
-            checked={showAllAssigned}
-            id="show-all-assigned-seeds"
-            onCheckedChange={setShowAllAssigned}
-          />
-          <FieldContent>
-            <FieldLabel htmlFor="show-all-assigned-seeds">
-              Show all assigned seeds
-            </FieldLabel>
-            <FieldDescription>
-              Include used seeds and seeds currently marked bad.
-            </FieldDescription>
-          </FieldContent>
-        </Field>
-
         {seeds === undefined ? (
           <SeedTableSkeleton />
         ) : (
@@ -101,7 +76,7 @@ function SeedTable({
           </EmptyMedia>
           <EmptyTitle>No seeds in this league</EmptyTitle>
           <EmptyDescription>
-            Imported seeds assigned to this league will appear here.
+            Active seeds assigned to this league will appear here.
           </EmptyDescription>
         </EmptyHeader>
       </Empty>

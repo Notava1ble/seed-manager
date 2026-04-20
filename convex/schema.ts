@@ -30,6 +30,11 @@ export default defineSchema({
     seedCount: v.number(),
     usedSeedCount: v.number(),
   }).index("by_leagueNumber", ["leagueNumber"]),
+  settings: defineTable({
+    key: v.literal("global"),
+    currentWeekNumber: v.number(),
+    seedTestingPaused: v.boolean(),
+  }).index("by_key", ["key"]),
   seeds: defineTable({
     leagueId: v.optional(v.id("leagues")),
     claimedBy: v.optional(v.id("users")),
@@ -49,12 +54,18 @@ export default defineSchema({
     ),
     addedBy: v.id("users"),
     isUsed: v.boolean(),
+    isExpired: v.optional(v.boolean()),
+    assignedWeekNumber: v.optional(v.number()),
     usedAt: v.optional(v.number()), // unix time
     usedBy: v.optional(v.id("users")),
     commentCount: v.number(),
   })
     .index("by_owseed", ["overworld"])
     .index("by_leagueId", ["leagueId"])
+    .index("by_isExpired", ["isExpired"])
+    .index("by_assignedWeekNumber", ["assignedWeekNumber"])
+    .index("by_rating_and_leagueId", ["rating", "leagueId"])
+    .index("by_leagueId_and_isExpired", ["leagueId", "isExpired"])
     .index("by_leagueId_and_isUsed", ["leagueId", "isUsed"])
     .index("by_leagueId_and_rating_and_isUsed", [
       "leagueId",

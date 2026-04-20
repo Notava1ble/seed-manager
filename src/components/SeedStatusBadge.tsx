@@ -2,6 +2,10 @@ import { Badge } from "@/components/ui/badge";
 import type { SeedStatus } from "@/lib/seedStatus";
 
 export function SeedStatusBadge({ status }: { status: SeedStatus }) {
+  if (status === "expired") {
+    return <Badge variant="outline">Expired</Badge>;
+  }
+
   if (status === "used") {
     return <Badge variant="outline">Used</Badge>;
   }

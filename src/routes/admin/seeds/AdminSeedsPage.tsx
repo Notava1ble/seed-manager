@@ -93,6 +93,7 @@ export function AdminSeedsPage() {
                 <TableHead className="border-r">End</TableHead>
                 <TableHead className="border-r">RNG</TableHead>
                 <TableHead className="border-r">League</TableHead>
+                <TableHead className="border-r">Week</TableHead>
                 <TableHead className="border-r">Status</TableHead>
                 <TableHead className="border-r">Rating</TableHead>
                 <TableHead className="border-r text-right">Comments</TableHead>
@@ -112,6 +113,9 @@ export function AdminSeedsPage() {
                   <TableCell className="max-w-48 truncate border-r font-mono text-muted-foreground">
                     {leagues?.find((l) => l._id === seed.leagueId)
                       ?.leagueName ?? "Unassigned"}
+                  </TableCell>
+                  <TableCell className="border-r text-right tabular-nums">
+                    {seed.assignedWeekNumber ?? "None"}
                   </TableCell>
                   <TableCell className="border-r">
                     <SeedStatusBadge status={getSeedStatus(seed)} />
@@ -166,6 +170,7 @@ function AdminSeedTableSkeleton() {
             <TableHead className="border-r">End</TableHead>
             <TableHead className="border-r">RNG</TableHead>
             <TableHead className="border-r">League</TableHead>
+            <TableHead className="border-r">Week</TableHead>
             <TableHead className="border-r">Status</TableHead>
             <TableHead className="border-r">Rating</TableHead>
             <TableHead className="border-r text-right">Comments</TableHead>
@@ -192,6 +197,9 @@ function AdminSeedTableSkeleton() {
               </TableCell>
               <TableCell className="border-r">
                 <Skeleton className="h-5 w-32" />
+              </TableCell>
+              <TableCell className="border-r">
+                <Skeleton className="ml-auto h-5 w-10" />
               </TableCell>
               <TableCell className="border-r">
                 <Skeleton className="ml-auto h-5 w-8" />

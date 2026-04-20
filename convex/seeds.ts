@@ -6,11 +6,13 @@ import {
   requireActiveUser,
   requireAdmin,
 } from "./lib/permissions";
-
-const MAX_LEAGUE_SEED_LIST_COUNT = 500;
-const MAX_ADMIN_SEED_LIST_COUNT = 1000;
-const MAX_SEED_IMPORT_COUNT = 500;
-const NUMERIC_SEED_PATTERN = /^-?[0-9]+$/;
+import { requireSettings } from "./lib/settings";
+import {
+  MAX_ADMIN_SEED_LIST_COUNT,
+  MAX_LEAGUE_SEED_LIST_COUNT,
+  MAX_SEED_IMPORT_COUNT,
+  NUMERIC_SEED_PATTERN,
+} from "./lib/consts";
 
 const seedTypeValidator = v.union(
   v.literal("BURIED_TREASURE"),
@@ -60,7 +62,6 @@ export const listAllSeeds = query({
 export const listSeedsByLeague = query({
   args: {
     leagueId: v.id("leagues"),
-    showAllAssigned: v.boolean(),
   },
   handler: async (ctx, args) => {
     const user = await requireActiveUser(ctx);
@@ -70,20 +71,10 @@ export const listSeedsByLeague = query({
       return [];
     }
 
-    if (args.showAllAssigned) {
-      return await ctx.db
-        .query("seeds")
-        .withIndex("by_leagueId", (q) => q.eq("leagueId", args.leagueId))
-        .take(MAX_LEAGUE_SEED_LIST_COUNT);
-    }
-
     return await ctx.db
       .query("seeds")
-      .withIndex("by_leagueId_and_rating_and_isUsed", (q) =>
-        q
-          .eq("leagueId", args.leagueId)
-          .eq("rating", "Good")
-          .eq("isUsed", false),
+      .withIndex("by_leagueId_and_isExpired", (q) =>
+        q.eq("leagueId", args.leagueId).eq("isExpired", false),
       )
       .take(MAX_LEAGUE_SEED_LIST_COUNT);
   },
@@ -102,6 +93,9 @@ export const getSeedForLeague = query({
       return null;
     }
     if (seed.leagueId !== args.leagueId) {
+      return null;
+    }
+    if (seed.isExpired === true) {
       return null;
     }
 
@@ -137,6 +131,7 @@ export const claimSeed = mutation({
   args: {},
   handler: async (ctx) => {
     const user = await requireActiveUser(ctx);
+    await requireSeedTestingOpen(ctx);
 
     if (!user.roles.includes("tester")) {
       throw new ConvexError({
@@ -193,6 +188,7 @@ export const vouchSeed = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireActiveUser(ctx);
+    const settings = await requireSeedTestingOpen(ctx);
     const seed = await ctx.db.get("seeds", args.seedId);
 
     if (!seed) {
@@ -209,10 +205,24 @@ export const vouchSeed = mutation({
       });
     }
 
+    if (seed.isExpired === true) {
+      throw new ConvexError({
+        code: "SEED_EXPIRED",
+        message: "Expired seeds are read-only",
+      });
+    }
+
     if (seed.isUsed) {
       throw new ConvexError({
         code: "SEED_ALREADY_USED",
         message: "Used seeds cannot be vouched",
+      });
+    }
+
+    if (seed.rating !== undefined) {
+      throw new ConvexError({
+        code: "SEED_ALREADY_VOUCHED",
+        message: "This seed has already been vouched",
       });
     }
 
@@ -226,6 +236,9 @@ export const vouchSeed = mutation({
 
       await ctx.db.patch("seeds", seed._id, {
         rating: args.rating,
+        leagueId: undefined,
+        isExpired: undefined,
+        assignedWeekNumber: undefined,
       });
       return;
     }
@@ -269,6 +282,8 @@ export const vouchSeed = mutation({
     await ctx.db.patch("seeds", seed._id, {
       rating: args.rating,
       leagueId,
+      isExpired: false,
+      assignedWeekNumber: settings.currentWeekNumber,
     });
 
     if (isNewLeagueAssignment) {
@@ -279,6 +294,7 @@ export const vouchSeed = mutation({
   },
 });
 
+// Should probably replace with changeRatingToBad because we now dont allow changing bad to good
 export const updateSeedRating = mutation({
   args: {
     seedId: v.id("seeds"),
@@ -295,6 +311,47 @@ export const updateSeedRating = mutation({
       });
     }
 
+    if (seed.isExpired === true) {
+      throw new ConvexError({
+        code: "SEED_EXPIRED",
+        message: "Expired seeds are read-only",
+      });
+    }
+
+    if (seed.isUsed) {
+      throw new ConvexError({
+        code: "SEED_ALREADY_USED",
+        message: "Used seeds are read-only",
+      });
+    }
+
+    if (seed.rating === "Bad") {
+      throw new ConvexError({
+        code: "BAD_SEED_FINAL",
+        message: "Bad seeds cannot be marked good again",
+      });
+    }
+
+    if (args.rating === "Good") {
+      if (seed.rating === "Good") {
+        return;
+      }
+
+      throw new ConvexError({
+        code: "BAD_SEED_FINAL",
+        message: "Bad seeds cannot be marked good again",
+      });
+    }
+
+    if (seed.rating !== "Good") {
+      throw new ConvexError({
+        code: "INVALID_RATING_CHANGE",
+        message: "Only good seeds can be marked bad",
+      });
+    }
+
+    await requireSeedTestingOpen(ctx);
+
     const canRateAsAdmin = user.roles.includes("admin");
     const canRateAsOriginalTester = seed.claimedBy === user._id;
     const canRateAsHost =
@@ -309,16 +366,26 @@ export const updateSeedRating = mutation({
       });
     }
 
-    if (args.rating === "Good" && seed.leagueId === undefined) {
+    if (seed.leagueId === undefined) {
       throw new ConvexError({
-        code: "LEAGUE_REQUIRED",
-        message: "Good seeds must be assigned to a league",
+        code: "SEED_UNASSIGNED",
+        message: "Only assigned seeds can be marked bad",
       });
     }
+    const league = await ctx.db.get("leagues", seed.leagueId);
 
     await ctx.db.patch("seeds", seed._id, {
       rating: args.rating,
+      leagueId: undefined,
+      isExpired: undefined,
+      assignedWeekNumber: undefined,
     });
+
+    if (league) {
+      await ctx.db.patch("leagues", seed.leagueId, {
+        seedCount: league.seedCount - 1,
+      });
+    }
   },
 });
 
@@ -337,10 +404,24 @@ export const markSeedUsed = mutation({
       });
     }
 
+    if (seed.isExpired === true) {
+      throw new ConvexError({
+        code: "SEED_EXPIRED",
+        message: "Expired seeds are read-only",
+      });
+    }
+
     if (seed.leagueId === undefined) {
       throw new ConvexError({
         code: "SEED_UNASSIGNED",
         message: "Only assigned seeds can be marked used",
+      });
+    }
+
+    if (seed.rating !== "Good") {
+      throw new ConvexError({
+        code: "SEED_NOT_GOOD",
+        message: "Only good seeds can be marked used",
       });
     }
 
@@ -361,7 +442,8 @@ export const markSeedUsed = mutation({
     if (!canMarkAsAdmin && !canMarkAsHost) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "Only admins and hosts for this league can mark this seed used",
+        message:
+          "Only admins and hosts for this league can mark this seed used",
       });
     }
 
@@ -388,6 +470,8 @@ export const importSeeds = mutation({
   handler: async (ctx, args) => {
     const user = await requireAdmin(ctx);
     const normalizedSeeds = await normalizeSeeds(ctx, args.seeds);
+    const hasAssignedSeeds = normalizedSeeds.some((seed) => seed.leagueId);
+    const settings = hasAssignedSeeds ? await requireSettings(ctx) : null;
     const uniqueSeeds = new Map<string, SeedUploadInput>();
     const leagueSeedCounts = new Map<Id<"leagues">, number>();
 
@@ -421,7 +505,12 @@ export const importSeeds = mutation({
         rng: seed.rng,
         type: seed.type,
         ...(seed.leagueId
-          ? { leagueId: seed.leagueId, rating: "Good" as const }
+          ? {
+              leagueId: seed.leagueId,
+              rating: "Good" as const,
+              isExpired: false,
+              assignedWeekNumber: settings?.currentWeekNumber,
+            }
           : {}),
         addedBy: user._id,
         isUsed: false,
@@ -497,6 +586,19 @@ async function normalizeSeeds(ctx: MutationCtx, seeds: SeedUploadInput[]) {
   }
 
   return normalizedSeeds;
+}
+
+async function requireSeedTestingOpen(ctx: MutationCtx) {
+  const settings = await requireSettings(ctx);
+
+  if (settings.seedTestingPaused) {
+    throw new ConvexError({
+      code: "SEED_TESTING_PAUSED",
+      message: "Seed testing is currently paused",
+    });
+  }
+
+  return settings;
 }
 
 function validateNumericSeedString(value: string, label: string) {

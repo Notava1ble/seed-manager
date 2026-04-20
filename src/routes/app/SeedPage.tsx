@@ -199,6 +199,8 @@ function canEditRating(
   seed: {
     claimedBy?: Id<"users">;
     leagueId?: Id<"leagues">;
+    isExpired?: boolean;
+    isUsed: boolean;
   },
   user: {
     _id: Id<"users">;
@@ -207,6 +209,10 @@ function canEditRating(
   } | null,
 ) {
   if (!user) {
+    return false;
+  }
+
+  if (seed.isExpired || seed.isUsed) {
     return false;
   }
 
@@ -228,13 +234,14 @@ function canEditRating(
 function canMarkUsed(
   seed: {
     leagueId?: Id<"leagues">;
+    isExpired?: boolean;
   },
   user: {
     roles: Array<"admin" | "host" | "tester">;
     hostLeagueId?: Id<"leagues">[];
   } | null,
 ) {
-  if (!user || seed.leagueId === undefined) {
+  if (!user || seed.leagueId === undefined || seed.isExpired) {
     return false;
   }
 

@@ -1,5 +1,6 @@
 export type SeedRating = "Good" | "Bad";
 export type SeedStatus =
+  | "expired"
   | "used"
   | "open"
   | "assigned"
@@ -9,10 +10,15 @@ export type SeedStatus =
 
 export function getSeedStatus(seed: {
   isUsed: boolean;
+  isExpired?: boolean;
   leagueId?: string;
   claimedBy?: string;
   rating?: SeedRating;
 }): SeedStatus {
+  if (seed.isExpired) {
+    return "expired";
+  }
+
   if (seed.isUsed) {
     return "used";
   }

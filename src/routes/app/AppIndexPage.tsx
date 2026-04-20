@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { SeedValueDisplay } from "@/components/SeedValueDisplay";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { getErrorMessage } from "@/lib/errors";
+import { PauseCircle } from "lucide-react";
 
 export function AppIndexPage() {
   const [selectedLeagueId, setSelectedLeagueId] =
@@ -51,12 +53,18 @@ export function AppIndexPage() {
   const user = useQuery(api.users.currentUser);
   const leagues = useQuery(api.leagues.listLeagues);
   const claimedSeed = useQuery(api.seeds.getCurrentClaimedSeed);
+  const settings = useQuery(api.settings.current);
   const claimSeed = useMutation(api.seeds.claimSeed);
   const vouchSeed = useMutation(api.seeds.vouchSeed);
 
   const isTester = user?.roles.includes("tester") ?? false;
+  const isTestingUnavailable =
+    settings === null || (settings?.seedTestingPaused ?? false);
   const isLoading =
-    user === undefined || leagues === undefined || claimedSeed === undefined;
+    user === undefined ||
+    leagues === undefined ||
+    claimedSeed === undefined ||
+    settings === undefined;
 
   const handleClaimSeed = async () => {
     setError(null);
@@ -110,6 +118,27 @@ export function AppIndexPage() {
           </Badge>
         </CardHeader>
         <CardContent>
+          {settings === null && (
+            <Alert className="mb-4">
+              <PauseCircle />
+              <AlertTitle>Seed testing is unavailable</AlertTitle>
+              <AlertDescription>
+                Tournament settings need to be initialized before testing can
+                start.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {settings?.seedTestingPaused && (
+            <Alert className="mb-4">
+              <PauseCircle />
+              <AlertTitle>Seed testing is paused</AlertTitle>
+              <AlertDescription>
+                Claims and vouching will resume after an admin starts testing.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {isLoading ? (
             <div className="grid gap-4">
               <Skeleton className="h-24 w-full" />
@@ -186,14 +215,14 @@ export function AppIndexPage() {
 
               <div className="flex flex-wrap gap-2 pt-2">
                 <Button
-                  disabled={isVouching || !selectedLeagueId}
+                  disabled={isVouching || isTestingUnavailable || !selectedLeagueId}
                   onClick={() => void handleVouch("Good")}
                   type="button"
                 >
                   Vouch good
                 </Button>
                 <Button
-                  disabled={isVouching}
+                  disabled={isVouching || isTestingUnavailable}
                   onClick={() => void handleVouch("Bad")}
                   type="button"
                   variant="destructive"
@@ -215,7 +244,7 @@ export function AppIndexPage() {
                 </EmptyDescription>
                 <EmptyContent>
                   <Button
-                    disabled={isClaiming}
+                    disabled={isClaiming || isTestingUnavailable}
                     onClick={() => void handleClaimSeed()}
                     type="button"
                     variant="secondary"
