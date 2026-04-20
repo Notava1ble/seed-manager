@@ -53,7 +53,9 @@ export function AdminPendingUsersPage() {
             </p>
           </div>
           <Badge variant="outline">
-            {isLoading ? "Loading" : getPendingUserCountLabel(pendingUsers.length)}
+            {isLoading
+              ? "Loading"
+              : getPendingUserCountLabel(pendingUsers.length)}
           </Badge>
         </div>
 
@@ -109,7 +111,7 @@ function AdminPendingUsersTable({
 }) {
   return (
     <div className="overflow-hidden rounded-md border">
-      <Table>
+      <Table containerClassName="max-h-[calc(100svh-12rem)]">
         <TableHeader>
           <TableRow>
             <TableHead className="border-r text-left">User</TableHead>

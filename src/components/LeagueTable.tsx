@@ -101,7 +101,7 @@ export function LeagueTable({ leagues }: { leagues: Doc<"leagues">[] }) {
   }
 
   return (
-    <div className="rounded-md border">
+    <div className="overflow-hidden rounded-md border">
       <AlertDialog open={shouldShowAlert} onOpenChange={toggleAlert}>
         <DeleteAlert
           isLoading={isLoading}
@@ -114,7 +114,7 @@ export function LeagueTable({ leagues }: { leagues: Doc<"leagues">[] }) {
           <EditLeagueDialog league={editingLeague} onClose={closeEditDialog} />
         ) : null}
       </Dialog>
-      <Table>
+      <Table containerClassName="max-h-[calc(100svh-15rem)]">
         <TableHeader>
           <TableRow>
             <TableHead className="w-24 border-r">Number</TableHead>

@@ -74,7 +74,9 @@ export function AdminActiveUsersPage() {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline">
-              {isLoading ? "Loading" : getActiveUserCountLabel(activeUsers.length)}
+              {isLoading
+                ? "Loading"
+                : getActiveUserCountLabel(activeUsers.length)}
             </Badge>
             <Dialog
               open={isInviteDialogOpen}
@@ -149,7 +151,7 @@ function AdminActiveUsersTable({
 }) {
   return (
     <div className="overflow-hidden rounded-md border">
-      <Table>
+      <Table containerClassName="max-h-[calc(100svh-12rem)]">
         <TableHeader>
           <TableRow>
             <TableHead className="border-r text-left">User</TableHead>

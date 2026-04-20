@@ -84,7 +84,7 @@ export function AdminSeedsPage() {
         </Empty>
       ) : (
         <div className="overflow-hidden rounded-md border">
-          <Table>
+          <Table containerClassName="max-h-[calc(100svh-12rem)]">
             <TableHeader>
               <TableRow>
                 <TableHead className="border-r text-left">Seed Type</TableHead>
