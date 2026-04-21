@@ -3,7 +3,6 @@ import { useConvexAuth, useQuery } from "convex/react";
 import { Navigate, Outlet } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Button } from "../../components/ui/button";
 import { SidebarInset, SidebarProvider } from "../../components/ui/sidebar";
 import { Loading } from "../Loading";
 
@@ -44,20 +43,12 @@ export function AppLayout() {
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
               Active
             </p>
-            <Button
-              className="text-foreground"
-              size="sm"
-              variant="link"
-              onClick={() => void signOut()}
-            >
-              Sign Out
-            </Button>
           </div>
         </div>
       </nav>
 
       <div className="flex min-h-0 flex-1">
-        <AppSidebar user={user} />
+        <AppSidebar onSignOut={signOut} user={user} />
         <SidebarInset className="min-h-0 overflow-auto">
           <main className="h-full min-h-0 p-6">
             <Outlet />

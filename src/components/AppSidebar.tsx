@@ -3,8 +3,11 @@ import { useMemo } from "react";
 import { NavLink, useLocation } from "react-router";
 import {
   ChevronRight,
+  ChevronsUpDown,
   Home,
   ListTree,
+  LogOut,
+  Settings,
   ShieldCheck,
   Sprout,
   Trophy,
@@ -12,8 +15,23 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -60,7 +78,13 @@ const adminUserLinks = [
   },
 ] as const;
 
-export function AppSidebar({ user }: { user: Doc<"users"> }) {
+export function AppSidebar({
+  onSignOut,
+  user,
+}: {
+  onSignOut: () => void | Promise<void>;
+  user: Doc<"users">;
+}) {
   const location = useLocation();
   const allLeagues = useQuery(api.leagues.listLeagues);
   const leagues = useMemo(
@@ -199,8 +223,104 @@ export function AppSidebar({ user }: { user: Doc<"users"> }) {
           </SidebarGroup>
         )}
       </SidebarContent>
+      <SidebarFooter>
+        <AccountMenu
+          isActive={isActivePath(location.pathname, "/app/account")}
+          onSignOut={onSignOut}
+          user={user}
+        />
+      </SidebarFooter>
     </Sidebar>
   );
+}
+
+function AccountMenu({
+  isActive,
+  onSignOut,
+  user,
+}: {
+  isActive: boolean;
+  onSignOut: () => void | Promise<void>;
+  user: Doc<"users">;
+}) {
+  const displayName = user.name ?? "Unknown user";
+  const username = user.lowercaseName ?? displayName.toLowerCase();
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <SidebarMenuButton isActive={isActive} size="lg" tooltip="Account" />
+            }
+          >
+            <UserAvatar user={user} />
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate font-medium">{displayName}</span>
+              <span className="truncate text-muted-foreground">
+                @{username}
+              </span>
+            </span>
+            <ChevronsUpDown className="ml-auto" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-56"
+            side="right"
+            sideOffset={8}
+          >
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="p-2">
+                <div className="flex items-center gap-2">
+                  <UserAvatar user={user} />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate font-medium text-foreground">
+                      {displayName}
+                    </span>
+                    <span className="truncate text-muted-foreground">
+                      @{username}
+                    </span>
+                  </span>
+                </div>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem render={<NavLink to="/app/account" />}>
+                <Settings />
+                Settings
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                void onSignOut();
+              }}
+            >
+              <LogOut />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
+function UserAvatar({ user }: { user: Doc<"users"> }) {
+  const displayName = user.name ?? "Unknown user";
+
+  return (
+    <Avatar size="sm">
+      {user.image && <AvatarImage alt={displayName} src={user.image} />}
+      <AvatarFallback>{getUserInitials(displayName)}</AvatarFallback>
+    </Avatar>
+  );
+}
+
+function getUserInitials(displayName: string) {
+  return displayName.trim().slice(0, 2).toUpperCase() || "U";
 }
 
 function SidebarNavItem({

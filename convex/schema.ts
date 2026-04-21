@@ -21,6 +21,11 @@ export default defineSchema({
     ),
     homeLeagueId: v.optional(v.array(v.id("leagues"))),
     hostLeagueId: v.optional(v.array(v.id("leagues"))),
+    settings: v.optional(
+      v.object({
+        claimBuriedTreasureSeeds: v.optional(v.boolean()),
+      }),
+    ),
   })
     .index("email", ["email"])
     .index("by_discordId", ["discordId"])
@@ -54,9 +59,10 @@ export default defineSchema({
         v.literal("SHIPWRECK"),
       ),
     ),
+    isBt: v.optional(v.boolean()),
     addedBy: v.id("users"),
     isUsed: v.boolean(),
-    isExpired: v.optional(v.boolean()),
+    isExpired: v.optional(v.boolean()), // undefined = never assigned, false = active assigned, true = expired
     assignedWeekNumber: v.optional(v.number()),
     usedAt: v.optional(v.number()), // unix time
     usedBy: v.optional(v.id("users")),
@@ -65,21 +71,13 @@ export default defineSchema({
     .index("by_owseed", ["overworld"])
     .index("by_leagueId", ["leagueId"])
     .index("by_isExpired", ["isExpired"])
-    .index("by_assignedWeekNumber", ["assignedWeekNumber"])
     .index("by_rating_and_leagueId", ["rating", "leagueId"])
     .index("by_leagueId_and_isExpired", ["leagueId", "isExpired"])
-    .index("by_leagueId_and_isUsed", ["leagueId", "isUsed"])
-    .index("by_leagueId_and_rating_and_isUsed", [
-      "leagueId",
-      "rating",
-      "isUsed",
-    ])
-    .index("by_claimedBy_and_rating", ["claimedBy", "rating"])
-    .index("by_leagueId_and_claimedBy_and_rating_and_isUsed", [
-      "leagueId",
+    .index("by_isExpired_and_claimedBy_and_rating_and_isBt", [
+      "isExpired",
       "claimedBy",
       "rating",
-      "isUsed",
+      "isBt",
     ]),
   comments: defineTable({
     seedId: v.id("seeds"),

@@ -56,6 +56,26 @@ export const setExpireFalseExistingGoodSeeds = internalMutation({
   },
 });
 
+export const markBtSeeds = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const allSeeds = await ctx.db.query("seeds").collect();
+    await Promise.all(
+      allSeeds.map((s) => {
+        const isBt = s.type === "BURIED_TREASURE";
+        if (isBt)
+          return ctx.db.patch("seeds", s._id, {
+            isBt: true,
+          });
+
+        return ctx.db.patch("seeds", s._id, {
+          isBt: false,
+        });
+      }),
+    );
+  },
+});
+
 function validateWeekNumber(weekNumber: number) {
   if (!Number.isSafeInteger(weekNumber) || weekNumber < 1) {
     throw new ConvexError({

@@ -120,8 +120,11 @@ export const getCurrentClaimedSeed = query({
 
     return await ctx.db
       .query("seeds")
-      .withIndex("by_claimedBy_and_rating", (q) =>
-        q.eq("claimedBy", user._id).eq("rating", undefined),
+      .withIndex("by_isExpired_and_claimedBy_and_rating_and_isBt", (q) =>
+        q
+          .eq("isExpired", undefined)
+          .eq("claimedBy", user._id)
+          .eq("rating", undefined),
       )
       .first();
   },
@@ -142,8 +145,11 @@ export const claimSeed = mutation({
 
     const currentClaim = await ctx.db
       .query("seeds")
-      .withIndex("by_claimedBy_and_rating", (q) =>
-        q.eq("claimedBy", user._id).eq("rating", undefined),
+      .withIndex("by_isExpired_and_claimedBy_and_rating_and_isBt", (q) =>
+        q
+          .eq("isExpired", undefined)
+          .eq("claimedBy", user._id)
+          .eq("rating", undefined),
       )
       .first();
 
@@ -154,16 +160,29 @@ export const claimSeed = mutation({
       });
     }
 
-    const seed = await ctx.db
-      .query("seeds")
-      .withIndex("by_leagueId_and_claimedBy_and_rating_and_isUsed", (q) =>
-        q
-          .eq("leagueId", undefined)
-          .eq("claimedBy", undefined)
-          .eq("rating", undefined)
-          .eq("isUsed", false),
-      )
-      .first();
+    const claimBuriedTreasureSeeds =
+      user.settings?.claimBuriedTreasureSeeds ?? true;
+
+    const seed = claimBuriedTreasureSeeds
+      ? await ctx.db
+          .query("seeds")
+          .withIndex("by_isExpired_and_claimedBy_and_rating_and_isBt", (q) =>
+            q
+              .eq("isExpired", undefined)
+              .eq("claimedBy", undefined)
+              .eq("rating", undefined),
+          )
+          .first()
+      : await ctx.db
+          .query("seeds")
+          .withIndex("by_isExpired_and_claimedBy_and_rating_and_isBt", (q) =>
+            q
+              .eq("isExpired", undefined)
+              .eq("claimedBy", undefined)
+              .eq("rating", undefined)
+              .eq("isBt", false),
+          )
+          .first();
 
     if (!seed) {
       throw new ConvexError({
@@ -504,6 +523,7 @@ export const importSeeds = mutation({
         end: seed.end,
         rng: seed.rng,
         type: seed.type,
+        isBt: seed.type === "BURIED_TREASURE",
         ...(seed.leagueId
           ? {
               leagueId: seed.leagueId,

@@ -6,7 +6,7 @@ import {
   type MutationCtx,
   type QueryCtx,
 } from "./_generated/server";
-import { getUser, requireAdmin } from "./lib/permissions";
+import { getUser, requireActiveUser, requireAdmin } from "./lib/permissions";
 
 const MAX_USER_LIST_COUNT = 1000;
 
@@ -21,6 +21,22 @@ export const currentUser = query({
   args: {},
   handler: async (ctx) => {
     return await getUser(ctx);
+  },
+});
+
+export const updateAccountSettings = mutation({
+  args: {
+    claimBuriedTreasureSeeds: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireActiveUser(ctx);
+
+    await ctx.db.patch("users", user._id, {
+      settings: {
+        ...user.settings,
+        claimBuriedTreasureSeeds: args.claimBuriedTreasureSeeds,
+      },
+    });
   },
 });
 

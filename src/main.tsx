@@ -13,6 +13,7 @@ import { AdminActiveUserDetailsPage } from "./routes/admin/users/AdminActiveUser
 import { AdminActiveUsersPage } from "./routes/admin/users/AdminActiveUsersPage";
 import { AdminPendingUserDetailsPage } from "./routes/admin/users/AdminPendingUserDetailsPage";
 import { AdminPendingUsersPage } from "./routes/admin/users/AdminPendingUsersPage";
+import { AccountPage } from "./routes/app/AccountPage";
 import { AppIndexPage } from "./routes/app/AppIndexPage";
 import { AppLayout } from "./routes/app/AppLayout";
 import { LeaguePage } from "./routes/app/LeaguePage";
@@ -37,6 +38,7 @@ createRoot(document.getElementById("root")!).render(
 
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<AppIndexPage />} />
+            <Route path="account" element={<AccountPage />} />
             <Route path="league" element={<Navigate replace to="/app" />} />
 
             <Route path="league/:leagueId" element={<LeaguePage />}>

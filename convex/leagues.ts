@@ -46,7 +46,7 @@ export const listLeagues = query({
     const leagues = await ctx.db
       .query("leagues")
       .withIndex("by_leagueNumber")
-      .order("desc")
+      .order("asc")
       .collect();
 
     return leagues.filter((l) => canViewLeague(user, l));
