@@ -48,10 +48,6 @@ export function SettingsPage() {
     <div className="grid max-w-3xl gap-4">
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <UserRound />
-            <CardTitle>Account</CardTitle>
-          </div>
           <CardDescription>
             Manage your seed claiming preferences.
           </CardDescription>
