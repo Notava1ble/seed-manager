@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "convex/react";
-import { AlertCircleIcon, UserRound } from "lucide-react";
+import { AlertCircleIcon } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -8,7 +8,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Field,
