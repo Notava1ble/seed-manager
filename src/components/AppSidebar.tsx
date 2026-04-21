@@ -11,14 +11,11 @@ import {
   ShieldCheck,
   Sprout,
   Trophy,
+  UserRound,
   Users,
   type LucideIcon,
 } from "lucide-react";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -225,7 +222,10 @@ export function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <AccountMenu
-          isActive={isActivePath(location.pathname, "/app/account")}
+          // isActive={
+          //   isActivePath(location.pathname, "/app/account") ||
+          //   isActivePath(location.pathname, "/app/settings")
+          // }
           onSignOut={onSignOut}
           user={user}
         />
@@ -239,7 +239,7 @@ function AccountMenu({
   onSignOut,
   user,
 }: {
-  isActive: boolean;
+  isActive?: boolean;
   onSignOut: () => void | Promise<void>;
   user: Doc<"users">;
 }) {
@@ -252,7 +252,11 @@ function AccountMenu({
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <SidebarMenuButton isActive={isActive} size="lg" tooltip="Account" />
+              <SidebarMenuButton
+                isActive={isActive}
+                size="lg"
+                tooltip="Account"
+              />
             }
           >
             <UserAvatar user={user} />
@@ -288,6 +292,10 @@ function AccountMenu({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem render={<NavLink to="/app/account" />}>
+                <UserRound />
+                Account
+              </DropdownMenuItem>
+              <DropdownMenuItem render={<NavLink to="/app/settings" />}>
                 <Settings />
                 Settings
               </DropdownMenuItem>
