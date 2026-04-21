@@ -5,9 +5,10 @@ import { authTables } from "@convex-dev/auth/server";
 export default defineSchema({
   ...authTables,
   users: defineTable({
-    name: v.optional(v.string()),
+    discordId: v.optional(v.string()),
+    name: v.optional(v.string()), // Discord username for migrated users, GitHub username for legacy users.
     email: v.optional(v.string()),
-    lowercaseName: v.optional(v.string()),
+    lowercaseName: v.optional(v.string()), // Normalized `name` field
     image: v.optional(v.string()),
     status: v.union(
       v.literal("pending"),
@@ -22,6 +23,7 @@ export default defineSchema({
     hostLeagueId: v.optional(v.array(v.id("leagues"))),
   })
     .index("email", ["email"])
+    .index("by_discordId", ["discordId"])
     .index("lowercase_name", ["lowercaseName"])
     .index("by_status", ["status"]),
   leagues: defineTable({

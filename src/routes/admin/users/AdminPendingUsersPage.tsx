@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getUserLabel } from "@/lib/userAccess";
+import { getUserIdentifierLabel, getUserLabel } from "@/lib/userAccess";
 import { cn } from "@/lib/utils";
 
 export function AdminPendingUsersPage() {
@@ -134,7 +134,7 @@ function AdminPendingUsersTable({
                 <div className="flex flex-col gap-0.5">
                   <span className="font-medium">{getUserLabel(user)}</span>
                   <span className="font-mono text-xs text-muted-foreground">
-                    {user.lowercaseName ? `@${user.lowercaseName}` : user._id}
+                    {getUserIdentifierLabel(user)}
                   </span>
                 </div>
               </TableCell>

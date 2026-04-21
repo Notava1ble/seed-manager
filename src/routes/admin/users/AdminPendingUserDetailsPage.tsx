@@ -28,6 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import { getErrorMessage } from "@/lib/errors";
 import {
   getManagedUserValues,
+  getUserIdentifierLabel,
   getUserLabel,
   haveSameLeagueIds,
   haveSameManagedRoles,
@@ -70,7 +71,7 @@ export function AdminPendingUserDetailsPage() {
     );
   }
 
-  const hasGithubUsername = Boolean(user.lowercaseName);
+  const hasDiscordId = Boolean(user.discordId);
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -79,7 +80,7 @@ export function AdminPendingUserDetailsPage() {
           <h2 className="text-2xl font-semibold">{getUserLabel(user)}</h2>
         </div>
         <p className="font-mono text-xs text-muted-foreground">
-          {user.lowercaseName ? `@${user.lowercaseName}` : user._id}
+          {getUserIdentifierLabel(user)}
         </p>
       </div>
 
@@ -87,25 +88,27 @@ export function AdminPendingUserDetailsPage() {
 
       <UserIdentitySummary leagues={leagues} user={user} />
 
-      {!hasGithubUsername ? (
+      {!hasDiscordId ? (
         <Alert variant="destructive">
           <ShieldAlert />
-          <AlertTitle>GitHub username missing</AlertTitle>
+          <AlertTitle>Discord ID missing</AlertTitle>
           <AlertDescription>
             This account cannot be activated from this screen because the
-            activation shortcut requires a GitHub username.
+            activation requires a Discord user ID.
           </AlertDescription>
         </Alert>
-      ) : null}
+      ) : (
+        <>
+          <Separator />
 
-      <Separator />
-
-      <PendingActivationForm
-        disabled={!hasGithubUsername}
-        key={user._id}
-        leagues={leagues}
-        user={user}
-      />
+          <PendingActivationForm
+            disabled={!hasDiscordId}
+            key={user._id}
+            leagues={leagues}
+            user={user}
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -120,7 +123,7 @@ function PendingActivationForm({
   user: Doc<"users">;
 }) {
   const navigate = useNavigate();
-  const activateUser = useMutation(api.users.activateUserByGithubUsername);
+  const activateUser = useMutation(api.users.activateUserByDiscordId);
   const savedValues = useMemo(() => getManagedUserValues(user), [user]);
   const [roles, setRoles] = useState<ManagedRole[]>(savedValues.roles);
   const [makeAdmin, setMakeAdmin] = useState(user.roles.includes("admin"));
@@ -145,8 +148,8 @@ function PendingActivationForm({
       return;
     }
 
-    if (!user.lowercaseName) {
-      setFormError("This user does not have a GitHub username.");
+    if (!user.discordId) {
+      setFormError("This user does not have a Discord ID.");
       return;
     }
 
@@ -155,7 +158,7 @@ function PendingActivationForm({
 
     try {
       await activateUser({
-        username: user.lowercaseName,
+        discordId: user.discordId,
         roles,
         makeAdmin,
         homeLeagueId,

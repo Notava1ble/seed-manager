@@ -30,7 +30,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getLeagueListLabel, getUserLabel } from "@/lib/userAccess";
+import {
+  getLeagueListLabel,
+  getUserIdentifierLabel,
+  getUserLabel,
+} from "@/lib/userAccess";
 import { cn, sortLeaguesByNumberAndName } from "@/lib/utils";
 import { InviteUserDialog } from "./InviteUserDialog";
 
@@ -176,7 +180,7 @@ function AdminActiveUsersTable({
                 <div className="flex flex-col gap-0.5">
                   <span className="font-medium">{getUserLabel(user)}</span>
                   <span className="font-mono text-xs text-muted-foreground">
-                    {user.lowercaseName ? `@${user.lowercaseName}` : user._id}
+                    {getUserIdentifierLabel(user)}
                   </span>
                 </div>
               </TableCell>

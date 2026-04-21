@@ -54,6 +54,7 @@ function Pending({ user }: { user: Doc<"users"> }) {
           <CardTitle>Account Information</CardTitle>
           <CardDescription>
             {user.name} ({showEmail ? user.email : "************"})
+            {user.discordId ? ` - ${user.discordId}` : null}
           </CardDescription>
         </CardHeader>
 

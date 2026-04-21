@@ -37,9 +37,9 @@ export function InviteUserDialog({
   onClose: () => void;
   onSuccess: (activatedUserId: Id<"users">) => void;
 }) {
-  const activateUser = useMutation(api.users.activateUserByGithubUsername);
-  const [username, setUsername] = useState("");
-  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const activateUser = useMutation(api.users.activateUserByDiscordId);
+  const [discordId, setDiscordId] = useState("");
+  const [discordIdError, setDiscordIdError] = useState<string | null>(null);
   const [roles, setRoles] = useState<ManagedRole[]>([]);
   const [makeAdmin, setMakeAdmin] = useState(false);
   const [homeLeagueId, setHomeLeagueId] = useState<Id<"leagues">[]>([]);
@@ -50,19 +50,19 @@ export function InviteUserDialog({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const trimmedUsername = username.trim();
-    if (trimmedUsername.length === 0) {
-      setUsernameError("Enter a GitHub username");
+    const trimmedDiscordId = discordId.trim();
+    if (trimmedDiscordId.length === 0) {
+      setDiscordIdError("Enter a Discord user ID");
       return;
     }
 
-    setUsernameError(null);
+    setDiscordIdError(null);
     setFormError(null);
     setIsSubmitting(true);
 
     try {
       const activatedUserId = await activateUser({
-        username: trimmedUsername,
+        discordId: trimmedDiscordId,
         roles,
         makeAdmin,
         homeLeagueId,
@@ -84,7 +84,7 @@ export function InviteUserDialog({
       <DialogHeader>
         <DialogTitle>Invite user</DialogTitle>
         <DialogDescription>
-          Enter a GitHub username and set their initial access. The user must
+          Enter a Discord user ID and set their initial access. The user must
           have signed in once before they can be activated.
         </DialogDescription>
       </DialogHeader>
@@ -94,23 +94,21 @@ export function InviteUserDialog({
         onSubmit={(event) => void handleSubmit(event)}
       >
         <FieldGroup>
-          <Field data-invalid={Boolean(usernameError)}>
-            <FieldLabel htmlFor="invite-github-username">
-              GitHub username
-            </FieldLabel>
+          <Field data-invalid={Boolean(discordIdError)}>
+            <FieldLabel htmlFor="invite-discord-id">Discord user ID</FieldLabel>
             <Input
-              id="invite-github-username"
-              aria-invalid={Boolean(usernameError)}
+              id="invite-discord-id"
+              aria-invalid={Boolean(discordIdError)}
               autoComplete="off"
               disabled={isSubmitting}
               onChange={(event) => {
-                setUsername(event.currentTarget.value);
-                setUsernameError(null);
+                setDiscordId(event.currentTarget.value);
+                setDiscordIdError(null);
               }}
-              placeholder="github-user"
-              value={username}
+              placeholder="123456789012345678"
+              value={discordId}
             />
-            <FieldError>{usernameError}</FieldError>
+            <FieldError>{discordIdError}</FieldError>
           </Field>
 
           <ManagedRoleFields

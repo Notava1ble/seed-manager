@@ -1,6 +1,11 @@
 import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import {
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from "./_generated/server";
 import { getUser, requireAdmin } from "./lib/permissions";
 
 const MAX_USER_LIST_COUNT = 1000;
@@ -47,9 +52,9 @@ export const listPendingUsers = query({
   },
 });
 
-export const activateUserByGithubUsername = mutation({
+export const activateUserByDiscordId = mutation({
   args: {
-    username: v.string(),
+    discordId: v.string(),
     roles: v.array(managedRoleValidator),
     makeAdmin: v.boolean(),
     homeLeagueId: v.array(v.id("leagues")),
@@ -58,16 +63,16 @@ export const activateUserByGithubUsername = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
 
-    const lowercaseName = normalizeGithubUsername(args.username);
+    const discordId = normalizeDiscordId(args.discordId);
     const user = await ctx.db
       .query("users")
-      .withIndex("lowercase_name", (q) => q.eq("lowercaseName", lowercaseName))
+      .withIndex("by_discordId", (q) => q.eq("discordId", discordId))
       .unique();
 
     if (!user) {
       throw new ConvexError({
         code: "USER_NOT_FOUND",
-        message: "This GitHub user must sign in before they can be invited",
+        message: "This Discord user must sign in before they can be invited",
       });
     }
 
@@ -143,17 +148,24 @@ export const updateManagedUser = mutation({
   },
 });
 
-function normalizeGithubUsername(username: string) {
-  const lowercaseName = username.trim().toLowerCase();
+function normalizeDiscordId(discordId: string) {
+  const normalizedDiscordId = discordId.trim();
 
-  if (lowercaseName.length === 0) {
+  if (normalizedDiscordId.length === 0) {
     throw new ConvexError({
-      code: "INVALID_USERNAME",
-      message: "Enter a GitHub username",
+      code: "INVALID_DISCORD_ID",
+      message: "Enter a Discord user ID",
     });
   }
 
-  return lowercaseName;
+  if (!/^\d+$/.test(normalizedDiscordId)) {
+    throw new ConvexError({
+      code: "INVALID_DISCORD_ID",
+      message: "Discord user IDs only contain numbers",
+    });
+  }
+
+  return normalizedDiscordId;
 }
 
 async function normalizeLeagueIds(

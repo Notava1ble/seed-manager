@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { getErrorMessage } from "@/lib/errors";
 import {
   getManagedUserValues,
+  getUserIdentifierLabel,
   getUserLabel,
   haveSameLeagueIds,
   haveSameManagedRoles,
@@ -71,7 +72,7 @@ export function AdminActiveUserDetailsPage() {
           <h2 className="text-2xl font-semibold">{getUserLabel(user)}</h2>
         </div>
         <p className="font-mono text-xs text-muted-foreground">
-          {user.lowercaseName ? `@${user.lowercaseName}` : user._id}
+          {getUserIdentifierLabel(user)}
         </p>
       </div>
 

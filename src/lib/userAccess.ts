@@ -34,6 +34,14 @@ export function getUserLabel(user: Doc<"users">) {
   return user.name ?? user.lowercaseName ?? user.email ?? "Unnamed user";
 }
 
+export function getUserIdentifierLabel(user: Doc<"users">) {
+  if (user.lowercaseName) {
+    return `@${user.lowercaseName}`;
+  }
+
+  return user._id;
+}
+
 export function getManagedRoles(user: Doc<"users">): ManagedRole[] {
   return user.roles.filter(isManagedRole);
 }
