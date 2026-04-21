@@ -20,7 +20,7 @@ export function AccountPage() {
       .join(", ") ?? "None";
   const hostLeagues =
     leagues
-      ?.filter((l) => user?.homeLeagueId?.includes(l._id))
+      ?.filter((l) => user?.hostLeagueId?.includes(l._id))
       .map((l) => l.leagueName)
       .join(", ") ?? "None";
 
