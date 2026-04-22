@@ -73,6 +73,11 @@ export default defineSchema({
     .index("by_isExpired", ["isExpired"])
     .index("by_rating_and_leagueId", ["rating", "leagueId"])
     .index("by_leagueId_and_isExpired", ["leagueId", "isExpired"])
+    .index("by_isExpired_and_claimedBy_and_rating", [
+      "isExpired",
+      "claimedBy",
+      "rating",
+    ])
     .index("by_isExpired_and_claimedBy_and_rating_and_isBt", [
       "isExpired",
       "claimedBy",

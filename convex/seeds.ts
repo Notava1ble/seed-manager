@@ -120,7 +120,7 @@ export const getCurrentClaimedSeed = query({
 
     return await ctx.db
       .query("seeds")
-      .withIndex("by_isExpired_and_claimedBy_and_rating_and_isBt", (q) =>
+      .withIndex("by_isExpired_and_claimedBy_and_rating", (q) =>
         q
           .eq("isExpired", undefined)
           .eq("claimedBy", user._id)
@@ -145,7 +145,7 @@ export const claimSeed = mutation({
 
     const currentClaim = await ctx.db
       .query("seeds")
-      .withIndex("by_isExpired_and_claimedBy_and_rating_and_isBt", (q) =>
+      .withIndex("by_isExpired_and_claimedBy_and_rating", (q) =>
         q
           .eq("isExpired", undefined)
           .eq("claimedBy", user._id)
@@ -166,7 +166,7 @@ export const claimSeed = mutation({
     const seed = claimBuriedTreasureSeeds
       ? await ctx.db
           .query("seeds")
-          .withIndex("by_isExpired_and_claimedBy_and_rating_and_isBt", (q) =>
+          .withIndex("by_isExpired_and_claimedBy_and_rating", (q) =>
             q
               .eq("isExpired", undefined)
               .eq("claimedBy", undefined)
