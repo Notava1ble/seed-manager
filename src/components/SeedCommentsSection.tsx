@@ -204,7 +204,7 @@ function CommentGroupMessage({
         <div
           key={comment._id}
           className={cn(
-            "grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 rounded-md px-2 hover:bg-muted/50",
+            "grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 rounded-md hover:bg-muted/50",
             index === 0 ? "pt-1.5 pb-0" : "py-0",
           )}
         >
