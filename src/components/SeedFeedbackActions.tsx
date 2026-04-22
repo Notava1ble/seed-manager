@@ -1,4 +1,4 @@
-import { MessageCircle, ThumbsDown, ThumbsUp } from "lucide-react";
+import { CheckCircle2, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -7,23 +7,27 @@ import { cn } from "@/lib/utils";
 
 type SeedRatingActionsProps = {
   rating?: SeedRating;
-  comments: number;
   canEditRating?: boolean;
+  canMarkUsed?: boolean;
+  isMarkingUsed?: boolean;
+  isUsed?: boolean;
   className?: string;
   onRatingChange?: (rating: SeedRating) => void;
-  onComment?: () => void;
+  onMarkUsed?: () => void;
 };
 
 export function SeedRatingActions({
   rating,
-  comments,
   canEditRating = false,
+  canMarkUsed = false,
+  isMarkingUsed = false,
+  isUsed = false,
   className,
   onRatingChange,
-  onComment,
+  onMarkUsed,
 }: SeedRatingActionsProps) {
   return (
-    <div className="flex w-full items-center justify-between gap-3">
+    <div className="flex w-full flex-wrap items-center justify-between gap-3">
       <ToggleGroup
         aria-label="Seed rating"
         className={cn("shadow-xs", className)}
@@ -51,17 +55,19 @@ export function SeedRatingActions({
           Bad
         </ToggleGroupItem>
       </ToggleGroup>
-      <Button
-        aria-label={`Open comments. ${comments} comments`}
-        onClick={onComment}
-        size="lg"
-        type="button"
-        variant="outline"
-      >
-        <MessageCircle data-icon="inline-start" />
-        <span className="tabular-nums">{comments}</span>
-        <span>Comments</span>
-      </Button>
+      {canMarkUsed ? (
+        <Button
+          aria-label={isUsed ? "Seed already used" : "Mark seed as used"}
+          disabled={isUsed || isMarkingUsed}
+          onClick={onMarkUsed}
+          size="lg"
+          type="button"
+          variant={isUsed ? "outline" : "destructive"}
+        >
+          <CheckCircle2 data-icon="inline-start" />
+          {isUsed ? "Seed used" : isMarkingUsed ? "Marking used" : "Mark as Used"}
+        </Button>
+      ) : null}
     </div>
   );
 }

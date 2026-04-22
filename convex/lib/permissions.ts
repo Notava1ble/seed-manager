@@ -1,6 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 
 export async function getUser(ctx: QueryCtx | MutationCtx) {
@@ -38,6 +38,39 @@ export function canViewLeague(
   return hasTesterAccess || hasHostAccess;
 }
 
+export async function getAccessibleSeed(
+  ctx: QueryCtx | MutationCtx,
+  user: Doc<"users">,
+  seedId: Id<"seeds">,
+) {
+  const seed = await ctx.db.get("seeds", seedId);
+
+  if (!seed) {
+    return null;
+  }
+
+  if (seed.isExpired === true && !user.roles.includes("admin")) {
+    return null;
+  }
+
+  const league =
+    seed.leagueId === undefined ? null : await ctx.db.get("leagues", seed.leagueId);
+
+  if (user.roles.includes("admin")) {
+    return { seed, league };
+  }
+
+  if (league && canViewLeague(user, league)) {
+    return { seed, league };
+  }
+
+  if (canViewClaimedSeed(user, seed)) {
+    return { seed, league: null };
+  }
+
+  return null;
+}
+
 export async function requireActiveUser(ctx: QueryCtx | MutationCtx) {
   const user = await getUser(ctx);
   if (!user) {
@@ -68,4 +101,14 @@ export async function requireAdmin(ctx: QueryCtx | MutationCtx) {
   }
 
   return user;
+}
+
+function canViewClaimedSeed(user: Doc<"users">, seed: Doc<"seeds">) {
+  return (
+    user.roles.includes("tester") &&
+    seed.claimedBy === user._id &&
+    seed.leagueId === undefined &&
+    seed.rating === undefined &&
+    seed.isExpired === undefined
+  );
 }

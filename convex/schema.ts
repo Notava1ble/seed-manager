@@ -89,5 +89,5 @@ export default defineSchema({
     author: v.id("users"),
     body: v.string(),
     createdAt: v.number(), // unix time
-  }),
+  }).index("by_seedId_and_createdAt", ["seedId", "createdAt"]),
 });

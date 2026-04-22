@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as comments from "../comments.js";
 import type * as http from "../http.js";
 import type * as leagues from "../leagues.js";
 import type * as lib_consts from "../lib/consts.js";
@@ -27,6 +28,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  comments: typeof comments;
   http: typeof http;
   leagues: typeof leagues;
   "lib/consts": typeof lib_consts;

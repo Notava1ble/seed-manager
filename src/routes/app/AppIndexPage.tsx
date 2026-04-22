@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { SeedCommentsSection } from "@/components/SeedCommentsSection";
 import { SeedValueDisplay } from "@/components/SeedValueDisplay";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -104,8 +105,8 @@ export function AppIndexPage() {
   };
 
   return (
-    <div className="grid max-w-3xl gap-4">
-      <Card>
+    <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row lg:items-start">
+      <Card className="w-full min-w-0 max-w-3xl lg:w-[48rem] lg:max-w-none lg:flex-none">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div className="grid gap-1">
             <CardTitle>Seed vouching</CardTitle>
@@ -260,6 +261,25 @@ export function AppIndexPage() {
           {error && <FieldError className="mt-4">{error}</FieldError>}
         </CardContent>
       </Card>
+
+      {claimedSeed && (
+        <Card className="flex min-w-0 flex-col overflow-hidden lg:sticky lg:top-0 lg:h-[calc(100svh-7rem)] lg:flex-1 lg:self-start">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Comments</CardTitle>
+          </CardHeader>
+          <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden pb-3">
+            <SeedCommentsSection
+              canCreateComments={
+                user?.roles.includes("tester") ||
+                user?.roles.includes("host") ||
+                false
+              }
+              className="h-72 min-h-0 lg:h-full lg:flex-1"
+              seedId={claimedSeed._id}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

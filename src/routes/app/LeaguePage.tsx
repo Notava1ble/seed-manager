@@ -36,8 +36,8 @@ export function LeaguePage() {
   );
 
   return (
-    <div className="flex h-full min-h-0 gap-6">
-      <section className="flex min-h-0 flex-9 flex-col gap-4">
+    <div className="flex h-full min-h-0 min-w-0 gap-6 overflow-hidden">
+      <section className="flex min-h-0 min-w-0 flex-9 flex-col gap-4 overflow-y-auto pr-2">
         {seeds === undefined ? (
           <SeedTableSkeleton />
         ) : (
@@ -51,7 +51,7 @@ export function LeaguePage() {
       </section>
 
       <Separator orientation="vertical" />
-      <aside className="min-w-0 flex-3 p-2">
+      <aside className="flex min-h-0 min-w-0 flex-3 flex-col overflow-hidden p-2">
         <Outlet />
       </aside>
     </div>

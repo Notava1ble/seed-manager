@@ -1,9 +1,10 @@
 import { useMutation, useQuery } from "convex/react";
-import { CheckCircle2, Sprout } from "lucide-react";
+import { Sprout } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { SeedCommentsSection } from "@/components/SeedCommentsSection";
 import { SeedRatingActions } from "@/components/SeedFeedbackActions";
 import { SeedRating } from "@/lib/seedStatus";
 import { SeedStatusBadge } from "@/components/SeedStatusBadge";
@@ -17,7 +18,6 @@ import {
   AlertDialogFooter,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyDescription,
@@ -25,7 +25,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SEED_TYPES } from "@/lib/consts";
 import { getErrorMessage } from "@/lib/errors";
@@ -103,95 +102,80 @@ export function SeedPage() {
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <p className="text-xs font-medium uppercase tracking-[0.3em] text-muted-foreground">
-          Seed Details
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-2xl font-semibold">
+    <AlertDialog
+      open={isMarkUsedDialogOpen}
+      onOpenChange={setIsMarkUsedDialogOpen}
+    >
+      <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="min-w-0 text-xl font-semibold leading-tight">
             {seed.type ? SEED_TYPES[seed.type] : "Unspecified seed"}
           </h2>
           {seed.isUsed && <SeedStatusBadge status="used" />}
         </div>
-      </div>
 
-      <Separator />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SeedValueDisplay label="Overworld" value={seed.overworld} />
+          <SeedValueDisplay label="Nether" value={seed.nether} />
+          <SeedValueDisplay label="End" value={seed.end} />
+          <SeedValueDisplay label="RNG" value={seed.rng} />
+        </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <SeedValueDisplay label="Overworld" value={seed.overworld} />
-        <SeedValueDisplay label="Nether" value={seed.nether} />
-        <SeedValueDisplay label="End" value={seed.end} />
-        <SeedValueDisplay label="RNG" value={seed.rng} />
-      </div>
-
-      <div className="pt-2">
         <SeedRatingActions
           canEditRating={canEditRating(seed, user)}
-          comments={seed.commentCount}
+          canMarkUsed={canMarkUsed(seed, user)}
+          isMarkingUsed={isMarkingUsed}
+          isUsed={seed.isUsed}
+          onMarkUsed={() => {
+            setUsedError(null);
+            setIsMarkUsedDialogOpen(true);
+          }}
           onRatingChange={(rating) => {
             void handleRatingChange(rating);
           }}
           rating={seed.rating}
         />
-      </div>
-      {ratingError && <p className="text-xs text-destructive">{ratingError}</p>}
 
-      {canMarkUsed(seed, user) && (
-        <>
-          <Separator />
-          <div className="flex flex-col items-start gap-2">
-            <AlertDialog
-              open={isMarkUsedDialogOpen}
-              onOpenChange={setIsMarkUsedDialogOpen}
-            >
-              <Button
-                disabled={seed.isUsed || isMarkingUsed}
-                onClick={() => {
-                  setUsedError(null);
-                  setIsMarkUsedDialogOpen(true);
-                }}
-                type="button"
-                variant={seed.isUsed ? "outline" : "destructive"}
-              >
-                <CheckCircle2 data-icon="inline-start" />
-                {seed.isUsed ? "Seed marked used" : "Mark seed used"}
-              </Button>
-              <AlertDialogContent>
-                <AlertDialogTitle>Mark this seed as used?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. Used seeds stay visible in
-                  history, but they leave active league selection.
-                </AlertDialogDescription>
-                {usedError && (
-                  <p className="text-xs text-destructive">{usedError}</p>
-                )}
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isMarkingUsed}>
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    disabled={isMarkingUsed}
-                    onClick={() => void handleMarkUsed()}
-                    variant="destructive"
-                  >
-                    {isMarkingUsed ? "Marking used" : "Mark used"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <p className="text-xs text-muted-foreground">
-              Used seeds stay visible in history, but leave active league
-              selection.
-            </p>
-            {usedError && !isMarkUsedDialogOpen && (
-              <p className="text-xs text-destructive">{usedError}</p>
-            )}
-          </div>
-        </>
-      )}
-      {/* TODO: Comments section */}
-    </div>
+        {ratingError && (
+          <p className="text-xs text-destructive">{ratingError}</p>
+        )}
+        {usedError && !isMarkUsedDialogOpen && (
+          <p className="text-xs text-destructive">{usedError}</p>
+        )}
+
+        <div className="flex min-h-0 flex-1 flex-col border-t pt-3">
+          <SeedCommentsSection
+            autoFocus
+            canCreateComments={
+              user?.roles.includes("tester") ||
+              user?.roles.includes("host") ||
+              false
+            }
+            className="min-h-0 flex-1"
+            seedId={seed._id}
+          />
+        </div>
+      </div>
+
+      <AlertDialogContent>
+        <AlertDialogTitle>Mark this seed as used?</AlertDialogTitle>
+        <AlertDialogDescription>
+          This action cannot be undone. Used seeds stay visible in history, but
+          they leave active league selection.
+        </AlertDialogDescription>
+        {usedError && <p className="text-xs text-destructive">{usedError}</p>}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isMarkingUsed}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={isMarkingUsed}
+            onClick={() => void handleMarkUsed()}
+            variant="destructive"
+          >
+            {isMarkingUsed ? "Marking used" : "Mark used"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -235,13 +219,20 @@ function canMarkUsed(
   seed: {
     leagueId?: Id<"leagues">;
     isExpired?: boolean;
+    isUsed: boolean;
+    rating?: SeedRating;
   },
   user: {
     roles: Array<"admin" | "host" | "tester">;
     hostLeagueId?: Id<"leagues">[];
   } | null,
 ) {
-  if (!user || seed.leagueId === undefined || seed.isExpired) {
+  if (
+    !user ||
+    seed.leagueId === undefined ||
+    seed.isExpired ||
+    seed.rating !== "Good"
+  ) {
     return false;
   }
 
@@ -257,16 +248,15 @@ function canMarkUsed(
 
 function SeedDetailsSkeleton() {
   return (
-    <div className="flex flex-col gap-4">
-      <Skeleton className="h-4 w-32" />
+    <div className="flex h-full min-h-0 flex-col gap-3">
       <Skeleton className="h-8 w-52" />
-      <Separator />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         {Array.from({ length: 4 }).map((_, index) => (
           <Skeleton key={index} className="h-10 w-full" />
         ))}
       </div>
       <Skeleton className="h-10 w-full" />
+      <Skeleton className="min-h-0 flex-1 w-full" />
     </div>
   );
 }
