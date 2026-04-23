@@ -251,8 +251,8 @@ function SeedTable({
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-hidden rounded-md border">
-      <Table containerClassName="h-full">
+    <div className="overflow-hidden rounded-md border">
+      <Table containerClassName="max-h-[calc(100svh-20rem)]">
         <TableHeader>
           <TableRow>
             <TableHead className="border-r text-left">Seed Type</TableHead>
