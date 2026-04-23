@@ -1,11 +1,20 @@
 import { useQuery } from "convex/react";
 import { MessageCircle, ShieldCheck, Sprout, TimerReset } from "lucide-react";
+import { useMemo } from "react";
 import { Outlet, useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { SeedRatingBadge } from "@/components/SeedRatingBadge";
 import { SeedStatusBadge } from "@/components/SeedStatusBadge";
 import { SeedValueTableCell } from "@/components/SeedValueTableCell";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -13,6 +22,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -23,30 +33,82 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { SEED_TYPES } from "@/lib/consts";
+import { SEED_TYPES, type SeedType } from "@/lib/consts";
 import { cn } from "@/lib/utils";
+
+type SeedDistributionRequirement = {
+  required: number;
+  types: SeedType[];
+};
+
+const LEAGUE_SEED_DISTRIBUTIONS: Partial<
+  Record<number, SeedDistributionRequirement[]>
+> = {
+  1: [
+    { required: 3, types: ["BURIED_TREASURE", "SHIPWRECK"] },
+    { required: 3, types: ["VILLAGE", "DESERT_TEMPLE"] },
+    { required: 2, types: ["RUINED_PORTAL"] },
+  ],
+  2: [
+    { required: 3, types: ["BURIED_TREASURE", "SHIPWRECK"] },
+    { required: 3, types: ["VILLAGE", "DESERT_TEMPLE"] },
+    { required: 2, types: ["RUINED_PORTAL"] },
+  ],
+  3: [
+    { required: 3, types: ["BURIED_TREASURE", "SHIPWRECK"] },
+    { required: 3, types: ["VILLAGE", "DESERT_TEMPLE"] },
+    { required: 2, types: ["RUINED_PORTAL"] },
+  ],
+  4: [
+    { required: 2, types: ["SHIPWRECK"] },
+    { required: 3, types: ["VILLAGE", "DESERT_TEMPLE"] },
+    { required: 2, types: ["RUINED_PORTAL"] },
+  ],
+  5: [
+    { required: 2, types: ["SHIPWRECK"] },
+    { required: 3, types: ["VILLAGE", "DESERT_TEMPLE"] },
+    { required: 1, types: ["RUINED_PORTAL"] },
+  ],
+  6: [
+    { required: 1, types: ["SHIPWRECK"] },
+    { required: 4, types: ["VILLAGE", "DESERT_TEMPLE"] },
+  ],
+};
 
 export function LeaguePage() {
   const { leagueId } = useParams();
   const navigate = useNavigate();
   const selectedLeagueId = leagueId as Id<"leagues"> | undefined;
+  const leagues = useQuery(api.leagues.listLeagues);
   const seeds = useQuery(
     api.seeds.listSeedsByLeague,
     selectedLeagueId ? { leagueId: selectedLeagueId } : "skip",
+  );
+  const league = useMemo(
+    () => leagues?.find((item) => item._id === selectedLeagueId),
+    [leagues, selectedLeagueId],
   );
 
   return (
     <div className="flex h-full min-h-0 min-w-0 gap-6 overflow-hidden">
       <section className="flex min-h-0 min-w-0 flex-9 flex-col gap-4 overflow-y-auto pr-2">
-        {seeds === undefined ? (
-          <SeedTableSkeleton />
+        {seeds === undefined || leagues === undefined ? (
+          <>
+            <SeedDistributionSkeleton />
+            <SeedTableSkeleton />
+          </>
         ) : (
-          <SeedTable
-            seeds={seeds}
-            onSeedSelect={(selectedId) =>
-              void navigate(`/app/league/${leagueId}/seed/${selectedId}`)
-            }
-          />
+          <>
+            {league ? (
+              <SeedDistributionCard league={league} seeds={seeds} />
+            ) : null}
+            <SeedTable
+              seeds={seeds}
+              onSeedSelect={(selectedId) =>
+                void navigate(`/app/league/${leagueId}/seed/${selectedId}`)
+              }
+            />
+          </>
         )}
       </section>
 
@@ -55,6 +117,111 @@ export function LeaguePage() {
         <Outlet />
       </aside>
     </div>
+  );
+}
+
+function SeedDistributionCard({
+  league,
+  seeds,
+}: {
+  league: Doc<"leagues">;
+  seeds: Doc<"seeds">[];
+}) {
+  const requirements = LEAGUE_SEED_DISTRIBUTIONS[league.leagueNumber];
+
+  if (!requirements) {
+    return (
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>Seed type distribution</CardTitle>
+          <CardDescription>{league.leagueName}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            No distribution target configured for this league.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const rows = requirements.map((requirement) => {
+    const count = seeds.filter(
+      (seed) => seed.type && requirement.types.includes(seed.type),
+    ).length;
+    const label = requirement.types.map((type) => SEED_TYPES[type]).join(" / ");
+
+    return {
+      count,
+      label,
+      required: requirement.required,
+    };
+  });
+  const requiredTotal = rows.reduce((total, row) => total + row.required, 0);
+  const filledTotal = rows.reduce(
+    (total, row) => total + Math.min(row.count, row.required),
+    0,
+  );
+
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <CardTitle>Seed type distribution</CardTitle>
+            <CardDescription>{league.leagueName}</CardDescription>
+          </div>
+          <Badge
+            variant={filledTotal >= requiredTotal ? "secondary" : "outline"}
+          >
+            {filledTotal} / {requiredTotal} filled
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-3 md:grid-cols-3">
+          {rows.map((row) => {
+            const isFilled = row.count >= row.required;
+            const isOverfilled = row.count > row.required;
+            const progressValue = Math.min(
+              Math.round((row.count / row.required) * 100),
+              100,
+            );
+
+            return (
+              <div
+                key={row.label}
+                className="flex min-w-0 flex-col gap-3 rounded-md border bg-muted/30 p-3"
+              >
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{row.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {row.required} required
+                    </p>
+                  </div>
+                  <Badge
+                    variant={
+                      isOverfilled
+                        ? "destructive"
+                        : isFilled
+                          ? "secondary"
+                          : "outline"
+                    }
+                  >
+                    {row.count} / {row.required}
+                  </Badge>
+                </div>
+                <Progress
+                  aria-label={`${row.label}: ${row.count} of ${row.required}`}
+                  value={progressValue}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -136,6 +303,29 @@ function SeedTable({
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+function SeedDistributionSkeleton() {
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-5 w-44" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+          <Skeleton className="h-5 w-20" />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-3 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-24 w-full" />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
