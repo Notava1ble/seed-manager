@@ -173,7 +173,7 @@ export function SeedCommentsSection({
           </InputGroup>
         </div>
       ) : (
-        <div className="sticky bottom-0 z-10 mt-auto border-t bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="sticky bottom-0 z-10 mt-auto w-full">
           <p className="text-xs text-muted-foreground">
             Tester or host access required to comment.
           </p>

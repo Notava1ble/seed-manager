@@ -13,6 +13,17 @@ import {
   MAX_SEED_IMPORT_COUNT,
   NUMERIC_SEED_PATTERN,
 } from "./lib/consts";
+import { shuffle } from "./lib/utils";
+
+const ALL_SEED_TYPES = [
+  "BURIED_TREASURE",
+  "VILLAGE",
+  "DESERT_TEMPLE",
+  "RUINED_PORTAL",
+  "SHIPWRECK",
+] as const;
+
+type SeedType = (typeof ALL_SEED_TYPES)[number];
 
 const seedTypeValidator = v.union(
   v.literal("BURIED_TREASURE"),
@@ -49,15 +60,8 @@ type SeedUploadInput = {
   nether: string;
   end: string;
   rng: string;
-  type:
-    | "BURIED_TREASURE"
-    | "VILLAGE"
-    | "DESERT_TEMPLE"
-    | "RUINED_PORTAL"
-    | "SHIPWRECK";
+  type: SeedType;
 };
-
-type SeedType = SeedUploadInput["type"];
 
 export const listAllSeeds = query({
   args: {},
@@ -180,38 +184,8 @@ export const claimSeed = mutation({
 
     const seed =
       claimType !== "RANDOM"
-        ? await ctx.db
-            .query("seeds")
-            .withIndex("by_isExpired_and_claimedBy_and_rating_and_type", (q) =>
-              q
-                .eq("isExpired", undefined)
-                .eq("claimedBy", undefined)
-                .eq("rating", undefined)
-                .eq("type", claimType),
-            )
-            .first()
-        : claimBuriedTreasureSeeds
-          ? await ctx.db
-              .query("seeds")
-              .withIndex("by_isExpired_and_claimedBy_and_rating", (q) =>
-                q
-                  .eq("isExpired", undefined)
-                  .eq("claimedBy", undefined)
-                  .eq("rating", undefined),
-              )
-              .first()
-          : await ctx.db
-              .query("seeds")
-              .withIndex(
-                "by_isExpired_and_claimedBy_and_rating_and_isBt",
-                (q) =>
-                  q
-                    .eq("isExpired", undefined)
-                    .eq("claimedBy", undefined)
-                    .eq("rating", undefined)
-                    .eq("isBt", false),
-              )
-              .first();
+        ? await getClaimableSeedByType(ctx, claimType)
+        : await getRandomClaimableSeed(ctx, claimBuriedTreasureSeeds);
 
     if (!seed) {
       throw new ConvexError({
@@ -638,6 +612,44 @@ async function normalizeSeeds(ctx: MutationCtx, seeds: SeedUploadInput[]) {
   }
 
   return normalizedSeeds;
+}
+
+async function getClaimableSeedByType(ctx: MutationCtx, seedType: SeedType) {
+  return await ctx.db
+    .query("seeds")
+    .withIndex("by_isExpired_and_claimedBy_and_rating_and_type", (q) =>
+      q
+        .eq("isExpired", undefined)
+        .eq("claimedBy", undefined)
+        .eq("rating", undefined)
+        .eq("type", seedType),
+    )
+    .first();
+}
+
+async function getRandomClaimableSeed(
+  ctx: MutationCtx,
+  claimBuriedTreasureSeeds: boolean,
+) {
+  for (const seedType of shuffle(
+    getAllowedRandomSeedTypes(claimBuriedTreasureSeeds),
+  )) {
+    const seed = await getClaimableSeedByType(ctx, seedType);
+
+    if (seed) {
+      return seed;
+    }
+  }
+
+  return null;
+}
+
+function getAllowedRandomSeedTypes(claimBuriedTreasureSeeds: boolean) {
+  if (claimBuriedTreasureSeeds) {
+    return ALL_SEED_TYPES;
+  }
+
+  return ALL_SEED_TYPES.filter((seedType) => seedType !== "BURIED_TREASURE");
 }
 
 async function requireSeedTestingOpen(ctx: MutationCtx) {
