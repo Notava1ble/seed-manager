@@ -22,6 +22,8 @@ const seedTypeValidator = v.union(
   v.literal("SHIPWRECK"),
 );
 
+const claimTypeValidator = v.union(v.literal("RANDOM"), seedTypeValidator);
+
 const seedUploadValidator = v.object({
   leagueId: v.optional(v.id("leagues")),
   overworld: v.string(),
@@ -32,6 +34,14 @@ const seedUploadValidator = v.object({
 });
 
 const seedRatingValidator = v.union(v.literal("Good"), v.literal("Bad"));
+
+const SEED_TYPE_LABELS: Record<SeedType, string> = {
+  BURIED_TREASURE: "Buried Treasure",
+  VILLAGE: "Village",
+  DESERT_TEMPLE: "Desert Temple",
+  RUINED_PORTAL: "Ruined Portal",
+  SHIPWRECK: "Shipwreck",
+};
 
 type SeedUploadInput = {
   leagueId?: Id<"leagues">;
@@ -46,6 +56,8 @@ type SeedUploadInput = {
     | "RUINED_PORTAL"
     | "SHIPWRECK";
 };
+
+type SeedType = SeedUploadInput["type"];
 
 export const listAllSeeds = query({
   args: {},
@@ -131,8 +143,10 @@ export const getCurrentClaimedSeed = query({
 });
 
 export const claimSeed = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    claimType: v.optional(claimTypeValidator),
+  },
+  handler: async (ctx, args) => {
     const user = await requireActiveUser(ctx);
     await requireSeedTestingOpen(ctx);
 
@@ -162,32 +176,50 @@ export const claimSeed = mutation({
 
     const claimBuriedTreasureSeeds =
       user.settings?.claimBuriedTreasureSeeds ?? true;
+    const claimType = args.claimType ?? "RANDOM";
 
-    const seed = claimBuriedTreasureSeeds
-      ? await ctx.db
-          .query("seeds")
-          .withIndex("by_isExpired_and_claimedBy_and_rating", (q) =>
-            q
-              .eq("isExpired", undefined)
-              .eq("claimedBy", undefined)
-              .eq("rating", undefined),
-          )
-          .first()
-      : await ctx.db
-          .query("seeds")
-          .withIndex("by_isExpired_and_claimedBy_and_rating_and_isBt", (q) =>
-            q
-              .eq("isExpired", undefined)
-              .eq("claimedBy", undefined)
-              .eq("rating", undefined)
-              .eq("isBt", false),
-          )
-          .first();
+    const seed =
+      claimType !== "RANDOM"
+        ? await ctx.db
+            .query("seeds")
+            .withIndex("by_isExpired_and_claimedBy_and_rating_and_type", (q) =>
+              q
+                .eq("isExpired", undefined)
+                .eq("claimedBy", undefined)
+                .eq("rating", undefined)
+                .eq("type", claimType),
+            )
+            .first()
+        : claimBuriedTreasureSeeds
+          ? await ctx.db
+              .query("seeds")
+              .withIndex("by_isExpired_and_claimedBy_and_rating", (q) =>
+                q
+                  .eq("isExpired", undefined)
+                  .eq("claimedBy", undefined)
+                  .eq("rating", undefined),
+              )
+              .first()
+          : await ctx.db
+              .query("seeds")
+              .withIndex(
+                "by_isExpired_and_claimedBy_and_rating_and_isBt",
+                (q) =>
+                  q
+                    .eq("isExpired", undefined)
+                    .eq("claimedBy", undefined)
+                    .eq("rating", undefined)
+                    .eq("isBt", false),
+              )
+              .first();
 
     if (!seed) {
       throw new ConvexError({
         code: "NO_SEEDS_AVAILABLE",
-        message: "There are no unassigned seeds available to claim",
+        message:
+          claimType === "RANDOM"
+            ? "There are no unassigned seeds available to claim"
+            : `There are no unassigned ${SEED_TYPE_LABELS[claimType]} seeds available to claim`,
       });
     }
 

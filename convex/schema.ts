@@ -83,6 +83,12 @@ export default defineSchema({
       "claimedBy",
       "rating",
       "isBt",
+    ])
+    .index("by_isExpired_and_claimedBy_and_rating_and_type", [
+      "isExpired",
+      "claimedBy",
+      "rating",
+      "type",
     ]),
   comments: defineTable({
     seedId: v.id("seeds"),

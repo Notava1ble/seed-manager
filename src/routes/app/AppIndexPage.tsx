@@ -31,8 +31,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SEED_TYPES } from "@/lib/consts";
-import { Sprout } from "lucide-react";
+import { PauseCircle, Sprout } from "lucide-react";
 import {
   Empty,
   EmptyContent,
@@ -42,11 +41,14 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { getErrorMessage } from "@/lib/errors";
-import { PauseCircle } from "lucide-react";
+import { SEED_TYPES, seedTypesArray, type SeedType } from "@/lib/consts";
+
+type ClaimType = "RANDOM" | SeedType;
 
 export function AppIndexPage() {
   const [selectedLeagueId, setSelectedLeagueId] =
     useState<Id<"leagues"> | null>(null);
+  const [claimType, setClaimType] = useState<ClaimType>("RANDOM");
   const [error, setError] = useState<string | null>(null);
   const [isClaiming, setIsClaiming] = useState(false);
   const [isVouching, setIsVouching] = useState(false);
@@ -72,7 +74,8 @@ export function AppIndexPage() {
     setIsClaiming(true);
 
     try {
-      await claimSeed({});
+      await claimSeed({ claimType });
+      setClaimType("RANDOM");
     } catch (claimError) {
       setError(getErrorMessage(claimError, "Could not claim a seed"));
     } finally {
@@ -106,7 +109,7 @@ export function AppIndexPage() {
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row lg:items-start">
-      <Card className="w-full min-w-0 max-w-3xl lg:w-[48rem] lg:max-w-none lg:flex-none">
+      <Card className="w-full min-w-0 max-w-3xl lg:w-3xl lg:max-w-none lg:flex-none">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div className="grid gap-1">
             <CardTitle>Seed vouching</CardTitle>
@@ -216,7 +219,9 @@ export function AppIndexPage() {
 
               <div className="flex flex-wrap gap-2 pt-2">
                 <Button
-                  disabled={isVouching || isTestingUnavailable || !selectedLeagueId}
+                  disabled={
+                    isVouching || isTestingUnavailable || !selectedLeagueId
+                  }
                   onClick={() => void handleVouch("Good")}
                   type="button"
                 >
@@ -244,6 +249,36 @@ export function AppIndexPage() {
                   You don't have any seeds to test right now.
                 </EmptyDescription>
                 <EmptyContent>
+                  <FieldGroup className="mt-2">
+                    <Field>
+                      <Select
+                        value={claimType}
+                        itemToStringLabel={(value) =>
+                          value === "RANDOM" ? "Random" : SEED_TYPES[value]
+                        }
+                        onValueChange={(value) => {
+                          if (value) {
+                            setClaimType(value);
+                          }
+                        }}
+                      >
+                        <SelectTrigger id="claim-seed-type" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Claim type</SelectLabel>
+                            <SelectItem value="RANDOM">Random</SelectItem>
+                            {seedTypesArray.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {SEED_TYPES[type]}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </FieldGroup>
                   <Button
                     disabled={isClaiming || isTestingUnavailable}
                     onClick={() => void handleClaimSeed()}
