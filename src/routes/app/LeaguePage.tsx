@@ -91,7 +91,7 @@ export function LeaguePage() {
 
   return (
     <div className="flex h-full min-h-0 min-w-0 gap-6 overflow-hidden">
-      <section className="flex min-h-0 min-w-0 flex-9 flex-col gap-4 overflow-y-auto pr-2">
+      <section className="flex min-h-0 min-w-0 flex-9 flex-col gap-4 overflow-hidden pr-2">
         {seeds === undefined || leagues === undefined ? (
           <>
             <SeedDistributionSkeleton />
@@ -251,8 +251,8 @@ function SeedTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-md border">
-      <Table>
+    <div className="min-h-0 flex-1 overflow-hidden rounded-md border">
+      <Table containerClassName="h-full">
         <TableHeader>
           <TableRow>
             <TableHead className="border-r text-left">Seed Type</TableHead>
