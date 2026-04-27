@@ -68,10 +68,21 @@ export const listAllSeeds = query({
   handler: async (ctx) => {
     await requireAdmin(ctx);
 
-    return await ctx.db
+    const neverAssignedSeeds = await ctx.db
       .query("seeds")
+      .withIndex("by_isExpired", (q) => q.eq("isExpired", undefined))
       .order("desc")
       .take(MAX_ADMIN_SEED_LIST_COUNT);
+    const activeAssignedSeeds = await ctx.db
+      .query("seeds")
+      .withIndex("by_isExpired", (q) => q.eq("isExpired", false))
+      .order("desc")
+      .take(MAX_ADMIN_SEED_LIST_COUNT);
+
+    return [...neverAssignedSeeds, ...activeAssignedSeeds]
+      .filter((seed) => seed.rating !== "Bad")
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .slice(0, MAX_ADMIN_SEED_LIST_COUNT);
   },
 });
 

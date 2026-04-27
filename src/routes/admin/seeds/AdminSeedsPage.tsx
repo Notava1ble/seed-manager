@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { SeedRatingBadge } from "@/components/SeedRatingBadge";
-import { SeedStatusBadge } from "@/components/SeedStatusBadge";
 import { SeedValueTableCell } from "@/components/SeedValueTableCell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,6 @@ import { api } from "../../../../convex/_generated/api";
 import AddSeedDialog from "@/components/dialogs/AddSeedDialog";
 import { getSeedCountLabel } from "@/lib/utils";
 import { SEED_TYPES } from "@/lib/consts";
-import { getSeedStatus } from "@/lib/seedStatus";
 
 const placeholder = () => undefined;
 
@@ -94,7 +92,6 @@ export function AdminSeedsPage() {
                 <TableHead className="border-r">RNG</TableHead>
                 <TableHead className="border-r">League</TableHead>
                 <TableHead className="border-r">Week</TableHead>
-                <TableHead className="border-r">Status</TableHead>
                 <TableHead className="border-r">Rating</TableHead>
                 <TableHead className="border-r text-right">Comments</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -116,9 +113,6 @@ export function AdminSeedsPage() {
                   </TableCell>
                   <TableCell className="border-r text-right tabular-nums">
                     {seed.assignedWeekNumber ?? "None"}
-                  </TableCell>
-                  <TableCell className="border-r">
-                    <SeedStatusBadge status={getSeedStatus(seed)} />
                   </TableCell>
                   <TableCell className="border-r">
                     <SeedRatingBadge rating={seed.rating} />
@@ -171,7 +165,6 @@ function AdminSeedTableSkeleton() {
             <TableHead className="border-r">RNG</TableHead>
             <TableHead className="border-r">League</TableHead>
             <TableHead className="border-r">Week</TableHead>
-            <TableHead className="border-r">Status</TableHead>
             <TableHead className="border-r">Rating</TableHead>
             <TableHead className="border-r text-right">Comments</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -200,9 +193,6 @@ function AdminSeedTableSkeleton() {
               </TableCell>
               <TableCell className="border-r">
                 <Skeleton className="ml-auto h-5 w-10" />
-              </TableCell>
-              <TableCell className="border-r">
-                <Skeleton className="ml-auto h-5 w-8" />
               </TableCell>
               <TableCell className="border-r">
                 <Skeleton className="h-5 w-16" />
