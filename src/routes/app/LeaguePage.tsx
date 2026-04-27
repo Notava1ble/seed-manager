@@ -1,10 +1,9 @@
 import { useQuery } from "convex/react";
-import { MessageCircle, ShieldCheck, Sprout, TimerReset } from "lucide-react";
+import { MessageCircle, Sprout } from "lucide-react";
 import { useMemo } from "react";
 import { Outlet, useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
-import { SeedRatingBadge } from "@/components/SeedRatingBadge";
 import { SeedStatusBadge } from "@/components/SeedStatusBadge";
 import { SeedValueTableCell } from "@/components/SeedValueTableCell";
 import { Badge } from "@/components/ui/badge";
@@ -260,12 +259,7 @@ function SeedTable({
             <TableHead className="border-r">Nether</TableHead>
             <TableHead className="border-r">End</TableHead>
             <TableHead className="border-r">RNG</TableHead>
-            <TableHead className="w-20 border-r text-center">
-              <TimerReset />
-            </TableHead>
-            <TableHead className="w-20 border-r text-center">
-              <ShieldCheck />
-            </TableHead>
+            <TableHead className="w-20 border-r text-center">Status</TableHead>
             <TableHead className="w-12 text-center">
               <MessageCircle />
             </TableHead>
@@ -290,9 +284,6 @@ function SeedTable({
                 <SeedValueTableCell value={seed.rng} />
                 <TableCell className="border-r text-center">
                   <SeedStatusBadge status={seed.isUsed ? "used" : "open"} />
-                </TableCell>
-                <TableCell className="border-r text-center">
-                  <SeedRatingBadge rating={seed.rating} />
                 </TableCell>
                 <TableCell className="text-center tabular-nums">
                   {seed.commentCount}
