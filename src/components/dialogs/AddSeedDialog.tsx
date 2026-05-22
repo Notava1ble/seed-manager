@@ -1,6 +1,6 @@
 import { AlertCircleIcon, CheckCircle2Icon, XIcon } from "lucide-react";
 import { type ChangeEvent, type FormEvent, useState } from "react";
-import type { Doc } from "../../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,16 +62,23 @@ type JsonImportResult = {
 function AddSeedDialog({
   leagues,
   onClose,
+  defaultLeagueId = null,
+  lockLeague = false,
+  allowJsonImport = true,
 }: {
   leagues: Doc<"leagues">[];
   onClose: () => void;
+  defaultLeagueId?: Id<"leagues"> | null;
+  lockLeague?: boolean;
+  allowJsonImport?: boolean;
 }) {
   const importSeeds = useMutation(api.seeds.importSeeds);
 
   const [activeTab, setActiveTab] = useState<ImportTab>("manual");
-  const [manualValues, setManualValues] = useState<SeedFormValues>(
-    EMPTY_SEED_FORM_VALUES,
-  );
+  const [manualValues, setManualValues] = useState<SeedFormValues>(() => ({
+    ...EMPTY_SEED_FORM_VALUES,
+    leagueId: defaultLeagueId,
+  }));
   const [manualErrors, setManualErrors] = useState<SeedFormErrors>({});
   const [jsonFileName, setJsonFileName] = useState("");
   const [jsonSeeds, setJsonSeeds] = useState<SeedJsonUploadInput[] | null>(
@@ -86,7 +93,10 @@ function AddSeedDialog({
 
   const resetForm = () => {
     setActiveTab("manual");
-    setManualValues(EMPTY_SEED_FORM_VALUES);
+    setManualValues({
+      ...EMPTY_SEED_FORM_VALUES,
+      leagueId: defaultLeagueId,
+    });
     setManualErrors({});
     setJsonFileName("");
     setJsonSeeds(null);
@@ -203,6 +213,7 @@ function AddSeedDialog({
         nether,
         end,
         rng,
+        leagueId: defaultLeagueId || undefined,
       }));
       const result = await importSeeds({ seeds });
       setJsonImportResult(result);
@@ -236,17 +247,21 @@ function AddSeedDialog({
       </DialogClose>
 
       <DialogHeader>
-        <DialogTitle>Add seeds</DialogTitle>
+        <DialogTitle>{allowJsonImport ? "Add seeds" : "Add seed"}</DialogTitle>
         <DialogDescription>
-          Import seed records from JSONL or add one seed manually.
+          {allowJsonImport
+            ? "Import seed records from JSONL or add one seed manually."
+            : "Add a seed manually to the league."}
         </DialogDescription>
       </DialogHeader>
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList>
-          <TabsTrigger value="manual">Manual input</TabsTrigger>
-          <TabsTrigger value="json">JSONL import</TabsTrigger>
-        </TabsList>
+        {allowJsonImport && (
+          <TabsList>
+            <TabsTrigger value="manual">Manual input</TabsTrigger>
+            <TabsTrigger value="json">JSONL import</TabsTrigger>
+          </TabsList>
+        )}
 
         <TabsContent value="manual">
           <form
@@ -287,6 +302,7 @@ function AddSeedDialog({
               <Field data-invalid={Boolean(manualErrors.leagueId)}>
                 <FieldLabel htmlFor="seed-league">League</FieldLabel>
                 <Select
+                  disabled={lockLeague}
                   value={manualValues.leagueId}
                   itemToStringLabel={(leagueId) =>
                     leagues.find((league) => league._id === leagueId)
@@ -316,7 +332,9 @@ function AddSeedDialog({
                   </SelectContent>
                 </Select>
                 <FieldDescription>
-                  Leave unset when the seed is not assigned yet.
+                  {lockLeague
+                    ? "This seed will be assigned to the selected league."
+                    : "Leave unset when the seed is not assigned yet."}
                 </FieldDescription>
                 <FieldError>{manualErrors.leagueId}</FieldError>
               </Field>
@@ -426,8 +444,10 @@ function AddSeedDialog({
                 </AlertTitle>
                 <AlertDescription>
                   {jsonFileName} passed validation. Duplicate overworld seeds
-                  already in the database will be skipped. Imported seeds stay
-                  unassigned.
+                  already in the database will be skipped.{" "}
+                  {defaultLeagueId
+                    ? `Imported seeds will be assigned to ${leagues.find((l) => l._id === defaultLeagueId)?.leagueName ?? "the league"}.`
+                    : "Imported seeds stay unassigned."}
                 </AlertDescription>
               </Alert>
             )}
@@ -449,8 +469,10 @@ function AddSeedDialog({
                 <AlertTitle>Import complete</AlertTitle>
                 <AlertDescription>
                   {jsonImportResult.insertedCount} seeds imported.{" "}
-                  {jsonImportResult.skipCount} duplicates skipped. Imported
-                  seeds are unassigned.
+                  {jsonImportResult.skipCount} duplicates skipped.{" "}
+                  {defaultLeagueId
+                    ? `Imported seeds are assigned to ${leagues.find((l) => l._id === defaultLeagueId)?.leagueName ?? "the league"}.`
+                    : "Imported seeds are unassigned."}
                 </AlertDescription>
               </Alert>
             )}

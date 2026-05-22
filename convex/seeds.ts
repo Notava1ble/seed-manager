@@ -504,7 +504,36 @@ export const importSeeds = mutation({
     seeds: v.array(seedUploadValidator),
   },
   handler: async (ctx, args) => {
-    const user = await requireAdmin(ctx);
+    const user = await requireActiveUser(ctx);
+
+    const isAdmin = user.roles.includes("admin");
+    if (!isAdmin) {
+      if (!user.roles.includes("host")) {
+        throw new ConvexError({
+          code: "FORBIDDEN",
+          message: "Only admins and hosts can import seeds",
+        });
+      }
+
+      const hostLeagues = user.hostLeagueId ?? [];
+      for (const seed of args.seeds) {
+        if (!seed.leagueId) {
+          throw new ConvexError({
+            code: "FORBIDDEN",
+            message: "Hosts must assign seeds to a league",
+          });
+        }
+        if (!hostLeagues.includes(seed.leagueId)) {
+          throw new ConvexError({
+            code: "FORBIDDEN",
+            message: "You can only upload seeds for leagues you host",
+          });
+        }
+      }
+
+      await requireSeedTestingOpen(ctx);
+    }
+
     const normalizedSeeds = await normalizeSeeds(ctx, args.seeds);
     const hasAssignedSeeds = normalizedSeeds.some((seed) => seed.leagueId);
     const settings = hasAssignedSeeds ? await requireSettings(ctx) : null;

@@ -1,6 +1,6 @@
 import { useQuery } from "convex/react";
-import { MessageCircle, Sprout } from "lucide-react";
-import { useMemo } from "react";
+import { MessageCircle, Sprout, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Outlet, useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
@@ -34,6 +34,9 @@ import {
 } from "@/components/ui/table";
 import { SEED_TYPES, type SeedType } from "@/lib/consts";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import AddSeedDialog from "@/components/dialogs/AddSeedDialog";
 
 type SeedDistributionRequirement = {
   required: number;
@@ -88,9 +91,53 @@ export function LeaguePage() {
     [leagues, selectedLeagueId],
   );
 
+  const user = useQuery(api.users.currentUser);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const closeAddDialog = () => setIsAddDialogOpen(false);
+
+  const isAdmin = user?.roles.includes("admin") ?? false;
+  const isHostOrAdmin = useMemo(() => {
+    if (!user) return false;
+    if (user.roles.includes("admin")) return true;
+    if (user.roles.includes("host") && selectedLeagueId) {
+      return (user.hostLeagueId ?? []).includes(selectedLeagueId);
+    }
+    return false;
+  }, [user, selectedLeagueId]);
+
   return (
     <div className="flex h-full min-h-0 min-w-0 gap-6 overflow-hidden">
       <section className="flex min-h-0 min-w-0 flex-9 flex-col gap-4 overflow-hidden pr-2">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-2xl font-semibold">
+              {league?.leagueName ?? "League"}
+            </h2>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              Active-week seeds assigned to this league.
+            </p>
+          </div>
+          {isHostOrAdmin && league && (
+            <div className="flex items-center gap-2">
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger render={<Button type="button" size="sm" />}>
+                  <Plus className="size-4" />
+                  Add seed
+                </DialogTrigger>
+                {isAddDialogOpen && (
+                  <AddSeedDialog
+                    onClose={closeAddDialog}
+                    leagues={leagues || []}
+                    defaultLeagueId={league._id}
+                    lockLeague={true}
+                    allowJsonImport={isAdmin}
+                  />
+                )}
+              </Dialog>
+            </div>
+          )}
+        </div>
+
         {seeds === undefined || leagues === undefined ? (
           <>
             <SeedDistributionSkeleton />

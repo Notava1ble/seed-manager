@@ -65,4 +65,143 @@ describe("seeds", () => {
       "2001",
     ]);
   });
+
+  test("hosts can import seeds for leagues they host, but not other leagues", async () => {
+    const t = createTest();
+    const league1 = await createLeague(t, { leagueNumber: 1 });
+    const league2 = await createLeague(t, { leagueNumber: 2 });
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("settings", {
+        key: "global",
+        currentWeekNumber: 1,
+        seedTestingPaused: false,
+      });
+    });
+
+    const { actor: host, userId: hostId } = await createActor(t, {
+      roles: ["host"],
+      hostLeagueId: [league1],
+    });
+
+    const { actor: tester } = await createActor(t, {
+      roles: ["tester"],
+    });
+
+    // 1. Host uploads to their hosted league - should succeed
+    const importResult = await host.mutation(api.seeds.importSeeds, {
+      seeds: [
+        {
+          type: "VILLAGE",
+          overworld: "1111",
+          nether: "2222",
+          end: "3333",
+          rng: "4444",
+          leagueId: league1,
+        },
+      ],
+    });
+    expect(importResult.insertedCount).toBe(1);
+
+    const [seed] = await host.query(api.seeds.listSeedsByLeague, {
+      leagueId: league1,
+    });
+    expect(seed).toMatchObject({
+      overworld: "1111",
+      nether: "2222",
+      end: "3333",
+      rng: "4444",
+      type: "VILLAGE",
+      leagueId: league1,
+      rating: "Good",
+      isExpired: false,
+      assignedWeekNumber: 1,
+      addedBy: hostId,
+      isUsed: false,
+      commentCount: 0,
+    });
+
+    const [hostedLeague] = await host.query(api.leagues.listLeagues);
+    expect(hostedLeague.seedCount).toBe(1);
+
+    // 2. Host uploads unassigned seed - should fail
+    await expect(
+      host.mutation(api.seeds.importSeeds, {
+        seeds: [
+          {
+            type: "VILLAGE",
+            overworld: "5555",
+            nether: "6666",
+            end: "7777",
+            rng: "8888",
+          },
+        ],
+      }),
+    ).rejects.toThrow();
+
+    // 3. Host uploads to a league they don't host - should fail
+    await expect(
+      host.mutation(api.seeds.importSeeds, {
+        seeds: [
+          {
+            type: "VILLAGE",
+            overworld: "5555",
+            nether: "6666",
+            end: "7777",
+            rng: "8888",
+            leagueId: league2,
+          },
+        ],
+      }),
+    ).rejects.toThrow();
+
+    // 4. Non-host non-admin tester uploads - should fail
+    await expect(
+      tester.mutation(api.seeds.importSeeds, {
+        seeds: [
+          {
+            type: "VILLAGE",
+            overworld: "9999",
+            nether: "1010",
+            end: "1111",
+            rng: "1212",
+            leagueId: league1,
+          },
+        ],
+      }),
+    ).rejects.toThrow();
+  });
+
+  test("hosts cannot import seeds while seed testing is paused", async () => {
+    const t = createTest();
+    const leagueId = await createLeague(t);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("settings", {
+        key: "global",
+        currentWeekNumber: 1,
+        seedTestingPaused: true,
+      });
+    });
+
+    const { actor: host } = await createActor(t, {
+      roles: ["host"],
+      hostLeagueId: [leagueId],
+    });
+
+    await expect(
+      host.mutation(api.seeds.importSeeds, {
+        seeds: [
+          {
+            type: "VILLAGE",
+            overworld: "5555",
+            nether: "6666",
+            end: "7777",
+            rng: "8888",
+            leagueId,
+          },
+        ],
+      }),
+    ).rejects.toThrow("Seed testing is currently paused");
+  });
 });
