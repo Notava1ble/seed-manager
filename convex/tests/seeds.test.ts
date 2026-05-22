@@ -7,6 +7,47 @@ import {
 } from "./test.helpers";
 
 describe("seeds", () => {
+  test("admins can see who vouched a league seed in seed details", async () => {
+    const t = createTest();
+    const { actor: admin, userId: adminId } = await createActor(t, {
+      roles: ["admin"],
+    });
+    const { name: testerName, userId: testerId } = await createActor(t, {
+      roles: ["tester"],
+    });
+    const leagueId = await createLeague(t);
+    const seedId = await t.run(async (ctx) => {
+      return await ctx.db.insert("seeds", {
+        leagueId,
+        claimedBy: testerId,
+        overworld: "1001",
+        nether: "1002",
+        end: "1003",
+        rng: "1004",
+        type: "VILLAGE",
+        rating: "Good",
+        addedBy: adminId,
+        isUsed: false,
+        isExpired: false,
+        commentCount: 0,
+      });
+    });
+
+    const seedDetails = await admin.query(api.seeds.getSeedForLeague, {
+      leagueId,
+      seedId,
+    });
+
+    expect(seedDetails).toMatchObject({
+      _id: seedId,
+      claimedBy: testerId,
+      vouchedByUser: {
+        _id: testerId,
+        name: testerName,
+      },
+    });
+  });
+
   test("admins list only unexpired and non-bad seeds", async () => {
     const t = createTest();
     const { actor: admin, userId: adminId } = await createActor(t, {

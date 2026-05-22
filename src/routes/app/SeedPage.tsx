@@ -108,9 +108,16 @@ export function SeedPage() {
     >
       <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="min-w-0 text-xl font-semibold leading-tight">
-            {seed.type ? SEED_TYPES[seed.type] : "Unspecified seed"}
-          </h2>
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+            <h2 className="min-w-0 text-xl font-semibold leading-tight">
+              {seed.type ? SEED_TYPES[seed.type] : "Unspecified seed"}
+            </h2>
+            {user!.roles.includes("admin") && seed.vouchedByUser && (
+              <span className="text-sm text-muted-foreground">
+                Vouched by {seed.vouchedByUser.name ?? "Unknown user"}
+              </span>
+            )}
+          </div>
           {seed.isUsed && <SeedStatusBadge status="used" />}
         </div>
 

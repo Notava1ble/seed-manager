@@ -39,6 +39,7 @@ export async function createActor(
 
   return {
     userId,
+    name,
     actor: t.withIdentity({ subject: userId, name }),
   };
 }

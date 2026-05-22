@@ -132,7 +132,24 @@ export const getSeedForLeague = query({
       return null;
     }
 
-    return seed;
+    if (!user.roles.includes("admin") || seed.claimedBy === undefined) {
+      return {
+        ...seed,
+        vouchedByUser: null,
+      };
+    }
+
+    const vouchedByUser = await ctx.db.get("users", seed.claimedBy);
+
+    return {
+      ...seed,
+      vouchedByUser: vouchedByUser
+        ? {
+            _id: vouchedByUser._id,
+            name: vouchedByUser.name,
+          }
+        : null,
+    };
   },
 });
 
