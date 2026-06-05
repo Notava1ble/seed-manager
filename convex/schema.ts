@@ -66,6 +66,7 @@ export default defineSchema({
     assignedWeekNumber: v.optional(v.number()),
     usedAt: v.optional(v.number()), // unix time
     usedBy: v.optional(v.id("users")),
+    leagueChangedByAdminId: v.optional(v.id("users")),
     commentCount: v.number(),
   })
     .index("by_owseed", ["overworld"])

@@ -7,13 +7,63 @@ import {
 } from "./test.helpers";
 
 describe("seeds", () => {
+  test("admins can change an active assigned seed's league and track the admin", async () => {
+    const t = createTest();
+    const { actor: admin, userId: adminId } = await createActor(t, {
+      roles: ["admin"],
+    });
+    const sourceLeagueId = await createLeague(t, { leagueNumber: 1 });
+    const targetLeagueId = await createLeague(t, { leagueNumber: 2 });
+    const seedId = await t.run(async (ctx) => {
+      await ctx.db.patch("leagues", sourceLeagueId, { seedCount: 1 });
+
+      return await ctx.db.insert("seeds", {
+        leagueId: sourceLeagueId,
+        overworld: "1001",
+        nether: "1002",
+        end: "1003",
+        rng: "1004",
+        type: "VILLAGE",
+        rating: "Good",
+        addedBy: adminId,
+        isUsed: false,
+        isExpired: false,
+        commentCount: 0,
+      });
+    });
+
+    await admin.mutation(api.seeds.changeSeedLeague, {
+      seedId,
+      leagueId: targetLeagueId,
+    });
+
+    const result = await t.run(async (ctx) => {
+      const seed = await ctx.db.get("seeds", seedId);
+      const sourceLeague = await ctx.db.get("leagues", sourceLeagueId);
+      const targetLeague = await ctx.db.get("leagues", targetLeagueId);
+
+      return { seed, sourceLeague, targetLeague };
+    });
+
+    expect(result.seed).toMatchObject({
+      leagueId: targetLeagueId,
+      leagueChangedByAdminId: adminId,
+    });
+    expect(result.sourceLeague?.seedCount).toBe(0);
+    expect(result.targetLeague?.seedCount).toBe(1);
+  });
+
   test("admins can see who vouched a league seed in seed details", async () => {
     const t = createTest();
     const { actor: admin, userId: adminId } = await createActor(t, {
       roles: ["admin"],
     });
+    const homeLeagueId = await createLeague(t, { leagueNumber: 1 });
+    const hostLeagueId = await createLeague(t, { leagueNumber: 2 });
     const { name: testerName, userId: testerId } = await createActor(t, {
-      roles: ["tester"],
+      roles: ["tester", "host"],
+      homeLeagueId: [homeLeagueId],
+      hostLeagueId: [hostLeagueId],
     });
     const leagueId = await createLeague(t);
     const seedId = await t.run(async (ctx) => {
@@ -44,6 +94,8 @@ describe("seeds", () => {
       vouchedByUser: {
         _id: testerId,
         name: testerName,
+        homeLeagueId: [homeLeagueId],
+        hostLeagueId: [hostLeagueId],
       },
     });
   });

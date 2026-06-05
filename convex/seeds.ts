@@ -147,6 +147,8 @@ export const getSeedForLeague = query({
         ? {
             _id: vouchedByUser._id,
             name: vouchedByUser.name,
+            homeLeagueId: vouchedByUser.homeLeagueId ?? [],
+            hostLeagueId: vouchedByUser.hostLeagueId ?? [],
           }
         : null,
     };
@@ -512,6 +514,83 @@ export const markSeedUsed = mutation({
 
     await ctx.db.patch("leagues", league._id, {
       usedSeedCount: league.usedSeedCount + 1,
+    });
+  },
+});
+
+export const changeSeedLeague = mutation({
+  args: {
+    seedId: v.id("seeds"),
+    leagueId: v.id("leagues"),
+  },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+    const seed = await ctx.db.get("seeds", args.seedId);
+
+    if (!seed) {
+      throw new ConvexError({
+        code: "SEED_NOT_FOUND",
+        message: "The requested seed does not exist",
+      });
+    }
+
+    if (seed.leagueId === undefined) {
+      throw new ConvexError({
+        code: "SEED_UNASSIGNED",
+        message: "Only assigned seeds can move to another league",
+      });
+    }
+
+    if (seed.isExpired === true) {
+      throw new ConvexError({
+        code: "SEED_EXPIRED",
+        message: "Expired seeds are read-only",
+      });
+    }
+
+    if (seed.isUsed) {
+      throw new ConvexError({
+        code: "SEED_ALREADY_USED",
+        message: "Used seeds are read-only",
+      });
+    }
+
+    if (seed.rating !== "Good") {
+      throw new ConvexError({
+        code: "SEED_NOT_GOOD",
+        message: "Only good assigned seeds can move to another league",
+      });
+    }
+
+    if (seed.leagueId === args.leagueId) {
+      return;
+    }
+
+    const [sourceLeague, targetLeague] = await Promise.all([
+      ctx.db.get("leagues", seed.leagueId),
+      ctx.db.get("leagues", args.leagueId),
+    ]);
+
+    if (!targetLeague) {
+      throw new ConvexError({
+        code: "LEAGUE_NOT_EXIST",
+        message: "The requested league id does not exist",
+      });
+    }
+
+    await ctx.db.patch("seeds", seed._id, {
+      leagueId: targetLeague._id,
+      leagueChangedByAdminId: admin._id,
+    });
+
+    if (sourceLeague) {
+      await ctx.db.patch("leagues", sourceLeague._id, {
+        seedCount: Math.max(0, sourceLeague.seedCount - 1),
+      });
+    }
+
+    await ctx.db.patch("leagues", targetLeague._id, {
+      seedCount: targetLeague.seedCount + 1,
     });
   },
 });
