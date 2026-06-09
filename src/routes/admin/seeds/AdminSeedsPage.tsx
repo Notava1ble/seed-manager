@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,7 +36,7 @@ import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import AddSeedDialog from "@/components/dialogs/AddSeedDialog";
 import { getSeedCountLabel } from "@/lib/utils";
-import { SEED_TYPES } from "@/lib/consts";
+import { SEED_TYPES, seedTypesArray } from "@/lib/consts";
 
 const placeholder = () => undefined;
 
@@ -50,6 +50,7 @@ export function AdminSeedsPage() {
     leagues === undefined || seeds === undefined || badSeeds === undefined;
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("active");
   const [recyclingSeedId, setRecyclingSeedId] = useState<Id<"seeds"> | null>(
     null,
   );
@@ -60,6 +61,40 @@ export function AdminSeedsPage() {
   const closeAddDialog = () => {
     setIsAddDialogOpen(false);
   };
+
+  const seedStats = useMemo(() => {
+    const availableByType = Object.fromEntries(
+      seedTypesArray.map((seedType) => [seedType, 0]),
+    ) as Record<keyof typeof SEED_TYPES, number>;
+
+    let assignedCount = 0;
+    let claimedCount = 0;
+
+    for (const seed of seeds ?? []) {
+      if (seed.leagueId !== undefined) {
+        assignedCount += 1;
+      }
+
+      if (seed.claimedBy !== undefined && seed.rating === undefined) {
+        claimedCount += 1;
+      }
+
+      if (
+        seed.type &&
+        seed.leagueId === undefined &&
+        seed.claimedBy === undefined &&
+        seed.rating === undefined
+      ) {
+        availableByType[seed.type] += 1;
+      }
+    }
+
+    return {
+      assignedCount,
+      availableByType,
+      claimedCount,
+    };
+  }, [seeds]);
 
   const handleRecycleSeed = async () => {
     if (!recyclingSeedId) return;
@@ -85,9 +120,6 @@ export function AdminSeedsPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h2 className="mt-2 text-2xl font-semibold">Manage seeds</h2>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Seed records for review and league assignment.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline">
@@ -108,11 +140,55 @@ export function AdminSeedsPage() {
       {isLoading ? (
         <AdminSeedTableSkeleton />
       ) : (
-        <Tabs defaultValue="active">
-          <TabsList>
-            <TabsTrigger value="active">Current seeds</TabsTrigger>
-            <TabsTrigger value="bad">Bad seeds</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <TabsList>
+              <TabsTrigger value="active">Current seeds</TabsTrigger>
+              <TabsTrigger value="bad">Bad seeds</TabsTrigger>
+            </TabsList>
+            {activeTab === "active" ? (
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {seedTypesArray.map((seedType) => (
+                  <div
+                    key={seedType}
+                    className="flex min-h-9 min-w-24 items-center justify-between gap-3 rounded-md border bg-card px-3 py-1.5"
+                  >
+                    <span className="truncate text-xs text-muted-foreground">
+                      {SEED_TYPES[seedType]}
+                    </span>
+                    <span className="text-sm font-semibold tabular-nums">
+                      {seedStats.availableByType[seedType]}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex min-h-9 items-center gap-3 rounded-md border bg-muted/30 px-3 py-1.5">
+                  <span className="text-xs text-muted-foreground">
+                    Claimed
+                  </span>
+                  <span className="text-sm font-semibold tabular-nums">
+                    {seedStats.claimedCount}
+                  </span>
+                </div>
+                <div className="flex min-h-9 items-center gap-3 rounded-md border bg-muted/30 px-3 py-1.5">
+                  <span className="text-xs text-muted-foreground">
+                    Assigned
+                  </span>
+                  <span className="text-sm font-semibold tabular-nums">
+                    {seedStats.assignedCount}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-h-9 items-center gap-3 rounded-md border bg-card px-3 py-1.5">
+                <span className="text-xs text-muted-foreground">
+                  Bad seeds total
+                </span>
+                <span className="text-sm font-semibold tabular-nums">
+                  {badSeeds.length}
+                </span>
+              </div>
+            )}
+          </div>
           <TabsContent value="active">
             {seeds.length === 0 ? (
               <AdminSeedsEmptyState />
