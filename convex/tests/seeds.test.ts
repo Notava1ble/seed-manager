@@ -159,6 +159,63 @@ describe("seeds", () => {
     ]);
   });
 
+  test("admins can list and recycle bad seeds", async () => {
+    const t = createTest();
+    const { actor: admin, userId: adminId } = await createActor(t, {
+      roles: ["admin"],
+    });
+    const { userId: testerId } = await createActor(t, {
+      roles: ["tester"],
+    });
+    const votedAt = Date.now();
+    const seedId = await t.run(async (ctx) => {
+      return await ctx.db.insert("seeds", {
+        claimedBy: testerId,
+        overworld: "5001",
+        nether: "5002",
+        end: "5003",
+        rng: "5004",
+        type: "VILLAGE",
+        rating: "Bad",
+        addedBy: adminId,
+        isUsed: false,
+        votedAt,
+        votedBy: testerId,
+        commentCount: 0,
+      });
+    });
+
+    const badSeeds = await admin.query(api.seeds.listBadSeeds);
+
+    expect(badSeeds).toHaveLength(1);
+    expect(badSeeds[0]).toMatchObject({
+      _id: seedId,
+      overworld: "5001",
+      votedAt,
+      votedBy: testerId,
+      votedByUser: {
+        _id: testerId,
+      },
+    });
+
+    await admin.mutation(api.seeds.recycleBadSeed, { seedId });
+
+    const seed = await t.run(async (ctx) => {
+      return await ctx.db.get("seeds", seedId);
+    });
+
+    expect(seed).toMatchObject({
+      _id: seedId,
+      overworld: "5001",
+      isUsed: false,
+      commentCount: 0,
+    });
+    expect(seed?.claimedBy).toBeUndefined();
+    expect(seed?.rating).toBeUndefined();
+    expect(seed?.votedAt).toBeUndefined();
+    expect(seed?.votedBy).toBeUndefined();
+  });
+
   test("hosts can import seeds for leagues they host, but not other leagues", async () => {
     const t = createTest();
     const league1 = await createLeague(t, { leagueNumber: 1 });

@@ -86,6 +86,48 @@ export const listAllSeeds = query({
   },
 });
 
+export const listBadSeeds = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+
+    const badSeeds = await ctx.db
+      .query("seeds")
+      .withIndex("by_rating", (q) => q.eq("rating", "Bad"))
+      .take(MAX_ADMIN_SEED_LIST_COUNT);
+    const voterIds = Array.from(
+      new Set(
+        badSeeds
+          .map((seed) => seed.votedBy ?? seed.claimedBy)
+          .filter((userId): userId is Id<"users"> => userId !== undefined),
+      ),
+    );
+    const voters = await Promise.all(
+      voterIds.map((userId) => ctx.db.get("users", userId)),
+    );
+    const votersById = new Map(
+      voters
+        .filter((user) => user !== null)
+        .map((user) => [
+          user._id,
+          {
+            _id: user._id,
+            name: user.name,
+            discordId: user.discordId,
+          },
+        ]),
+    );
+
+    return badSeeds.map((seed) => ({
+      ...seed,
+      votedByUser:
+        seed.votedBy || seed.claimedBy
+          ? votersById.get(seed.votedBy ?? seed.claimedBy!)
+          : undefined,
+    }));
+  },
+});
+
 export const listSeedsByLeague = query({
   args: {
     leagueId: v.id("leagues"),
@@ -294,6 +336,8 @@ export const vouchSeed = mutation({
         leagueId: undefined,
         isExpired: undefined,
         assignedWeekNumber: undefined,
+        votedAt: Date.now(),
+        votedBy: user._id,
       });
       return;
     }
@@ -339,6 +383,8 @@ export const vouchSeed = mutation({
       leagueId,
       isExpired: false,
       assignedWeekNumber: settings.currentWeekNumber,
+      votedAt: Date.now(),
+      votedBy: user._id,
     });
 
     if (isNewLeagueAssignment) {
@@ -434,6 +480,8 @@ export const updateSeedRating = mutation({
       leagueId: undefined,
       isExpired: undefined,
       assignedWeekNumber: undefined,
+      votedAt: Date.now(),
+      votedBy: user._id,
     });
 
     if (league) {
@@ -441,6 +489,43 @@ export const updateSeedRating = mutation({
         seedCount: league.seedCount - 1,
       });
     }
+  },
+});
+
+export const recycleBadSeed = mutation({
+  args: {
+    seedId: v.id("seeds"),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const seed = await ctx.db.get("seeds", args.seedId);
+
+    if (!seed) {
+      throw new ConvexError({
+        code: "SEED_NOT_FOUND",
+        message: "The requested seed does not exist",
+      });
+    }
+
+    if (seed.rating !== "Bad") {
+      throw new ConvexError({
+        code: "SEED_NOT_BAD",
+        message: "Only bad seeds can be recycled",
+      });
+    }
+
+    await ctx.db.patch("seeds", seed._id, {
+      claimedBy: undefined,
+      rating: undefined,
+      leagueId: undefined,
+      isExpired: undefined,
+      assignedWeekNumber: undefined,
+      isUsed: false,
+      usedAt: undefined,
+      usedBy: undefined,
+      votedAt: undefined,
+      votedBy: undefined,
+    });
   },
 });
 

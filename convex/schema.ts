@@ -64,6 +64,8 @@ export default defineSchema({
     isUsed: v.boolean(),
     isExpired: v.optional(v.boolean()), // undefined = never assigned, false = active assigned, true = expired
     assignedWeekNumber: v.optional(v.number()),
+    votedAt: v.optional(v.number()),
+    votedBy: v.optional(v.id("users")),
     usedAt: v.optional(v.number()), // unix time
     usedBy: v.optional(v.id("users")),
     leagueChangedByAdminId: v.optional(v.id("users")),
@@ -72,6 +74,7 @@ export default defineSchema({
     .index("by_owseed", ["overworld"])
     .index("by_leagueId", ["leagueId"])
     .index("by_isExpired", ["isExpired"])
+    .index("by_rating", ["rating"])
     .index("by_rating_and_leagueId", ["rating", "leagueId"])
     .index("by_leagueId_and_isExpired", ["leagueId", "isExpired"])
     .index("by_isExpired_and_claimedBy_and_rating", [
