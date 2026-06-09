@@ -35,7 +35,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import AddSeedDialog from "@/components/dialogs/AddSeedDialog";
-import { getSeedCountLabel } from "@/lib/utils";
+import { cn, getSeedCountLabel } from "@/lib/utils";
 import { SEED_TYPES, seedTypesArray } from "@/lib/consts";
 
 const placeholder = () => undefined;
@@ -148,19 +148,38 @@ export function AdminSeedsPage() {
             </TabsList>
             {activeTab === "active" ? (
               <div className="flex flex-wrap items-center justify-end gap-2">
-                {seedTypesArray.map((seedType) => (
-                  <div
-                    key={seedType}
-                    className="flex min-h-9 min-w-24 items-center justify-between gap-3 rounded-md border bg-card px-3 py-1.5"
-                  >
-                    <span className="truncate text-xs text-muted-foreground">
-                      {SEED_TYPES[seedType]}
-                    </span>
-                    <span className="text-sm font-semibold tabular-nums">
-                      {seedStats.availableByType[seedType]}
-                    </span>
-                  </div>
-                ))}
+                {seedTypesArray.map((seedType) => {
+                  const availableCount = seedStats.availableByType[seedType];
+
+                  return (
+                    <div
+                      key={seedType}
+                      className={cn(
+                        "flex min-h-9 min-w-24 items-center justify-between gap-3 rounded-md border bg-card px-3 py-1.5",
+                        availableCount === 0 &&
+                          "border-destructive/40 bg-destructive/10 text-destructive",
+                        availableCount > 0 &&
+                          availableCount <= 5 &&
+                          "border-warning/40 bg-warning/10 text-warning",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "truncate text-xs text-muted-foreground",
+                          availableCount === 0 && "text-destructive/80",
+                          availableCount > 0 &&
+                            availableCount <= 5 &&
+                            "text-warning",
+                        )}
+                      >
+                        {SEED_TYPES[seedType]}
+                      </span>
+                      <span className="text-sm font-semibold tabular-nums">
+                        {availableCount}
+                      </span>
+                    </div>
+                  );
+                })}
                 <div className="flex min-h-9 items-center gap-3 rounded-md border bg-muted/30 px-3 py-1.5">
                   <span className="text-xs text-muted-foreground">
                     Claimed
