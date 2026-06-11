@@ -61,6 +61,25 @@ export function ManagedRoleFields({
             </FieldDescription>
           </FieldContent>
         </Field>
+
+        <Field orientation="horizontal">
+          <Checkbox
+            checked={roles.includes("uploader")}
+            disabled={disabled}
+            id={`${idPrefix}-role-uploader`}
+            onCheckedChange={(checked) =>
+              setRole("uploader", checked === true)
+            }
+          />
+          <FieldContent>
+            <FieldLabel htmlFor={`${idPrefix}-role-uploader`}>
+              Uploader
+            </FieldLabel>
+            <FieldDescription>
+              Can add seeds to the pool or to non-home leagues.
+            </FieldDescription>
+          </FieldContent>
+        </Field>
       </FieldGroup>
     </FieldSet>
   );

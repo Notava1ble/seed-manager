@@ -270,6 +270,8 @@ describe("seeds", () => {
       isUsed: false,
       commentCount: 0,
     });
+    expect(seed.directUploaderAssignmentBy).toBeUndefined();
+    expect(seed.uploadedByUploaderId).toBeUndefined();
 
     const [hostedLeague] = await host.query(api.leagues.listLeagues);
     expect(hostedLeague.seedCount).toBe(1);
@@ -353,5 +355,350 @@ describe("seeds", () => {
         ],
       }),
     ).rejects.toThrow("Seed testing is currently paused");
+  });
+
+  test("uploaders can import unassigned seeds", async () => {
+    const t = createTest();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("settings", {
+        key: "global",
+        currentWeekNumber: 1,
+        seedTestingPaused: false,
+      });
+    });
+    const { actor: uploader, userId: uploaderId } = await createActor(t, {
+      roles: ["uploader"],
+    });
+
+    const importResult = await uploader.mutation(api.seeds.importSeeds, {
+      seeds: [
+        {
+          type: "VILLAGE",
+          overworld: "2111",
+          nether: "2222",
+          end: "2333",
+          rng: "2444",
+        },
+      ],
+    });
+
+    expect(importResult.insertedCount).toBe(1);
+    const [seed] = await t.run(async (ctx) =>
+      ctx.db
+        .query("seeds")
+        .withIndex("by_owseed", (q) => q.eq("overworld", "2111"))
+        .collect(),
+    );
+    expect(seed).toMatchObject({
+      addedBy: uploaderId,
+      uploadedByUploaderId: uploaderId,
+    });
+    expect(seed.leagueId).toBeUndefined();
+    expect(seed.directUploaderAssignmentBy).toBeUndefined();
+  });
+
+  test("uploaders can directly import assigned seeds outside home leagues", async () => {
+    const t = createTest();
+    const homeLeagueId = await createLeague(t, { leagueNumber: 1 });
+    const targetLeagueId = await createLeague(t, { leagueNumber: 2 });
+    await t.run(async (ctx) => {
+      await ctx.db.insert("settings", {
+        key: "global",
+        currentWeekNumber: 7,
+        seedTestingPaused: false,
+      });
+    });
+    const { actor: uploader, userId: uploaderId } = await createActor(t, {
+      roles: ["uploader"],
+      homeLeagueId: [homeLeagueId],
+    });
+
+    await uploader.mutation(api.seeds.importSeeds, {
+      seeds: [
+        {
+          type: "SHIPWRECK",
+          overworld: "3111",
+          nether: "3222",
+          end: "3333",
+          rng: "3444",
+          leagueId: targetLeagueId,
+        },
+      ],
+    });
+
+    const seed = await t.run(async (ctx) =>
+      ctx.db
+        .query("seeds")
+        .withIndex("by_owseed", (q) => q.eq("overworld", "3111"))
+        .unique(),
+    );
+    expect(seed).toMatchObject({
+      leagueId: targetLeagueId,
+      rating: "Good",
+      isExpired: false,
+      assignedWeekNumber: 7,
+      addedBy: uploaderId,
+      uploadedByUploaderId: uploaderId,
+      directUploaderAssignmentBy: uploaderId,
+    });
+  });
+
+  test("uploaders cannot directly import assigned seeds into current home leagues", async () => {
+    const t = createTest();
+    const homeLeagueId = await createLeague(t);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("settings", {
+        key: "global",
+        currentWeekNumber: 1,
+        seedTestingPaused: false,
+      });
+    });
+    const { actor: uploader } = await createActor(t, {
+      roles: ["uploader"],
+      homeLeagueId: [homeLeagueId],
+    });
+
+    await expect(
+      uploader.mutation(api.seeds.importSeeds, {
+        seeds: [
+          {
+            type: "VILLAGE",
+            overworld: "4111",
+            nether: "4222",
+            end: "4333",
+            rng: "4444",
+            leagueId: homeLeagueId,
+          },
+        ],
+      }),
+    ).rejects.toThrow("Uploaders cannot assign seeds to leagues they play in");
+  });
+
+  test("testers cannot vouch uploader-added seeds into the uploader's current home league", async () => {
+    const t = createTest();
+    const homeLeagueId = await createLeague(t);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("settings", {
+        key: "global",
+        currentWeekNumber: 1,
+        seedTestingPaused: false,
+      });
+    });
+    const { actor: uploader } = await createActor(t, {
+      roles: ["uploader"],
+      homeLeagueId: [homeLeagueId],
+    });
+    const { actor: tester, userId: testerId } = await createActor(t, {
+      roles: ["tester"],
+    });
+
+    const seedId = await uploader.mutation(api.seeds.importSeeds, {
+      seeds: [
+        {
+          type: "VILLAGE",
+          overworld: "5111",
+          nether: "5222",
+          end: "5333",
+          rng: "5444",
+        },
+      ],
+    }).then(async () => {
+      const seed = await t.run(async (ctx) =>
+        ctx.db
+          .query("seeds")
+          .withIndex("by_owseed", (q) => q.eq("overworld", "5111"))
+          .unique(),
+      );
+      return seed!._id;
+    });
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch("seeds", seedId, { claimedBy: testerId });
+    });
+
+    await expect(
+      tester.mutation(api.seeds.vouchSeed, {
+        seedId,
+        rating: "Good",
+        leagueId: homeLeagueId,
+      }),
+    ).rejects.toThrow("This seed was uploaded by a player in that league");
+  });
+
+  test("tester-vouched uploader pool seeds do not show direct uploader assignment metadata", async () => {
+    const t = createTest();
+    const uploaderHomeLeagueId = await createLeague(t, { leagueNumber: 1 });
+    const targetLeagueId = await createLeague(t, { leagueNumber: 2 });
+    await t.run(async (ctx) => {
+      await ctx.db.insert("settings", {
+        key: "global",
+        currentWeekNumber: 3,
+        seedTestingPaused: false,
+      });
+    });
+    const { actor: uploader, userId: uploaderId } = await createActor(t, {
+      roles: ["uploader"],
+      homeLeagueId: [uploaderHomeLeagueId],
+    });
+    const { actor: tester, userId: testerId } = await createActor(t, {
+      roles: ["tester"],
+    });
+
+    await uploader.mutation(api.seeds.importSeeds, {
+      seeds: [
+        {
+          type: "VILLAGE",
+          overworld: "6111",
+          nether: "6222",
+          end: "6333",
+          rng: "6444",
+        },
+      ],
+    });
+    const seedId = await t.run(async (ctx) => {
+      const seed = await ctx.db
+        .query("seeds")
+        .withIndex("by_owseed", (q) => q.eq("overworld", "6111"))
+        .unique();
+      await ctx.db.patch("seeds", seed!._id, { claimedBy: testerId });
+      return seed!._id;
+    });
+
+    await tester.mutation(api.seeds.vouchSeed, {
+      seedId,
+      rating: "Good",
+      leagueId: targetLeagueId,
+    });
+
+    const seed = await t.run(async (ctx) => ctx.db.get("seeds", seedId));
+    expect(seed).toMatchObject({
+      leagueId: targetLeagueId,
+      uploadedByUploaderId: uploaderId,
+      claimedBy: testerId,
+      rating: "Good",
+    });
+    expect(seed?.directUploaderAssignmentBy).toBeUndefined();
+  });
+
+  test("uploader home league changes affect future tester assignment eligibility", async () => {
+    const t = createTest();
+    const oldHomeLeagueId = await createLeague(t, { leagueNumber: 1 });
+    const newHomeLeagueId = await createLeague(t, { leagueNumber: 2 });
+    await t.run(async (ctx) => {
+      await ctx.db.insert("settings", {
+        key: "global",
+        currentWeekNumber: 4,
+        seedTestingPaused: false,
+      });
+    });
+    const { actor: uploader, userId: uploaderId } = await createActor(t, {
+      roles: ["uploader"],
+      homeLeagueId: [oldHomeLeagueId],
+    });
+    const { actor: tester, userId: testerId } = await createActor(t, {
+      roles: ["tester"],
+    });
+
+    await uploader.mutation(api.seeds.importSeeds, {
+      seeds: [
+        {
+          type: "VILLAGE",
+          overworld: "7111",
+          nether: "7222",
+          end: "7333",
+          rng: "7444",
+        },
+        {
+          type: "SHIPWRECK",
+          overworld: "8111",
+          nether: "8222",
+          end: "8333",
+          rng: "8444",
+        },
+      ],
+    });
+    const { allowedSeedId, blockedSeedId } = await t.run(async (ctx) => {
+      const allowedSeed = await ctx.db
+        .query("seeds")
+        .withIndex("by_owseed", (q) => q.eq("overworld", "7111"))
+        .unique();
+      const blockedSeed = await ctx.db
+        .query("seeds")
+        .withIndex("by_owseed", (q) => q.eq("overworld", "8111"))
+        .unique();
+      await ctx.db.patch("users", uploaderId, {
+        homeLeagueId: [newHomeLeagueId],
+      });
+      await ctx.db.patch("seeds", allowedSeed!._id, { claimedBy: testerId });
+      await ctx.db.patch("seeds", blockedSeed!._id, { claimedBy: testerId });
+      return {
+        allowedSeedId: allowedSeed!._id,
+        blockedSeedId: blockedSeed!._id,
+      };
+    });
+
+    await tester.mutation(api.seeds.vouchSeed, {
+      seedId: allowedSeedId,
+      rating: "Good",
+      leagueId: oldHomeLeagueId,
+    });
+
+    await expect(
+      tester.mutation(api.seeds.vouchSeed, {
+        seedId: blockedSeedId,
+        rating: "Good",
+        leagueId: newHomeLeagueId,
+      }),
+    ).rejects.toThrow("This seed was uploaded by a player in that league");
+  });
+
+  test("admins can assign uploader-added seeds into uploader home leagues", async () => {
+    const t = createTest();
+    const homeLeagueId = await createLeague(t);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("settings", {
+        key: "global",
+        currentWeekNumber: 5,
+        seedTestingPaused: false,
+      });
+    });
+    const { actor: admin, userId: adminId } = await createActor(t, {
+      roles: ["admin"],
+    });
+    const { actor: uploader } = await createActor(t, {
+      roles: ["uploader"],
+      homeLeagueId: [homeLeagueId],
+    });
+    await uploader.mutation(api.seeds.importSeeds, {
+      seeds: [
+        {
+          type: "VILLAGE",
+          overworld: "9111",
+          nether: "9222",
+          end: "9333",
+          rng: "9444",
+        },
+      ],
+    });
+    const seedId = await t.run(async (ctx) => {
+      const seed = await ctx.db
+        .query("seeds")
+        .withIndex("by_owseed", (q) => q.eq("overworld", "9111"))
+        .unique();
+      await ctx.db.patch("seeds", seed!._id, { claimedBy: adminId });
+      return seed!._id;
+    });
+
+    await admin.mutation(api.seeds.vouchSeed, {
+      seedId,
+      rating: "Good",
+      leagueId: homeLeagueId,
+    });
+
+    const seed = await t.run(async (ctx) => ctx.db.get("seeds", seedId));
+    expect(seed).toMatchObject({
+      leagueId: homeLeagueId,
+      rating: "Good",
+    });
   });
 });

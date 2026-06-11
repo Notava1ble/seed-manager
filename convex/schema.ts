@@ -17,7 +17,12 @@ export default defineSchema({
       v.literal("banned"),
     ),
     roles: v.array(
-      v.union(v.literal("admin"), v.literal("host"), v.literal("tester")),
+      v.union(
+        v.literal("admin"),
+        v.literal("host"),
+        v.literal("tester"),
+        v.literal("uploader"),
+      ),
     ),
     homeLeagueId: v.optional(v.array(v.id("leagues"))),
     hostLeagueId: v.optional(v.array(v.id("leagues"))),
@@ -69,6 +74,8 @@ export default defineSchema({
     usedAt: v.optional(v.number()), // unix time
     usedBy: v.optional(v.id("users")),
     leagueChangedByAdminId: v.optional(v.id("users")),
+    uploadedByUploaderId: v.optional(v.id("users")),
+    directUploaderAssignmentBy: v.optional(v.id("users")),
     commentCount: v.number(),
   })
     .index("by_owseed", ["overworld"])

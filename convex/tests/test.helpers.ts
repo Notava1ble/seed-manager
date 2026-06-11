@@ -5,7 +5,7 @@ import schema from "../schema";
 import { modules } from "./test.setup";
 
 type SeedManagerTest = TestConvex<typeof schema>;
-type UserRole = "admin" | "host" | "tester";
+type UserRole = "admin" | "host" | "tester" | "uploader";
 type UserStatus = "active" | "pending";
 
 let nextUserNumber = 1;

@@ -53,6 +53,48 @@ export const listLeagues = query({
   },
 });
 
+export const listSeedUploadLeagueOptions = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireActiveUser(ctx);
+    const isAdmin = user.roles.includes("admin");
+    const isUploader = user.roles.includes("uploader");
+    const isHost = user.roles.includes("host");
+
+    if (!isAdmin && !isUploader && !isHost) {
+      return [];
+    }
+
+    const leagues = await ctx.db
+      .query("leagues")
+      .withIndex("by_leagueNumber")
+      .order("asc")
+      .collect();
+    const homeLeagueIds = user.homeLeagueId ?? [];
+    const hostLeagueIds = user.hostLeagueId ?? [];
+
+    return leagues.map((league) => {
+      const isHomeLeague = homeLeagueIds.includes(league._id);
+      const isHostedLeague = hostLeagueIds.includes(league._id);
+      const canUpload =
+        isAdmin ||
+        (isUploader && !isHomeLeague) ||
+        (!isUploader && isHostedLeague);
+
+      return {
+        ...league,
+        seedUploadDisabled: !canUpload,
+        seedUploadDisabledReason:
+          isUploader && isHomeLeague
+            ? "Uploaders cannot place seeds into leagues they play in."
+            : !canUpload
+              ? "You can only upload seeds for leagues you host."
+              : undefined,
+      };
+    });
+  },
+});
+
 export const addLeague = mutation({
   args: {
     leagueNumber: v.number(),

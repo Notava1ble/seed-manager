@@ -1,5 +1,5 @@
 import { useQuery } from "convex/react";
-import { MessageCircle, Sprout, Plus } from "lucide-react";
+import { AlertTriangle, MessageCircle, Plus, Sprout } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Outlet, useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
@@ -37,6 +37,11 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import AddSeedDialog from "@/components/dialogs/AddSeedDialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type SeedDistributionRequirement = {
   required: number;
@@ -82,6 +87,7 @@ export function LeaguePage() {
   const navigate = useNavigate();
   const selectedLeagueId = leagueId as Id<"leagues"> | undefined;
   const leagues = useQuery(api.leagues.listLeagues);
+  const uploadLeagues = useQuery(api.leagues.listSeedUploadLeagueOptions);
   const seeds = useQuery(
     api.seeds.listSeedsByLeague,
     selectedLeagueId ? { leagueId: selectedLeagueId } : "skip",
@@ -96,11 +102,21 @@ export function LeaguePage() {
   const closeAddDialog = () => setIsAddDialogOpen(false);
 
   const isAdmin = user?.roles.includes("admin") ?? false;
-  const isHostOrAdmin = useMemo(() => {
+  const canAddSeedToLeague = useMemo(() => {
     if (!user) return false;
     if (user.roles.includes("admin")) return true;
+    if (
+      user.roles.includes("uploader") &&
+      selectedLeagueId &&
+      (user.homeLeagueId ?? []).includes(selectedLeagueId)
+    ) {
+      return false;
+    }
     if (user.roles.includes("host") && selectedLeagueId) {
       return (user.hostLeagueId ?? []).includes(selectedLeagueId);
+    }
+    if (user.roles.includes("uploader") && selectedLeagueId) {
+      return !(user.homeLeagueId ?? []).includes(selectedLeagueId);
     }
     return false;
   }, [user, selectedLeagueId]);
@@ -117,7 +133,7 @@ export function LeaguePage() {
               Active-week seeds assigned to this league.
             </p>
           </div>
-          {isHostOrAdmin && league && (
+          {canAddSeedToLeague && league && (
             <div className="flex items-center gap-2">
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger render={<Button type="button" size="sm" />}>
@@ -127,10 +143,11 @@ export function LeaguePage() {
                 {isAddDialogOpen && (
                   <AddSeedDialog
                     onClose={closeAddDialog}
-                    leagues={leagues || []}
+                    leagues={uploadLeagues || []}
                     defaultLeagueId={league._id}
                     lockLeague={true}
                     allowJsonImport={isAdmin}
+                    allowUnassigned={false}
                   />
                 )}
               </Dialog>
@@ -323,7 +340,21 @@ function SeedTable({
                 onClick={() => onSeedSelect(seed._id)}
               >
                 <TableCell className="border-r text-left font-medium">
-                  {seed.type ? SEED_TYPES[seed.type] : "Unspecified"}
+                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                    <span>
+                      {seed.type ? SEED_TYPES[seed.type] : "Unspecified"}
+                    </span>
+                    {seed.directUploaderAssignmentBy && (
+                      <Tooltip>
+                        <TooltipTrigger aria-label="Uploader assigned seed">
+                          <AlertTriangle className="size-4 text-warning" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Directly assigned by an uploader
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                 </TableCell>
                 <SeedValueTableCell value={seed.overworld} />
                 <SeedValueTableCell value={seed.nether} />

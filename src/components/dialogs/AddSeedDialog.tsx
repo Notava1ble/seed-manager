@@ -58,6 +58,10 @@ type JsonImportResult = {
   insertedCount: number;
   skipCount: number;
 };
+type SeedUploadLeague = Doc<"leagues"> & {
+  seedUploadDisabled?: boolean;
+  seedUploadDisabledReason?: string;
+};
 
 function AddSeedDialog({
   leagues,
@@ -65,12 +69,14 @@ function AddSeedDialog({
   defaultLeagueId = null,
   lockLeague = false,
   allowJsonImport = true,
+  allowUnassigned = true,
 }: {
-  leagues: Doc<"leagues">[];
+  leagues: SeedUploadLeague[];
   onClose: () => void;
   defaultLeagueId?: Id<"leagues"> | null;
   lockLeague?: boolean;
   allowJsonImport?: boolean;
+  allowUnassigned?: boolean;
 }) {
   const importSeeds = useMutation(api.seeds.importSeeds);
 
@@ -90,6 +96,11 @@ function AddSeedDialog({
     useState<JsonImportResult | null>(null);
   const [isReadingJson, setIsReadingJson] = useState(false);
   const [isImportingJson, setIsImportingJson] = useState(false);
+  const selectedManualLeague = leagues.find(
+    (league) => league._id === manualValues.leagueId,
+  );
+  const selectedLeagueRestriction =
+    selectedManualLeague?.seedUploadDisabledReason;
 
   const resetForm = () => {
     setActiveTab("manual");
@@ -322,19 +333,29 @@ function AddSeedDialog({
                   <SelectContent>
                     <SelectGroup>
                       <SelectLabel>League assignment</SelectLabel>
-                      <SelectItem value={null}>No league</SelectItem>
+                      {allowUnassigned && (
+                        <SelectItem value={null}>No league</SelectItem>
+                      )}
                       {leagues.map((league) => (
-                        <SelectItem key={league._id} value={league._id}>
-                          {league.leagueName}
+                        <SelectItem
+                          key={league._id}
+                          disabled={league.seedUploadDisabled}
+                          value={league._id}
+                        >
+                          {league.seedUploadDisabledReason
+                            ? `${league.leagueName} - unavailable`
+                            : league.leagueName}
                         </SelectItem>
                       ))}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
                 <FieldDescription>
-                  {lockLeague
-                    ? "This seed will be assigned to the selected league."
-                    : "Leave unset when the seed is not assigned yet."}
+                  {selectedLeagueRestriction
+                    ? selectedLeagueRestriction
+                    : lockLeague
+                      ? "This seed will be assigned to the selected league."
+                      : "Leave unset when the seed is not assigned yet."}
                 </FieldDescription>
                 <FieldError>{manualErrors.leagueId}</FieldError>
               </Field>

@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import {
   canViewLeague,
@@ -376,6 +376,10 @@ export const vouchSeed = mutation({
       });
     }
 
+    if (!user.roles.includes("admin")) {
+      await requireUploaderSeedAssignmentAllowed(ctx, seed, leagueId);
+    }
+
     const isNewLeagueAssignment = seed.leagueId === undefined;
 
     await ctx.db.patch("seeds", seed._id, {
@@ -688,16 +692,29 @@ export const importSeeds = mutation({
     const user = await requireActiveUser(ctx);
 
     const isAdmin = user.roles.includes("admin");
+    const isUploader = user.roles.includes("uploader");
     if (!isAdmin) {
-      if (!user.roles.includes("host")) {
+      const hostLeagues = user.hostLeagueId ?? [];
+      const homeLeagues = user.homeLeagueId ?? [];
+
+      if (!isUploader && !user.roles.includes("host")) {
         throw new ConvexError({
           code: "FORBIDDEN",
-          message: "Only admins and hosts can import seeds",
+          message: "Only admins, hosts, and uploaders can import seeds",
         });
       }
 
-      const hostLeagues = user.hostLeagueId ?? [];
       for (const seed of args.seeds) {
+        if (isUploader) {
+          if (seed.leagueId && homeLeagues.includes(seed.leagueId)) {
+            throw new ConvexError({
+              code: "UPLOADER_HOME_LEAGUE_FORBIDDEN",
+              message: "Uploaders cannot assign seeds to leagues they play in",
+            });
+          }
+          continue;
+        }
+
         if (!seed.leagueId) {
           throw new ConvexError({
             code: "FORBIDDEN",
@@ -757,8 +774,12 @@ export const importSeeds = mutation({
               rating: "Good" as const,
               isExpired: false,
               assignedWeekNumber: settings?.currentWeekNumber,
+              ...(isUploader && !isAdmin
+                ? { directUploaderAssignmentBy: user._id }
+                : {}),
             }
           : {}),
+        ...(isUploader && !isAdmin ? { uploadedByUploaderId: user._id } : {}),
         addedBy: user._id,
         isUsed: false,
         commentCount: 0,
@@ -833,6 +854,35 @@ async function normalizeSeeds(ctx: MutationCtx, seeds: SeedUploadInput[]) {
   }
 
   return normalizedSeeds;
+}
+
+async function requireUploaderSeedAssignmentAllowed(
+  ctx: MutationCtx,
+  seed: Doc<"seeds">,
+  leagueId: Id<"leagues">,
+) {
+  const uploaderId = seed.uploadedByUploaderId;
+
+  if (uploaderId === undefined) {
+    return;
+  }
+
+  const uploader = await ctx.db.get("users", uploaderId);
+
+  if (!uploader) {
+    throw new ConvexError({
+      code: "UPLOADER_NOT_FOUND",
+      message: "An admin must review this uploader-added seed",
+    });
+  }
+
+  if ((uploader.homeLeagueId ?? []).includes(leagueId)) {
+    throw new ConvexError({
+      code: "UPLOADER_HOME_LEAGUE_FORBIDDEN",
+      message:
+        "This seed was uploaded by a player in that league, so an admin must assign it",
+    });
+  }
 }
 
 async function getClaimableSeedByType(ctx: MutationCtx, seedType: SeedType) {

@@ -7,6 +7,7 @@ import { SeedValueDisplay } from "@/components/SeedValueDisplay";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import {
   Field,
   FieldDescription,
@@ -31,7 +32,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PauseCircle, Sprout } from "lucide-react";
+import { PauseCircle, Plus, Sprout } from "lucide-react";
 import {
   Empty,
   EmptyContent,
@@ -42,6 +43,7 @@ import {
 } from "@/components/ui/empty";
 import { getErrorMessage } from "@/lib/errors";
 import { SEED_TYPES, seedTypesArray, type SeedType } from "@/lib/consts";
+import AddSeedDialog from "@/components/dialogs/AddSeedDialog";
 
 type ClaimType = "RANDOM" | SeedType;
 
@@ -52,15 +54,18 @@ export function AppIndexPage() {
   const [error, setError] = useState<string | null>(null);
   const [isClaiming, setIsClaiming] = useState(false);
   const [isVouching, setIsVouching] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const user = useQuery(api.users.currentUser);
   const leagues = useQuery(api.leagues.listLeagues);
+  const uploadLeagues = useQuery(api.leagues.listSeedUploadLeagueOptions);
   const claimedSeed = useQuery(api.seeds.getCurrentClaimedSeed);
   const settings = useQuery(api.settings.current);
   const claimSeed = useMutation(api.seeds.claimSeed);
   const vouchSeed = useMutation(api.seeds.vouchSeed);
 
   const isTester = user?.roles.includes("tester") ?? false;
+  const isUploader = user?.roles.includes("uploader") ?? false;
   const isTestingUnavailable =
     settings === null || (settings?.seedTestingPaused ?? false);
   const isLoading =
@@ -117,9 +122,28 @@ export function AppIndexPage() {
               Claim one unassigned seed, test it, then vouch it as good or bad.
             </CardDescription>
           </div>
-          <Badge variant={claimedSeed ? "default" : "secondary"}>
-            {claimedSeed ? "Claimed" : "No claim"}
-          </Badge>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            {isUploader && (
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger
+                  disabled={uploadLeagues === undefined}
+                  render={<Button size="sm" type="button" variant="outline" />}
+                >
+                  <Plus data-icon="inline-start" />
+                  Add seed
+                </DialogTrigger>
+                {isAddDialogOpen && (
+                  <AddSeedDialog
+                    leagues={uploadLeagues ?? []}
+                    onClose={() => setIsAddDialogOpen(false)}
+                  />
+                )}
+              </Dialog>
+            )}
+            <Badge variant={claimedSeed ? "default" : "secondary"}>
+              {claimedSeed ? "Claimed" : "No claim"}
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent>
           {settings === null && (

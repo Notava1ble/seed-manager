@@ -381,7 +381,7 @@ function canEditRating(
   },
   user: {
     _id: Id<"users">;
-    roles: Array<"admin" | "host" | "tester">;
+    roles: Array<"admin" | "host" | "tester" | "uploader">;
     hostLeagueId?: Id<"leagues">[];
   } | null,
 ) {
@@ -416,7 +416,7 @@ function canMarkUsed(
     rating?: SeedRating;
   },
   user: {
-    roles: Array<"admin" | "host" | "tester">;
+    roles: Array<"admin" | "host" | "tester" | "uploader">;
     hostLeagueId?: Id<"leagues">[];
   } | null,
 ) {
@@ -447,7 +447,7 @@ function canChangeLeague(
     rating?: SeedRating;
   },
   user: {
-    roles: Array<"admin" | "host" | "tester">;
+    roles: Array<"admin" | "host" | "tester" | "uploader">;
   } | null,
 ) {
   return (
