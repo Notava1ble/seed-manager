@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
   internalMutation,
+  internalQuery,
   mutation,
   query,
   type MutationCtx,
@@ -50,6 +51,17 @@ export const listActiveUsers = query({
   handler: async (ctx) => {
     await requireAdmin(ctx);
 
+    const users = await ctx.db
+      .query("users")
+      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .take(MAX_USER_LIST_COUNT);
+
+    return users;
+  },
+});
+export const listActiveUsersAPI = internalQuery({
+  args: {},
+  handler: async (ctx) => {
     const users = await ctx.db
       .query("users")
       .withIndex("by_status", (q) => q.eq("status", "active"))
@@ -175,36 +187,58 @@ export const updateAllUsers = internalMutation({
       v.object({
         discordId: v.string(),
         roles: v.array(v.string()),
-        homeLeagueId: v.array(v.string()),
-        hostLeagueId: v.array(v.string()),
+        homeLeagueNumbers: v.optional(v.array(v.number())),
+        hostLeagueNumbers: v.optional(v.array(v.number())),
       }),
     ),
   },
   handler: async (ctx, args) => {
     for (const u of args.users) {
-      const user = await ctx.db.get("users", u.discordId as Id<"users">);
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_discordId", (q) => q.eq("discordId", u.discordId))
+        .unique();
 
-      if (user?.roles.includes("admin")) {
+      if (!user) {
+        console.log(
+          `[updateAllUsers] No user found for discordId=${u.discordId}`,
+        );
+        continue;
+      }
+
+      if (user.roles.includes("admin")) {
         throw new ConvexError({
           status: 403,
           error: "Admin users cannot be managed through the API.",
         });
       }
 
-      if (!user?.status.includes("active")) {
+      if (user.status !== "active") {
         throw new ConvexError({
           status: 403,
           error: "Only active users can be managed by the API.",
         });
       }
 
-      const newUser = {
-        roles: u.roles,
-        homeLeagueId: u.homeLeagueId,
-        hostLeagueId: u.hostLeagueId,
-      } as Doc<"users">;
+      const patch: Partial<Doc<"users">> = {
+        roles: u.roles as typeof user.roles,
+      };
 
-      ctx.db.patch("users", user._id, newUser);
+      if (u.homeLeagueNumbers !== undefined) {
+        patch.homeLeagueId = await getLeaguesFromNumbers(
+          ctx,
+          u.homeLeagueNumbers,
+        );
+      }
+
+      if (u.hostLeagueNumbers !== undefined) {
+        patch.hostLeagueId = await getLeaguesFromNumbers(
+          ctx,
+          u.hostLeagueNumbers,
+        );
+      }
+
+      await ctx.db.patch(user._id, patch);
     }
 
     return { ok: true as const };
@@ -265,4 +299,23 @@ function normalizeManagedRoles(roles: ManagedRole[]) {
   const roleSet = new Set(roles);
 
   return MANAGED_ROLE_ORDER.filter((role) => roleSet.has(role));
+}
+
+async function getLeaguesFromNumbers(
+  ctx: MutationCtx,
+  nums: number[],
+): Promise<Id<"leagues">[]> {
+  const ids: Id<"leagues">[] = [];
+  for (const num of nums) {
+    const league = await ctx.db
+      .query("leagues")
+      .withIndex("by_leagueNumber", (q) => q.eq("leagueNumber", num))
+      .unique();
+    if (league) {
+      ids.push(league._id);
+      continue;
+    }
+    console.error(`404: League ${num} not found`);
+  }
+  return ids;
 }

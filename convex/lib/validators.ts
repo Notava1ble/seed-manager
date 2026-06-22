@@ -5,8 +5,8 @@ export const UpdatePlayerRolesSchema = z.object({
     z.object({
       discordId: z.string().min(1),
       roles: z.array(z.enum(["admin", "host", "tester", "uploader"])),
-      homeLeagueId: z.array(z.string()),
-      hostLeagueId: z.array(z.string()),
+      homeLeagueNumbers: z.array(z.number()).optional(),
+      hostLeagueNumbers: z.array(z.number()).optional(),
     }),
   ),
 });

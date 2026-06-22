@@ -91,11 +91,10 @@ http.route({
       routeLabel: "GET /api/users/discord",
       run: async (payload) => {
         const result = await ctx.runQuery(
-          api.users.listActiveUsers,
+          internal.users.listActiveUsersAPI,
           payload as any,
         );
-
-        return { ok: true, ...result };
+        return { ok: true, result };
       },
     }),
   ),
