@@ -29,6 +29,7 @@ import {
 import { sortLeaguesByNumberAndName } from "@/lib/utils";
 import { AdminUserDetailsSkeleton } from "./AdminUserDetailsSkeleton";
 import { UserIdentitySummary } from "./UserIdentitySummary";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function AdminActiveUserDetailsPage() {
   const { userId } = useParams();
@@ -67,13 +68,21 @@ export function AdminActiveUserDetailsPage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-2xl font-semibold">{getUserLabel(user)}</h2>
+      <div className="flex gap-2 justify-start items-center">
+        <Avatar className="h-12 w-12">
+          <AvatarImage src={user.image} />
+          <AvatarFallback>
+            {user.lowercaseName?.slice(0, 1) ?? "?"}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-2xl font-semibold">{getUserLabel(user)}</h2>
+          </div>
+          <p className="font-mono text-xs text-muted-foreground">
+            {getUserIdentifierLabel(user)}
+          </p>
         </div>
-        <p className="font-mono text-xs text-muted-foreground">
-          {getUserIdentifierLabel(user)}
-        </p>
       </div>
 
       <Separator />

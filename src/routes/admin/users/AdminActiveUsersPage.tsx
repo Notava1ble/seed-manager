@@ -37,6 +37,7 @@ import {
 } from "@/lib/userAccess";
 import { cn, sortLeaguesByNumberAndName } from "@/lib/utils";
 import { InviteUserDialog } from "./InviteUserDialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function AdminActiveUsersPage() {
   const { userId } = useParams();
@@ -154,18 +155,19 @@ function AdminActiveUsersTable({
   users: Doc<"users">[];
 }) {
   return (
-    <div className="overflow-hidden rounded-md border">
-      <Table containerClassName="max-h-[calc(100svh-12rem)]">
+    <div className="max-w-full overflow-hidden rounded-md border">
+      <Table containerClassName="max-h-[calc(100svh-12rem)] w-full table-fixed">
         <TableHeader>
           <TableRow>
-            <TableHead className="border-r text-left">User</TableHead>
-            <TableHead className="border-r">Email</TableHead>
-            <TableHead className="border-r">Roles</TableHead>
-            <TableHead className="border-r">Home leagues</TableHead>
-            <TableHead className="border-r">Host leagues</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead className="w-[18%] border-r text-left">User</TableHead>
+            <TableHead className="w-[18%] border-r">Email</TableHead>
+            <TableHead className="w-[26%] border-r">Roles</TableHead>
+            <TableHead className="w-[16%] border-r">Home leagues</TableHead>
+            <TableHead className="w-[16%] border-r">Host leagues</TableHead>
+            <TableHead className="w-[6%]">Status</TableHead>
           </TableRow>
         </TableHeader>
+
         <TableBody>
           {users.map((user) => (
             <TableRow
@@ -177,25 +179,40 @@ function AdminActiveUsersTable({
               onClick={() => onUserSelect(user._id)}
             >
               <TableCell className="border-r">
-                <div className="flex flex-col gap-0.5">
-                  <span className="font-medium">{getUserLabel(user)}</span>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {getUserIdentifierLabel(user)}
-                  </span>
+                <div className="flex gap-2">
+                  <Avatar>
+                    <AvatarImage src={user.image} />
+                    <AvatarFallback>
+                      {user.lowercaseName?.slice(0, 1) ?? "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className="font-medium">{getUserLabel(user)}</span>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {getUserIdentifierLabel(user)}
+                    </span>
+                  </div>
                 </div>
               </TableCell>
+
               <TableCell className="border-r text-muted-foreground">
                 {user.email ?? "No email"}
               </TableCell>
+
               <TableCell className="border-r">
-                <UserRoleBadges roles={user.roles} />
+                <div className="min-w-0 max-w-full">
+                  <UserRoleBadges roles={user.roles} />
+                </div>
               </TableCell>
+
               <TableCell className="border-r text-muted-foreground">
                 {getLeagueListLabel(leagues, user.homeLeagueId)}
               </TableCell>
+
               <TableCell className="border-r text-muted-foreground">
                 {getLeagueListLabel(leagues, user.hostLeagueId)}
               </TableCell>
+
               <TableCell>
                 {user.roles.includes("admin") ? (
                   <Badge variant="outline">
