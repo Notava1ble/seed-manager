@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import {
+  internalMutation,
   mutation,
   query,
   type MutationCtx,
@@ -165,6 +166,48 @@ export const updateManagedUser = mutation({
       homeLeagueId,
       hostLeagueId,
     });
+  },
+});
+
+export const updateAllUsers = internalMutation({
+  args: {
+    users: v.array(
+      v.object({
+        discordId: v.string(),
+        roles: v.array(v.string()),
+        homeLeagueId: v.array(v.string()),
+        hostLeagueId: v.array(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    for (const u of args.users) {
+      const user = await ctx.db.get("users", u.discordId as Id<"users">);
+
+      if (user?.roles.includes("admin")) {
+        throw new ConvexError({
+          status: 403,
+          error: "Admin users cannot be managed through the API.",
+        });
+      }
+
+      if (!user?.status.includes("active")) {
+        throw new ConvexError({
+          status: 403,
+          error: "Only active users can be managed by the API.",
+        });
+      }
+
+      const newUser = {
+        roles: u.roles,
+        homeLeagueId: u.homeLeagueId,
+        hostLeagueId: u.hostLeagueId,
+      } as Doc<"users">;
+
+      ctx.db.patch("users", user._id, newUser);
+    }
+
+    return { ok: true as const };
   },
 });
 
