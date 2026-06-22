@@ -25,7 +25,7 @@ async function runProtectedJsonRoute<T>(args: {
   run: (payload: T) => Promise<ProtectedRunResult>;
   successStatus?: number;
 }) {
-  const authError = await validateApiKey(args.request, "WRITER_API_KEY");
+  const authError = await validateApiKey(args.request, "WRITE_API_KEY_SEEDS");
   if (authError) return authError;
 
   const bodyResult = await extractRequestBody(args.request, args.schema);
@@ -56,7 +56,7 @@ async function runReadRoute(args: {
   routeLabel: string;
   run: (payload: Record<string, string>) => Promise<RouteResult>;
 }) {
-  const authError = await validateApiKey(args.request, "READER_API_KEY");
+  const authError = await validateApiKey(args.request, "READ_API_KEY_SEEDS");
   if (authError) return authError;
 
   const payload = Object.fromEntries(

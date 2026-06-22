@@ -49,7 +49,7 @@ export async function timingSafeEqual(a: string, b: string): Promise<boolean> {
 
 export async function validateApiKey(
   request: Request,
-  envVar: "READER_API_KEY" | "WRITER_API_KEY",
+  envVar: "READ_API_KEY_SEEDS" | "WRITE_API_KEY_SEEDS",
 ): Promise<Response | null> {
   const providedKey = request.headers.get("x-api-key");
   const expectedKey = process.env[envVar];
