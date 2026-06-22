@@ -9,7 +9,7 @@ import {
   validateApiKey,
 } from "./lib/utils";
 import z from "zod";
-import { api, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 import { UpdatePlayerRolesSchema } from "./lib/validators";
 
 type ProtectedRunResult = { ok: true; [key: string]: unknown } | never;
