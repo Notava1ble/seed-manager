@@ -181,10 +181,20 @@ export const getSeedForLeague = query({
       };
     }
 
+    // Hard set for specific id because of accidental user delelion
     const vouchedByUser = await ctx.db.get("users", seed.claimedBy);
-    const addedBy = await ctx.db.get("users", seed.addedBy);
+    const addedBy =
+      (await ctx.db.get("users", seed.addedBy)) ??
+      (seed.addedBy === "k57d7wyp6b7c1zdeyzchf1wc2x85385x"
+        ? {
+            _id: "k57d7wyp6b7c1zdeyzchf1wc2x85385x",
+            name: "Mirai (old)",
+            homeLeagueId: undefined,
+            hostLeagueId: undefined,
+          }
+        : undefined);
 
-    const addedByUser = vouchedByUser ?? addedBy ?? undefined;
+    const addedByUser = vouchedByUser ?? addedBy;
 
     return {
       ...seed,
