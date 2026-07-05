@@ -182,13 +182,14 @@ export const getSeedForLeague = query({
     }
 
     const vouchedByUser = await ctx.db.get("users", seed.claimedBy);
+    const addedBy = await ctx.db.get("users", seed.addedBy);
 
     return {
       ...seed,
       vouchedByUser: vouchedByUser
         ? {
             _id: vouchedByUser._id,
-            name: vouchedByUser.name,
+            name: vouchedByUser.name ?? vouchedByUser.name,
             homeLeagueId: vouchedByUser.homeLeagueId ?? [],
             hostLeagueId: vouchedByUser.hostLeagueId ?? [],
           }
