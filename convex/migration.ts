@@ -80,7 +80,7 @@ export const markBtSeeds = internalMutation({
 
 export const clearStoredUserEmails = internalMutation({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     const users = await ctx.db
       .query("users")
       .withIndex("email")
@@ -107,7 +107,7 @@ export const clearStoredUserEmails = internalMutation({
 
 export const deleteGithubUsersAndSessions = internalMutation({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     const githubAccounts = await ctx.db
       .query("authAccounts")
       .withIndex("providerAndAccountId", (q) => q.eq("provider", "github"))
@@ -163,7 +163,7 @@ export const deleteGithubUsersAndSessions = internalMutation({
         deletedSessionCount += 1;
       }
 
-      const user = await ctx.db.get(userId);
+      const user = await ctx.db.get("users", userId);
       if (user) {
         await ctx.db.delete("users", user._id);
         deletedUserCount += 1;
