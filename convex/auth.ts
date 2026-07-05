@@ -1,12 +1,17 @@
 import Discord from "@auth/core/providers/discord";
 import { convexAuth } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
-import { createPendingDiscordUser, getDiscordAvatarUrl, updateUserFromDiscordProfile } from "./lib/authUsers";
+import {
+  createPendingDiscordUser,
+  getDiscordAvatarUrl,
+  updateUserFromDiscordProfile,
+} from "./lib/authUsers";
 import type { MutationCtx } from "./_generated/server";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     Discord({
+      authorization: "https://discord.com/oauth2/authorize?scope=identify",
       profile(profile) {
         const name = profile.username;
 
@@ -31,7 +36,11 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       }
 
       if (args.existingUserId) {
-        await updateUserFromDiscordProfile(ctx, args.existingUserId, args.profile);
+        await updateUserFromDiscordProfile(
+          ctx,
+          args.existingUserId,
+          args.profile,
+        );
         return args.existingUserId;
       }
 
