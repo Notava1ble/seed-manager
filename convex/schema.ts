@@ -6,7 +6,7 @@ export default defineSchema({
   ...authTables,
   users: defineTable({
     discordId: v.optional(v.string()),
-    name: v.optional(v.string()), // Discord username for migrated users, GitHub username for legacy users.
+    name: v.optional(v.string()), // Discord username or display name.
     email: v.optional(v.string()),
     lowercaseName: v.optional(v.string()), // Normalized `name` field
     image: v.optional(v.string()),

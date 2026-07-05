@@ -238,7 +238,7 @@ export const updateAllUsers = internalMutation({
         );
       }
 
-      await ctx.db.patch(user._id, patch);
+      await ctx.db.patch("users", user._id, patch);
     }
 
     return { ok: true as const };

@@ -115,7 +115,7 @@ function AdminPendingUsersTable({
         <TableHeader>
           <TableRow>
             <TableHead className="border-r text-left">User</TableHead>
-            <TableHead className="border-r">Email</TableHead>
+            <TableHead className="border-r">Discord ID</TableHead>
             <TableHead className="border-r">Signed in</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
@@ -139,7 +139,7 @@ function AdminPendingUsersTable({
                 </div>
               </TableCell>
               <TableCell className="border-r text-muted-foreground">
-                {user.email ?? "No email"}
+                {user.discordId ?? "No Discord ID"}
               </TableCell>
               <TableCell className="border-r text-muted-foreground">
                 {formatUserCreatedAt(user._creationTime)}
@@ -165,7 +165,7 @@ function AdminPendingUsersTableSkeleton() {
         <TableHeader>
           <TableRow>
             <TableHead className="border-r text-left">User</TableHead>
-            <TableHead className="border-r">Email</TableHead>
+            <TableHead className="border-r">Discord ID</TableHead>
             <TableHead className="border-r">Signed in</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>

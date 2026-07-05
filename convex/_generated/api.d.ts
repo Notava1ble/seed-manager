@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as comments from "../comments.js";
 import type * as http from "../http.js";
 import type * as leagues from "../leagues.js";
+import type * as lib_authUsers from "../lib/authUsers.js";
 import type * as lib_consts from "../lib/consts.js";
 import type * as lib_permissions from "../lib/permissions.js";
 import type * as lib_settings from "../lib/settings.js";
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   comments: typeof comments;
   http: typeof http;
   leagues: typeof leagues;
+  "lib/authUsers": typeof lib_authUsers;
   "lib/consts": typeof lib_consts;
   "lib/permissions": typeof lib_permissions;
   "lib/settings": typeof lib_settings;

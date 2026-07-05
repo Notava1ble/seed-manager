@@ -24,23 +24,13 @@ export function LoginPage() {
   return (
     <AuthScreen
       action={
-        <div className="flex flex-col gap-2">
-          <Button
-            className="self-center"
-            onClick={() => void signIn("discord")}
-            size="lg"
-          >
-            Log in with Discord
-          </Button>
-          <Button
-            className="self-center"
-            onClick={() => void signIn("github")}
-            size="sm"
-            variant="outline"
-          >
-            Legacy GitHub login
-          </Button>
-        </div>
+        <Button
+          className="self-center"
+          onClick={() => void signIn("discord")}
+          size="lg"
+        >
+          Log in with Discord
+        </Button>
       }
       description="Sign in with Discord to access the app."
       title="Seed Manager"

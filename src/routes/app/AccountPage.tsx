@@ -64,8 +64,8 @@ export function AccountPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <UserDetailValue
-                  label="Email"
-                  value={user.email ?? "No email"}
+                  label="Discord ID"
+                  value={user.discordId ?? "No Discord ID"}
                 />
                 <UserDetailValue label="Status" value={user.status} />
                 <UserDetailValue

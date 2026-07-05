@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import {
   Card,
@@ -39,7 +38,6 @@ export function PendingPage() {
 }
 
 function Pending({ user }: { user: Doc<"users"> }) {
-  const [showEmail, setShowEmail] = useState(false);
   const { signOut } = useAuthActions();
 
   return (
@@ -53,20 +51,12 @@ function Pending({ user }: { user: Doc<"users"> }) {
         <CardHeader>
           <CardTitle>Account Information</CardTitle>
           <CardDescription>
-            {user.name} ({showEmail ? user.email : "************"})
+            {user.name}
             {user.discordId ? ` - ${user.discordId}` : null}
           </CardDescription>
         </CardHeader>
 
         <CardFooter className="w-full flex-col gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={() => setShowEmail((prev) => !prev)}
-          >
-            {showEmail ? "Hide Email" : "Show Email"}
-          </Button>
           <Button
             variant="outline"
             className="w-full"

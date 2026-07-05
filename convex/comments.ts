@@ -110,15 +110,14 @@ function validateCommentBody(body: string) {
   return trimmedBody;
 }
 
-function getCommentAuthorName(
+export function getCommentAuthorName(
   author:
     | {
         name?: string;
         lowercaseName?: string;
-        email?: string;
       }
     | null
     | undefined,
 ) {
-  return author?.name ?? author?.lowercaseName ?? author?.email ?? "Unknown user";
+  return author?.name ?? author?.lowercaseName ?? "Unknown user";
 }

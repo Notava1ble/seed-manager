@@ -160,7 +160,7 @@ function AdminActiveUsersTable({
         <TableHeader>
           <TableRow>
             <TableHead className="w-[18%] border-r text-left">User</TableHead>
-            <TableHead className="w-[18%] border-r">Email</TableHead>
+            <TableHead className="w-[18%] border-r">Discord ID</TableHead>
             <TableHead className="w-[26%] border-r">Roles</TableHead>
             <TableHead className="w-[16%] border-r">Home leagues</TableHead>
             <TableHead className="w-[16%] border-r">Host leagues</TableHead>
@@ -196,7 +196,7 @@ function AdminActiveUsersTable({
               </TableCell>
 
               <TableCell className="border-r text-muted-foreground">
-                {user.email ?? "No email"}
+                {user.discordId ?? "No Discord ID"}
               </TableCell>
 
               <TableCell className="border-r">
@@ -236,10 +236,10 @@ function AdminActiveUsersTableSkeleton() {
     <div className="overflow-hidden rounded-md border" aria-busy="true">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead className="border-r text-left">User</TableHead>
-            <TableHead className="border-r">Email</TableHead>
-            <TableHead className="border-r">Roles</TableHead>
+        <TableRow>
+          <TableHead className="border-r text-left">User</TableHead>
+          <TableHead className="border-r">Discord ID</TableHead>
+          <TableHead className="border-r">Roles</TableHead>
             <TableHead className="border-r">Home leagues</TableHead>
             <TableHead className="border-r">Host leagues</TableHead>
             <TableHead>Status</TableHead>

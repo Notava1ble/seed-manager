@@ -31,7 +31,7 @@ export function getLeagueListLabel(
 }
 
 export function getUserLabel(user: Doc<"users">) {
-  return user.name ?? user.lowercaseName ?? user.email ?? "Unnamed user";
+  return user.name ?? user.lowercaseName ?? "Unnamed user";
 }
 
 export function getUserIdentifierLabel(user: Doc<"users">) {

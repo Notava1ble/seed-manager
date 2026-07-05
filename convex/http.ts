@@ -12,7 +12,7 @@ import z from "zod";
 import { internal } from "./_generated/api";
 import { UpdatePlayerRolesSchema } from "./lib/validators";
 
-type ProtectedRunResult = { ok: true; [key: string]: unknown } | never;
+type ProtectedRunResult = { ok: true; [key: string]: unknown };
 
 type RouteResult =
   | { ok: true; [key: string]: unknown }
