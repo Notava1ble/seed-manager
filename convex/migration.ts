@@ -3,6 +3,8 @@ import { internalMutation } from "./_generated/server";
 import { getSettings, requireSettings, SETTINGS_KEY } from "./lib/settings";
 import { MAX_WEEK_EXPIRATION_COUNT } from "./lib/consts";
 
+const MAX_AUTH_CLEANUP_BATCH_SIZE = 1000;
+
 export const initializeSettings = internalMutation({
   args: {
     currentWeekNumber: v.number(),
@@ -73,6 +75,108 @@ export const markBtSeeds = internalMutation({
         });
       }),
     );
+  },
+});
+
+export const clearStoredUserEmails = internalMutation({
+  args: {},
+  handler: async (ctx, args) => {
+    const users = await ctx.db
+      .query("users")
+      .withIndex("email")
+      .take(MAX_AUTH_CLEANUP_BATCH_SIZE);
+
+    let clearedCount = 0;
+
+    for (const user of users) {
+      if (user.email === undefined) {
+        continue;
+      }
+
+      await ctx.db.patch("users", user._id, {
+        email: undefined,
+      });
+      clearedCount += 1;
+    }
+
+    return {
+      clearedCount,
+    };
+  },
+});
+
+export const deleteGithubUsersAndSessions = internalMutation({
+  args: {},
+  handler: async (ctx, args) => {
+    const githubAccounts = await ctx.db
+      .query("authAccounts")
+      .withIndex("providerAndAccountId", (q) => q.eq("provider", "github"))
+      .take(MAX_AUTH_CLEANUP_BATCH_SIZE);
+    const userIds = Array.from(
+      new Set(githubAccounts.map((account) => account.userId)),
+    );
+
+    let deletedUserCount = 0;
+    let deletedAccountCount = 0;
+    let deletedSessionCount = 0;
+    let deletedRefreshTokenCount = 0;
+    let deletedVerificationCodeCount = 0;
+
+    for (const userId of userIds) {
+      const accounts = await ctx.db
+        .query("authAccounts")
+        .withIndex("userIdAndProvider", (q) => q.eq("userId", userId))
+        .take(MAX_AUTH_CLEANUP_BATCH_SIZE);
+
+      for (const account of accounts) {
+        const verificationCodes = await ctx.db
+          .query("authVerificationCodes")
+          .withIndex("accountId", (q) => q.eq("accountId", account._id))
+          .take(MAX_AUTH_CLEANUP_BATCH_SIZE);
+
+        for (const verificationCode of verificationCodes) {
+          await ctx.db.delete("authVerificationCodes", verificationCode._id);
+          deletedVerificationCodeCount += 1;
+        }
+
+        await ctx.db.delete("authAccounts", account._id);
+        deletedAccountCount += 1;
+      }
+
+      const sessions = await ctx.db
+        .query("authSessions")
+        .withIndex("userId", (q) => q.eq("userId", userId))
+        .take(MAX_AUTH_CLEANUP_BATCH_SIZE);
+
+      for (const session of sessions) {
+        const refreshTokens = await ctx.db
+          .query("authRefreshTokens")
+          .withIndex("sessionId", (q) => q.eq("sessionId", session._id))
+          .take(MAX_AUTH_CLEANUP_BATCH_SIZE);
+
+        for (const refreshToken of refreshTokens) {
+          await ctx.db.delete("authRefreshTokens", refreshToken._id);
+          deletedRefreshTokenCount += 1;
+        }
+
+        await ctx.db.delete("authSessions", session._id);
+        deletedSessionCount += 1;
+      }
+
+      const user = await ctx.db.get(userId);
+      if (user) {
+        await ctx.db.delete("users", user._id);
+        deletedUserCount += 1;
+      }
+    }
+
+    return {
+      deletedUserCount,
+      deletedAccountCount,
+      deletedSessionCount,
+      deletedRefreshTokenCount,
+      deletedVerificationCodeCount,
+    };
   },
 });
 
