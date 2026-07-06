@@ -1,5 +1,4 @@
-- [x] Implement the seed quick actions as a dropdown for admins, and the seed detail where they can view most information
-- [x] Implement the ability for hosts and admins to mark a seed as used
-- [x] Implement comments (not required for beta release)
-- [x] Implement user invitations and management (!IMPORTANT)
-- [ ] Admin dashboard and the user dashbaord can be left for later.
+- [ ] delete the seed claiming system so people don't use it
+- [ ] remove uploader role and make tester role include the uploading feature
+- [ ] admin dashboard that shows how many seeds we have in each league + other info
+- [ ] change the seed quotas for l4 and l5
