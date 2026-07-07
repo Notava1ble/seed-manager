@@ -28,6 +28,27 @@ export const initializeSettings = internalMutation({
   },
 });
 
+export const clearUnusedFields = internalMutation({
+  args: {},
+  handler: async (ctx, args) => {
+    const allSeeds = await ctx.db.query("seeds").collect();
+
+    await Promise.all(
+      allSeeds.map((s) => {
+        if (s.isExpired === undefined) {
+          return ctx.db.delete("seeds", s._id);
+        }
+        return ctx.db.patch("seeds", s._id, {
+          ...s,
+          claimedBy: undefined,
+          directUploaderAssignmentBy: undefined,
+          uploadedByUploaderId: undefined,
+        });
+      }),
+    );
+  },
+});
+
 function validateWeekNumber(weekNumber: number) {
   if (!Number.isSafeInteger(weekNumber) || weekNumber < 1) {
     throw new ConvexError({
