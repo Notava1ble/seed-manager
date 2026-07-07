@@ -1,4 +1,8 @@
-- [ ] delete the seed claiming system so people don't use it
-- [ ] remove uploader role and make tester role include the uploading feature
+- [ ] delete the seed claiming system because its outdated
+  - [ ] Make the uploading screen primary
+- [ ] remove tester role and make uploader role specific
+  - [ ] Remove home league
+  - [ ] Add uploading leagues
+  - [ ] Allow user to see only uploading leagues
 - [ ] admin dashboard that shows how many seeds we have in each league + other info
 - [ ] change the seed quotas for l4 and l5
