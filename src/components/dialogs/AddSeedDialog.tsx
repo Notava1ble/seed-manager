@@ -59,14 +59,11 @@ function AddSeedDialog({
   onClose,
   defaultLeagueId = null,
   lockLeague = false,
-  allowJsonImport = true,
-  allowUnassigned = true,
 }: {
   leagues: SeedUploadLeague[];
   onClose: () => void;
   defaultLeagueId?: Id<"leagues"> | null;
   lockLeague?: boolean;
-  allowJsonImport?: boolean;
   allowUnassigned?: boolean;
 }) {
   const importSeeds = useMutation(api.seeds.importSeeds);
@@ -157,11 +154,9 @@ function AddSeedDialog({
       </DialogClose>
 
       <DialogHeader>
-        <DialogTitle>{allowJsonImport ? "Add seeds" : "Add seed"}</DialogTitle>
+        <DialogTitle>Add seed</DialogTitle>
         <DialogDescription>
-          {allowJsonImport
-            ? "Import seed records from JSONL or add one seed manually."
-            : "Add a seed manually to the league."}
+          Add a seed manually to the league.
         </DialogDescription>
       </DialogHeader>
       <form
@@ -220,9 +215,6 @@ function AddSeedDialog({
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>League assignment</SelectLabel>
-                  {allowUnassigned && (
-                    <SelectItem value={null}>No league</SelectItem>
-                  )}
                   {leagues.map((league) => (
                     <SelectItem
                       key={league._id}
@@ -237,13 +229,7 @@ function AddSeedDialog({
                 </SelectGroup>
               </SelectContent>
             </Select>
-            <FieldDescription>
-              {selectedLeagueRestriction
-                ? selectedLeagueRestriction
-                : lockLeague
-                  ? "This seed will be assigned to the selected league."
-                  : "Leave unset when the seed is not assigned yet."}
-            </FieldDescription>
+            <FieldDescription>{selectedLeagueRestriction}</FieldDescription>
             <FieldError>{manualErrors.leagueId}</FieldError>
           </Field>
 
