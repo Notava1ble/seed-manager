@@ -1,13 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "convex/react";
-import { ShieldCheck, UserPlus, Users } from "lucide-react";
+import { ShieldCheck, Users } from "lucide-react";
 import { Outlet, useNavigate, useParams } from "react-router";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { UserRoleBadges } from "@/components/UserRoleBadges";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import {
   Empty,
   EmptyDescription,
@@ -36,7 +34,6 @@ import {
   getUserLabel,
 } from "@/lib/userAccess";
 import { cn, sortLeaguesByNumberAndName } from "@/lib/utils";
-import { InviteUserDialog } from "./InviteUserDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function AdminActiveUsersPage() {
@@ -50,21 +47,11 @@ export function AdminActiveUsersPage() {
   );
   const isLoading = activeUsers === undefined || allLeagues === undefined;
   const isUserSheetOpen = Boolean(userId);
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
-
-  const closeInviteDialog = () => {
-    setIsInviteDialogOpen(false);
-  };
 
   const handleUserSheetOpenChange = (open: boolean) => {
     if (!open) {
       void navigate("/app/admin/users/active");
     }
-  };
-
-  const handleInviteSuccess = (activatedUserId: Id<"users">) => {
-    setIsInviteDialogOpen(false);
-    void navigate(`/app/admin/users/active/${activatedUserId}`);
   };
 
   return (
@@ -83,22 +70,6 @@ export function AdminActiveUsersPage() {
                 ? "Loading"
                 : getActiveUserCountLabel(activeUsers.length)}
             </Badge>
-            <Dialog
-              open={isInviteDialogOpen}
-              onOpenChange={setIsInviteDialogOpen}
-            >
-              <DialogTrigger render={<Button type="button" />}>
-                <UserPlus data-icon="inline-start" />
-                Invite user
-              </DialogTrigger>
-              {isInviteDialogOpen ? (
-                <InviteUserDialog
-                  leagues={leagues}
-                  onClose={closeInviteDialog}
-                  onSuccess={handleInviteSuccess}
-                />
-              ) : null}
-            </Dialog>
           </div>
         </div>
 
@@ -236,10 +207,10 @@ function AdminActiveUsersTableSkeleton() {
     <div className="overflow-hidden rounded-md border" aria-busy="true">
       <Table>
         <TableHeader>
-        <TableRow>
-          <TableHead className="border-r text-left">User</TableHead>
-          <TableHead className="border-r">Discord ID</TableHead>
-          <TableHead className="border-r">Roles</TableHead>
+          <TableRow>
+            <TableHead className="border-r text-left">User</TableHead>
+            <TableHead className="border-r">Discord ID</TableHead>
+            <TableHead className="border-r">Roles</TableHead>
             <TableHead className="border-r">Home leagues</TableHead>
             <TableHead className="border-r">Host leagues</TableHead>
             <TableHead>Status</TableHead>
