@@ -49,7 +49,7 @@ export function getManagedRoles(user: Doc<"users">): ManagedRole[] {
 export function getManagedUserValues(user: Doc<"users">) {
   return {
     roles: getManagedRoles(user),
-    homeLeagueId: user.homeLeagueId ?? [],
+    uploaderLeagueIds: user.uploaderLeagues ?? [],
     hostLeagueId: user.hostLeagueId ?? [],
   };
 }

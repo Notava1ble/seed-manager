@@ -90,7 +90,7 @@ export const activateUserByDiscordId = mutation({
     discordId: v.string(),
     roles: v.array(managedRoleValidator),
     makeAdmin: v.boolean(),
-    homeLeagueId: v.array(v.id("leagues")),
+    uploaderLeagueIds: v.array(v.id("leagues")),
     hostLeagueId: v.array(v.id("leagues")),
   },
   handler: async (ctx, args) => {
@@ -123,13 +123,16 @@ export const activateUserByDiscordId = mutation({
       });
     }
 
-    const homeLeagueId = await normalizeLeagueIds(ctx, args.homeLeagueId);
+    const uploaderLeagueIds = await normalizeLeagueIds(
+      ctx,
+      args.uploaderLeagueIds,
+    );
     const hostLeagueId = await normalizeLeagueIds(ctx, args.hostLeagueId);
 
     await ctx.db.patch("users", user._id, {
       status: "active",
       roles: normalizeRoles(args.roles, args.makeAdmin),
-      homeLeagueId,
+      uploaderLeagues: uploaderLeagueIds,
       hostLeagueId,
     });
 
@@ -141,7 +144,7 @@ export const updateManagedUser = mutation({
   args: {
     userId: v.id("users"),
     roles: v.array(managedRoleValidator),
-    homeLeagueId: v.array(v.id("leagues")),
+    uploaderLeagueIds: v.array(v.id("leagues")),
     hostLeagueId: v.array(v.id("leagues")),
   },
   handler: async (ctx, args) => {
@@ -170,12 +173,15 @@ export const updateManagedUser = mutation({
       });
     }
 
-    const homeLeagueId = await normalizeLeagueIds(ctx, args.homeLeagueId);
+    const uploaderLeagues = await normalizeLeagueIds(
+      ctx,
+      args.uploaderLeagueIds,
+    );
     const hostLeagueId = await normalizeLeagueIds(ctx, args.hostLeagueId);
 
     await ctx.db.patch("users", user._id, {
       roles: normalizeManagedRoles(args.roles),
-      homeLeagueId,
+      uploaderLeagues,
       hostLeagueId,
     });
   },

@@ -133,7 +133,7 @@ function AdminActiveUsersTable({
             <TableHead className="w-[18%] border-r text-left">User</TableHead>
             <TableHead className="w-[18%] border-r">Discord ID</TableHead>
             <TableHead className="w-[26%] border-r">Roles</TableHead>
-            <TableHead className="w-[16%] border-r">Home leagues</TableHead>
+            <TableHead className="w-[16%] border-r">Uploader leagues</TableHead>
             <TableHead className="w-[16%] border-r">Host leagues</TableHead>
             <TableHead className="w-[6%]">Status</TableHead>
           </TableRow>
@@ -177,7 +177,7 @@ function AdminActiveUsersTable({
               </TableCell>
 
               <TableCell className="border-r text-muted-foreground">
-                {getLeagueListLabel(leagues, user.homeLeagueId)}
+                {getLeagueListLabel(leagues, user.uploaderLeagues)}
               </TableCell>
 
               <TableCell className="border-r text-muted-foreground">

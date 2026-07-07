@@ -117,8 +117,8 @@ function ManagedUserForm({
   const updateManagedUser = useMutation(api.users.updateManagedUser);
   const savedValues = useMemo(() => getManagedUserValues(user), [user]);
   const [roles, setRoles] = useState<ManagedRole[]>(savedValues.roles);
-  const [homeLeagueId, setHomeLeagueId] = useState<Id<"leagues">[]>(
-    savedValues.homeLeagueId,
+  const [uploaderLeagueIds, setUploaderleagueIds] = useState<Id<"leagues">[]>(
+    savedValues.uploaderLeagueIds,
   );
   const [hostLeagueId, setHostLeagueId] = useState<Id<"leagues">[]>(
     savedValues.hostLeagueId,
@@ -127,7 +127,7 @@ function ManagedUserForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const hasChanges =
     !haveSameManagedRoles(roles, savedValues.roles) ||
-    !haveSameLeagueIds(homeLeagueId, savedValues.homeLeagueId) ||
+    !haveSameLeagueIds(uploaderLeagueIds, savedValues.uploaderLeagueIds) ||
     !haveSameLeagueIds(hostLeagueId, savedValues.hostLeagueId);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -144,7 +144,7 @@ function ManagedUserForm({
       await updateManagedUser({
         userId: user._id,
         roles,
-        homeLeagueId,
+        uploaderLeagueIds,
         hostLeagueId,
       });
     } catch (error) {
@@ -157,7 +157,7 @@ function ManagedUserForm({
   const resetChanges = () => {
     setFormError(null);
     setRoles(savedValues.roles);
-    setHomeLeagueId(savedValues.homeLeagueId);
+    setUploaderleagueIds(savedValues.uploaderLeagueIds);
     setHostLeagueId(savedValues.hostLeagueId);
   };
 
@@ -176,13 +176,13 @@ function ManagedUserForm({
         />
 
         <LeagueAccessMultiSelect
-          description="A tester cannot see their home leagues through tester access."
+          description="An uploader can upload and see seeds in their uploader leagues."
           disabled={isSubmitting}
-          id="managed-home-league"
-          label="Home leagues"
+          id="pending-uploader-leagues"
+          label="Uploader leagues"
           leagues={leagues}
-          onValueChange={setHomeLeagueId}
-          value={homeLeagueId}
+          onValueChange={setUploaderleagueIds}
+          value={uploaderLeagueIds}
         />
 
         <LeagueAccessMultiSelect

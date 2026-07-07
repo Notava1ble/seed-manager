@@ -127,8 +127,8 @@ function PendingActivationForm({
   const savedValues = useMemo(() => getManagedUserValues(user), [user]);
   const [roles, setRoles] = useState<ManagedRole[]>(savedValues.roles);
   const [makeAdmin, setMakeAdmin] = useState(user.roles.includes("admin"));
-  const [homeLeagueId, setHomeLeagueId] = useState<Id<"leagues">[]>(
-    savedValues.homeLeagueId,
+  const [uploaderLeagueIds, setUploaderleagueIds] = useState<Id<"leagues">[]>(
+    savedValues.uploaderLeagueIds,
   );
   const [hostLeagueId, setHostLeagueId] = useState<Id<"leagues">[]>(
     savedValues.hostLeagueId,
@@ -138,7 +138,7 @@ function PendingActivationForm({
   const hasChanges =
     !haveSameManagedRoles(roles, savedValues.roles) ||
     makeAdmin !== user.roles.includes("admin") ||
-    !haveSameLeagueIds(homeLeagueId, savedValues.homeLeagueId) ||
+    !haveSameLeagueIds(uploaderLeagueIds, savedValues.uploaderLeagueIds) ||
     !haveSameLeagueIds(hostLeagueId, savedValues.hostLeagueId);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -161,7 +161,7 @@ function PendingActivationForm({
         discordId: user.discordId,
         roles,
         makeAdmin,
-        homeLeagueId,
+        uploaderLeagueIds,
         hostLeagueId,
       });
       void navigate("/app/admin/users/pending");
@@ -176,7 +176,7 @@ function PendingActivationForm({
     setFormError(null);
     setRoles(savedValues.roles);
     setMakeAdmin(user.roles.includes("admin"));
-    setHomeLeagueId(savedValues.homeLeagueId);
+    setUploaderleagueIds(savedValues.uploaderLeagueIds);
     setHostLeagueId(savedValues.hostLeagueId);
   };
 
@@ -195,13 +195,13 @@ function PendingActivationForm({
         />
 
         <LeagueAccessMultiSelect
-          description="A tester cannot see their home leagues through tester access."
+          description="An uploader can upload and see seeds in their uploader leagues."
           disabled={disabled || isSubmitting}
-          id="pending-home-league"
-          label="Home leagues"
+          id="pending-uploader-leagues"
+          label="Uploader leagues"
           leagues={leagues}
-          onValueChange={setHomeLeagueId}
-          value={homeLeagueId}
+          onValueChange={setUploaderleagueIds}
+          value={uploaderLeagueIds}
         />
 
         <LeagueAccessMultiSelect

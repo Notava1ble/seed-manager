@@ -34,21 +34,6 @@ export function ManagedRoleFields({
       <FieldGroup data-slot="checkbox-group">
         <Field orientation="horizontal">
           <Checkbox
-            checked={roles.includes("tester")}
-            disabled={disabled}
-            id={`${idPrefix}-role-tester`}
-            onCheckedChange={(checked) => setRole("tester", checked === true)}
-          />
-          <FieldContent>
-            <FieldLabel htmlFor={`${idPrefix}-role-tester`}>Tester</FieldLabel>
-            <FieldDescription>
-              Can claim and review unassigned seeds.
-            </FieldDescription>
-          </FieldContent>
-        </Field>
-
-        <Field orientation="horizontal">
-          <Checkbox
             checked={roles.includes("host")}
             disabled={disabled}
             id={`${idPrefix}-role-host`}
@@ -67,9 +52,7 @@ export function ManagedRoleFields({
             checked={roles.includes("uploader")}
             disabled={disabled}
             id={`${idPrefix}-role-uploader`}
-            onCheckedChange={(checked) =>
-              setRole("uploader", checked === true)
-            }
+            onCheckedChange={(checked) => setRole("uploader", checked === true)}
           />
           <FieldContent>
             <FieldLabel htmlFor={`${idPrefix}-role-uploader`}>
