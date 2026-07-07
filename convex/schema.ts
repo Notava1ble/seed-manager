@@ -20,10 +20,11 @@ export default defineSchema({
       v.union(
         v.literal("admin"),
         v.literal("host"),
-        v.literal("tester"),
+        v.literal("tester"), // Remove later
         v.literal("uploader"),
       ),
     ),
+    uploaderLeagues: v.optional(v.array(v.id("leagues"))),
     homeLeagueId: v.optional(v.array(v.id("leagues"))),
     hostLeagueId: v.optional(v.array(v.id("leagues"))),
     settings: v.optional(

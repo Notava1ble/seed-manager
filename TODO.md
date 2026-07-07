@@ -5,4 +5,4 @@
   - [ ] Add uploading leagues
   - [ ] Allow user to see only uploading leagues
 - [ ] admin dashboard that shows how many seeds we have in each league + other info
-- [ ] change the seed quotas for l4 and l5
+- [x] change the seed quotas for l4 and l5
