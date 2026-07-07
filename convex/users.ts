@@ -12,9 +12,13 @@ import { getUser, requireActiveUser, requireAdmin } from "./lib/permissions";
 
 const MAX_USER_LIST_COUNT = 1000;
 
-const managedRoleValidator = v.union(v.literal("host"), v.literal("uploader"));
-const ALL_ROLE_ORDER = ["admin", "host", "uploader"] as const;
-const MANAGED_ROLE_ORDER = ["host", "uploader"] as const;
+const managedRoleValidator = v.union(
+  v.literal("host"),
+  v.literal("uploader"),
+  v.literal("tester"),
+);
+const ALL_ROLE_ORDER = ["admin", "host", "uploader", "tester"] as const;
+const MANAGED_ROLE_ORDER = ["host", "uploader", "tester"] as const;
 
 type UserRole = (typeof ALL_ROLE_ORDER)[number];
 type ManagedRole = (typeof MANAGED_ROLE_ORDER)[number];
