@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import {
   canViewLeague,
@@ -10,10 +10,8 @@ import { requireSettings } from "./lib/settings";
 import {
   MAX_ADMIN_SEED_LIST_COUNT,
   MAX_LEAGUE_SEED_LIST_COUNT,
-  MAX_SEED_IMPORT_COUNT,
   NUMERIC_SEED_PATTERN,
 } from "./lib/consts";
-import { shuffle } from "./lib/utils";
 
 const ALL_SEED_TYPES = [
   "BURIED_TREASURE",
@@ -43,14 +41,6 @@ const seedUploadValidator = v.object({
 });
 
 const seedRatingValidator = v.union(v.literal("Good"), v.literal("Bad"));
-
-const SEED_TYPE_LABELS: Record<SeedType, string> = {
-  BURIED_TREASURE: "Buried Treasure",
-  VILLAGE: "Village",
-  DESERT_TEMPLE: "Desert Temple",
-  RUINED_PORTAL: "Ruined Portal",
-  SHIPWRECK: "Shipwreck",
-};
 
 type SeedUploadInput = {
   leagueId: Id<"leagues">;

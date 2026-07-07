@@ -63,3 +63,33 @@ export function preventNonNumericSeedInput(
     event.preventDefault();
   }
 }
+
+export function getManualSeedFormErrors(
+  issues: Array<{ message: string; path: PropertyKey[] }>,
+) {
+  const errors: SeedFormErrors = {};
+
+  for (const issue of issues) {
+    const field = issue.path.find(isSeedFormField);
+
+    if (field) {
+      errors[field] ??= issue.message;
+      continue;
+    }
+
+    errors.form ??= issue.message;
+  }
+
+  return errors;
+}
+
+export function isSeedFormField(value: unknown): value is keyof SeedFormValues {
+  return (
+    value === "type" ||
+    value === "leagueId" ||
+    value === "overworld" ||
+    value === "nether" ||
+    value === "end" ||
+    value === "rng"
+  );
+}

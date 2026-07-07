@@ -30,7 +30,7 @@ export const initializeSettings = internalMutation({
 
 export const clearUnusedFields = internalMutation({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     const allSeeds = await ctx.db.query("seeds").collect();
 
     await Promise.all(
@@ -51,7 +51,7 @@ export const clearUnusedFields = internalMutation({
 
 export const removeTesterRoles = internalMutation({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     const allUsers = await ctx.db.query("users").collect();
 
     await Promise.all(
