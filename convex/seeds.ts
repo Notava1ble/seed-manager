@@ -13,15 +13,15 @@ import {
   NUMERIC_SEED_PATTERN,
 } from "./lib/consts";
 
-const ALL_SEED_TYPES = [
+type ALL_SEED_TYPES = [
   "BURIED_TREASURE",
   "VILLAGE",
   "DESERT_TEMPLE",
   "RUINED_PORTAL",
   "SHIPWRECK",
-] as const;
+];
 
-type SeedType = (typeof ALL_SEED_TYPES)[number];
+type SeedType = ALL_SEED_TYPES[number];
 
 const seedTypeValidator = v.union(
   v.literal("BURIED_TREASURE"),
