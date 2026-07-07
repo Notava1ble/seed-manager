@@ -255,7 +255,7 @@ export function SeedPage() {
             <SeedCommentsSection
               autoFocus
               canCreateComments={
-                user?.roles.includes("tester") ||
+                user?.roles.includes("uploader") ||
                 user?.roles.includes("host") ||
                 false
               }

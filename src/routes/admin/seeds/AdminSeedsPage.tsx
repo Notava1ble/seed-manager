@@ -181,9 +181,7 @@ export function AdminSeedsPage() {
                   );
                 })}
                 <div className="flex min-h-9 items-center gap-3 rounded-md border bg-muted/30 px-3 py-1.5">
-                  <span className="text-xs text-muted-foreground">
-                    Claimed
-                  </span>
+                  <span className="text-xs text-muted-foreground">Claimed</span>
                   <span className="text-sm font-semibold tabular-nums">
                     {seedStats.claimedCount}
                   </span>
@@ -244,9 +242,9 @@ export function AdminSeedsPage() {
             This action resets the rating of a seed, putting it back to the
             untested seed bank and making it available for claiming. BE CAREFUL:
             This can make it so this seed gets assigned to the league of the
-            tester who originally marked it as Bad. Ensure that this seed is not
-            recent to prevent them from remembering the details in case they get
-            to play it in the leagues. (Is rare, but possible.)
+            uploader who originally marked it as Bad. Ensure that this seed is
+            not recent to prevent them from remembering the details in case they
+            get to play it in the leagues. (Is rare, but possible.)
           </AlertDialogDescription>
           {recycleError && (
             <p className="text-xs text-destructive">{recycleError}</p>

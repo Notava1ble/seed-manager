@@ -66,10 +66,6 @@ export async function getAccessibleSeed(
     return { seed, league };
   }
 
-  if (canViewClaimedSeed(user, seed)) {
-    return { seed, league: null };
-  }
-
   return null;
 }
 
@@ -103,14 +99,4 @@ export async function requireAdmin(ctx: QueryCtx | MutationCtx) {
   }
 
   return user;
-}
-
-function canViewClaimedSeed(user: Doc<"users">, seed: Doc<"seeds">) {
-  return (
-    user.roles.includes("tester") &&
-    seed.claimedBy === user._id &&
-    seed.leagueId === undefined &&
-    seed.rating === undefined &&
-    seed.isExpired === undefined
-  );
 }

@@ -175,7 +175,7 @@ export function SeedCommentsSection({
       ) : (
         <div className="sticky bottom-0 z-10 mt-auto w-full">
           <p className="text-xs text-muted-foreground">
-            Tester or host access required to comment.
+            Uploader or host access required to comment.
           </p>
         </div>
       )}

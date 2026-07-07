@@ -70,8 +70,8 @@ export default defineSchema({
     isUsed: v.boolean(),
     isExpired: v.optional(v.boolean()), // undefined = never assigned, false = active assigned, true = expired
     assignedWeekNumber: v.optional(v.number()),
-    votedAt: v.optional(v.number()),
-    votedBy: v.optional(v.id("users")),
+    votedAt: v.optional(v.number()), // remove later
+    votedBy: v.optional(v.id("users")), // remove later
     usedAt: v.optional(v.number()), // unix time
     usedBy: v.optional(v.id("users")),
     leagueChangedByAdminId: v.optional(v.id("users")),

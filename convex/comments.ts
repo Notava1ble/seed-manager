@@ -25,11 +25,15 @@ export const listForSeed = query({
       .take(MAX_SEED_COMMENT_LIST_COUNT);
     const comments = [...newestComments].reverse();
 
-    const authorIds = Array.from(new Set(comments.map((comment) => comment.author)));
+    const authorIds = Array.from(
+      new Set(comments.map((comment) => comment.author)),
+    );
     const authors = await Promise.all(
       authorIds.map((authorId) => ctx.db.get("users", authorId)),
     );
-    const authorsById = new Map(authorIds.map((authorId, index) => [authorId, authors[index]]));
+    const authorsById = new Map(
+      authorIds.map((authorId, index) => [authorId, authors[index]]),
+    );
 
     return comments.map((comment) => {
       const author = authorsById.get(comment.author);
@@ -52,10 +56,10 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const user = await requireActiveUser(ctx);
 
-    if (!user.roles.includes("tester") && !user.roles.includes("host")) {
+    if (!user.roles.includes("uploader") && !user.roles.includes("host")) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "Tester or host access is required to comment",
+        message: "Uploader or host access is required to comment",
       });
     }
 
