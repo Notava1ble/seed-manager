@@ -70,23 +70,23 @@ export const listSeedUploadLeagueOptions = query({
       .withIndex("by_leagueNumber")
       .order("asc")
       .collect();
-    const homeLeagueIds = user.homeLeagueId ?? [];
+    const uploaderLeagues = user.uploaderLeagues ?? [];
     const hostLeagueIds = user.hostLeagueId ?? [];
 
     return leagues.map((league) => {
-      const isHomeLeague = homeLeagueIds.includes(league._id);
+      const isUploaderLeague = uploaderLeagues.includes(league._id);
       const isHostedLeague = hostLeagueIds.includes(league._id);
       const canUpload =
         isAdmin ||
-        (isUploader && !isHomeLeague) ||
-        (!isUploader && isHostedLeague);
+        (isUploader && isUploaderLeague) ||
+        (!isUploader && isHost && isHostedLeague);
 
       return {
         ...league,
         seedUploadDisabled: !canUpload,
         seedUploadDisabledReason:
-          isUploader && isHomeLeague
-            ? "Uploaders cannot place seeds into leagues they play in."
+          isUploader && !isUploaderLeague
+            ? "Uploaders cannot place seeds into leagues don't upload for."
             : !canUpload
               ? "You can only upload seeds for leagues you host."
               : undefined,

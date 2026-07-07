@@ -26,16 +26,16 @@ export function canViewLeague(
     return false;
   }
 
-  const homeLeagueIds = user.homeLeagueId ?? [];
+  const uploaderLeagues = user.uploaderLeagues ?? [];
   const hostLeagueIds = user.hostLeagueId ?? [];
 
-  const hasTesterAccess =
-    user.roles.includes("tester") && !homeLeagueIds.includes(leagueId);
+  const hasUploaderAccess =
+    user.roles.includes("uploader") && uploaderLeagues.includes(leagueId);
 
   const hasHostAccess =
     user.roles.includes("host") && hostLeagueIds.includes(leagueId);
 
-  return hasTesterAccess || hasHostAccess;
+  return hasUploaderAccess || hasHostAccess;
 }
 
 export async function getAccessibleSeed(
@@ -54,7 +54,9 @@ export async function getAccessibleSeed(
   }
 
   const league =
-    seed.leagueId === undefined ? null : await ctx.db.get("leagues", seed.leagueId);
+    seed.leagueId === undefined
+      ? null
+      : await ctx.db.get("leagues", seed.leagueId);
 
   if (user.roles.includes("admin")) {
     return { seed, league };
