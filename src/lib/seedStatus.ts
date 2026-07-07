@@ -12,7 +12,6 @@ export function getSeedStatus(seed: {
   isUsed: boolean;
   isExpired?: boolean;
   leagueId?: string;
-  claimedBy?: string;
   rating?: SeedRating;
 }): SeedStatus {
   if (seed.isExpired) {
@@ -29,10 +28,6 @@ export function getSeedStatus(seed: {
 
   if (seed.rating === "Bad") {
     return "rejected";
-  }
-
-  if (seed.claimedBy) {
-    return "claimed";
   }
 
   return "unassigned";

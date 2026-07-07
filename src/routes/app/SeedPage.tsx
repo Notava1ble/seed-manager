@@ -366,7 +366,6 @@ export function SeedPage() {
 
 function canEditRating(
   seed: {
-    claimedBy?: Id<"users">;
     leagueId?: Id<"leagues">;
     isExpired?: boolean;
     isUsed: boolean;

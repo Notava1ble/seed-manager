@@ -70,8 +70,8 @@ export default defineSchema({
     isUsed: v.boolean(),
     isExpired: v.optional(v.boolean()), // undefined = never assigned, false = active assigned, true = expired
     assignedWeekNumber: v.optional(v.number()),
-    votedAt: v.optional(v.number()), // remove later
-    votedBy: v.optional(v.id("users")), // remove later
+    votedAt: v.optional(v.number()), // needed for bad seed marking
+    votedBy: v.optional(v.id("users")), // needed for bad seed marking
     usedAt: v.optional(v.number()), // unix time
     usedBy: v.optional(v.id("users")),
     leagueChangedByAdminId: v.optional(v.id("users")),
@@ -84,24 +84,7 @@ export default defineSchema({
     .index("by_isExpired", ["isExpired"])
     .index("by_rating", ["rating"])
     .index("by_rating_and_leagueId", ["rating", "leagueId"])
-    .index("by_leagueId_and_isExpired", ["leagueId", "isExpired"])
-    .index("by_isExpired_and_claimedBy_and_rating", [
-      "isExpired",
-      "claimedBy",
-      "rating",
-    ])
-    .index("by_isExpired_and_claimedBy_and_rating_and_isBt", [
-      "isExpired",
-      "claimedBy",
-      "rating",
-      "isBt",
-    ])
-    .index("by_isExpired_and_claimedBy_and_rating_and_type", [
-      "isExpired",
-      "claimedBy",
-      "rating",
-      "type",
-    ]),
+    .index("by_leagueId_and_isExpired", ["leagueId", "isExpired"]),
   comments: defineTable({
     seedId: v.id("seeds"),
     author: v.id("users"),

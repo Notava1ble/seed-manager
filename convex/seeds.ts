@@ -96,7 +96,7 @@ export const listBadSeeds = query({
     const voterIds = Array.from(
       new Set(
         badSeeds
-          .map((seed) => seed.votedBy ?? seed.claimedBy)
+          .map((seed) => seed.votedBy)
           .filter((userId): userId is Id<"users"> => userId !== undefined),
       ),
     );
@@ -118,10 +118,7 @@ export const listBadSeeds = query({
 
     return badSeeds.map((seed) => ({
       ...seed,
-      votedByUser:
-        seed.votedBy || seed.claimedBy
-          ? votersById.get(seed.votedBy ?? seed.claimedBy!)
-          : undefined,
+      votedByUser: seed.votedBy ? votersById.get(seed.votedBy) : undefined,
     }));
   },
 });

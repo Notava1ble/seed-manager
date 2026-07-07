@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { SeedRatingBadge } from "@/components/SeedRatingBadge";
 import { SeedValueTableCell } from "@/components/SeedValueTableCell";
 import { Badge } from "@/components/ui/badge";
@@ -25,8 +25,8 @@ import { Pencil, Plus, Sprout, Trash } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import AddSeedDialog from "@/components/dialogs/AddSeedDialog";
-import { cn, getSeedCountLabel } from "@/lib/utils";
-import { SEED_TYPES, seedTypesArray } from "@/lib/consts";
+import { getSeedCountLabel } from "@/lib/utils";
+import { SEED_TYPES } from "@/lib/consts";
 
 const placeholder = () => undefined;
 
@@ -45,40 +45,6 @@ export function AdminSeedsPage() {
     setIsAddDialogOpen(false);
   };
 
-  const seedStats = useMemo(() => {
-    const availableByType = Object.fromEntries(
-      seedTypesArray.map((seedType) => [seedType, 0]),
-    ) as Record<keyof typeof SEED_TYPES, number>;
-
-    let assignedCount = 0;
-    let claimedCount = 0;
-
-    for (const seed of seeds ?? []) {
-      if (seed.leagueId !== undefined) {
-        assignedCount += 1;
-      }
-
-      if (seed.claimedBy !== undefined && seed.rating === undefined) {
-        claimedCount += 1;
-      }
-
-      if (
-        seed.type &&
-        seed.leagueId === undefined &&
-        seed.claimedBy === undefined &&
-        seed.rating === undefined
-      ) {
-        availableByType[seed.type] += 1;
-      }
-    }
-
-    return {
-      assignedCount,
-      availableByType,
-      claimedCount,
-    };
-  }, [seeds]);
-
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -86,9 +52,6 @@ export function AdminSeedsPage() {
           <h2 className="mt-2 text-2xl font-semibold">Manage seeds</h2>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline">
-            {isLoading ? "Loading" : getSeedCountLabel(seeds.length)}
-          </Badge>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger render={<Button type="button" />}>
               <Plus data-icon="inline-start" />
@@ -111,54 +74,9 @@ export function AdminSeedsPage() {
               <TabsTrigger value="bad">Bad seeds</TabsTrigger>
             </TabsList>
             {activeTab === "active" ? (
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                {seedTypesArray.map((seedType) => {
-                  const availableCount = seedStats.availableByType[seedType];
-
-                  return (
-                    <div
-                      key={seedType}
-                      className={cn(
-                        "flex min-h-9 min-w-24 items-center justify-between gap-3 rounded-md border bg-card px-3 py-1.5",
-                        availableCount === 0 &&
-                          "border-destructive/40 bg-destructive/10 text-destructive",
-                        availableCount > 0 &&
-                          availableCount <= 5 &&
-                          "border-warning/40 bg-warning/10 text-warning",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "truncate text-xs text-muted-foreground",
-                          availableCount === 0 && "text-destructive/80",
-                          availableCount > 0 &&
-                            availableCount <= 5 &&
-                            "text-warning",
-                        )}
-                      >
-                        {SEED_TYPES[seedType]}
-                      </span>
-                      <span className="text-sm font-semibold tabular-nums">
-                        {availableCount}
-                      </span>
-                    </div>
-                  );
-                })}
-                <div className="flex min-h-9 items-center gap-3 rounded-md border bg-muted/30 px-3 py-1.5">
-                  <span className="text-xs text-muted-foreground">Claimed</span>
-                  <span className="text-sm font-semibold tabular-nums">
-                    {seedStats.claimedCount}
-                  </span>
-                </div>
-                <div className="flex min-h-9 items-center gap-3 rounded-md border bg-muted/30 px-3 py-1.5">
-                  <span className="text-xs text-muted-foreground">
-                    Assigned
-                  </span>
-                  <span className="text-sm font-semibold tabular-nums">
-                    {seedStats.assignedCount}
-                  </span>
-                </div>
-              </div>
+              <Badge variant="outline">
+                {isLoading ? "Loading" : getSeedCountLabel(seeds.length)}
+              </Badge>
             ) : (
               <div className="flex min-h-9 items-center gap-3 rounded-md border bg-card px-3 py-1.5">
                 <span className="text-xs text-muted-foreground">
