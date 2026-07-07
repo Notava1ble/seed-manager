@@ -192,7 +192,7 @@ export function SeedPage() {
               </h2>
               {user!.roles.includes("admin") && seed.addedByUser && (
                 <span className="text-sm text-muted-foreground">
-                  Vouched by {addedByname ?? "Unknown user"}
+                  Added by {addedByname ?? "Unknown user"}
                 </span>
               )}
             </div>

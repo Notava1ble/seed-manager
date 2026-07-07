@@ -1,5 +1,5 @@
 import { useQuery } from "convex/react";
-import { AlertTriangle, MessageCircle, Plus, Sprout } from "lucide-react";
+import { MessageCircle, Plus, Sprout } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Outlet, useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
@@ -37,11 +37,6 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import AddSeedDialog from "@/components/dialogs/AddSeedDialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 type SeedDistributionRequirement = {
   required: number;
@@ -105,7 +100,6 @@ export function LeaguePage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const closeAddDialog = () => setIsAddDialogOpen(false);
 
-  const isAdmin = user?.roles.includes("admin") ?? false;
   const canAddSeedToLeague = useMemo(() => {
     if (!user) return false;
     if (user.roles.includes("admin")) return true;
@@ -150,7 +144,6 @@ export function LeaguePage() {
                     leagues={uploadLeagues || []}
                     defaultLeagueId={league._id}
                     lockLeague={true}
-                    allowJsonImport={isAdmin}
                     allowUnassigned={false}
                   />
                 )}
@@ -348,16 +341,6 @@ function SeedTable({
                     <span>
                       {seed.type ? SEED_TYPES[seed.type] : "Unspecified"}
                     </span>
-                    {seed.directUploaderAssignmentBy && (
-                      <Tooltip>
-                        <TooltipTrigger aria-label="Uploader assigned seed">
-                          <AlertTriangle className="size-4 text-warning" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          Directly assigned by an uploader
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
                   </div>
                 </TableCell>
                 <SeedValueTableCell value={seed.overworld} />
