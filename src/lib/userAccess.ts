@@ -1,6 +1,6 @@
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 
-export type ManagedRole = "host" | "tester" | "uploader";
+export type ManagedRole = "host" | "uploader";
 export type UserRole = "admin" | ManagedRole;
 
 export function getLeagueLabel(
@@ -75,7 +75,7 @@ export function haveSameLeagueIds(
 }
 
 export function isManagedRole(role: unknown): role is ManagedRole {
-  return role === "host" || role === "tester" || role === "uploader";
+  return role === "host" || role === "uploader";
 }
 
 export function updateManagedRole(

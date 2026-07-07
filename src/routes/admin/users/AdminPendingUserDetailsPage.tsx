@@ -187,7 +187,7 @@ function PendingActivationForm({
     >
       <FieldGroup>
         <ManagedRoleFields
-          description="Choose tester, host, and uploader access for this user."
+          description="Choose host, and uploader access for this user."
           disabled={disabled || isSubmitting}
           idPrefix="pending"
           onRolesChange={setRoles}

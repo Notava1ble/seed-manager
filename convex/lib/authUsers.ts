@@ -37,7 +37,7 @@ export async function createPendingDiscordUser(
     ...userFields,
     status: "pending",
     roles: [],
-    homeLeagueId: [],
+    uploaderLeagues: [],
     hostLeagueId: [],
   });
 }
