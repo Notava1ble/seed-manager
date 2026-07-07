@@ -83,7 +83,6 @@ export default defineSchema({
     .index("by_leagueId", ["leagueId"])
     .index("by_isExpired", ["isExpired"])
     .index("by_rating", ["rating"])
-    .index("by_rating_and_leagueId", ["rating", "leagueId"])
     .index("by_leagueId_and_isExpired", ["leagueId", "isExpired"]),
   comments: defineTable({
     seedId: v.id("seeds"),
