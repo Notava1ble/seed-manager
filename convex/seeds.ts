@@ -34,7 +34,7 @@ const seedTypeValidator = v.union(
 );
 
 const seedUploadValidator = v.object({
-  leagueId: v.optional(v.id("leagues")),
+  leagueId: v.id("leagues"),
   overworld: v.string(),
   nether: v.string(),
   end: v.string(),
@@ -305,43 +305,6 @@ export const updateSeedRating = mutation({
   },
 });
 
-export const recycleBadSeed = mutation({
-  args: {
-    seedId: v.id("seeds"),
-  },
-  handler: async (ctx, args) => {
-    await requireAdmin(ctx);
-    const seed = await ctx.db.get("seeds", args.seedId);
-
-    if (!seed) {
-      throw new ConvexError({
-        code: "SEED_NOT_FOUND",
-        message: "The requested seed does not exist",
-      });
-    }
-
-    if (seed.rating !== "Bad") {
-      throw new ConvexError({
-        code: "SEED_NOT_BAD",
-        message: "Only bad seeds can be recycled",
-      });
-    }
-
-    await ctx.db.patch("seeds", seed._id, {
-      claimedBy: undefined,
-      rating: undefined,
-      leagueId: undefined,
-      isExpired: undefined,
-      assignedWeekNumber: undefined,
-      isUsed: false,
-      usedAt: undefined,
-      usedBy: undefined,
-      votedAt: undefined,
-      votedBy: undefined,
-    });
-  },
-});
-
 export const markSeedUsed = mutation({
   args: {
     seedId: v.id("seeds"),
@@ -504,7 +467,7 @@ export const importSeeds = mutation({
     const isUploader = user.roles.includes("uploader");
     if (!isAdmin) {
       const hostLeagues = user.hostLeagueId ?? [];
-      const homeLeagues = user.homeLeagueId ?? [];
+      const uploaderLeagues = user.uploaderLeagues ?? [];
 
       if (!isUploader && !user.roles.includes("host")) {
         throw new ConvexError({
@@ -514,16 +477,6 @@ export const importSeeds = mutation({
       }
 
       for (const seed of args.seeds) {
-        if (isUploader) {
-          if (seed.leagueId && homeLeagues.includes(seed.leagueId)) {
-            throw new ConvexError({
-              code: "UPLOADER_HOME_LEAGUE_FORBIDDEN",
-              message: "Uploaders cannot assign seeds to leagues they play in",
-            });
-          }
-          continue;
-        }
-
         if (!seed.leagueId) {
           throw new ConvexError({
             code: "FORBIDDEN",

@@ -1,5 +1,5 @@
-import { AlertCircleIcon, CheckCircle2Icon, XIcon } from "lucide-react";
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { AlertCircleIcon, XIcon } from "lucide-react";
+import { type FormEvent, useState } from "react";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -28,21 +28,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SEED_TYPES, seedTypesArray } from "@/lib/consts";
 import { getErrorMessage } from "@/lib/errors";
 import {
-  MAX_SEED_IMPORT_COUNT,
   preventNonNumericSeedInput,
   sanitizeSeedNumber,
   type SeedFormErrors,
   type SeedFormValues,
-  type SeedJsonUploadInput,
 } from "@/lib/seedFormUtils";
 import { validateManualSeedForm } from "@/lib/validators";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { parseSeedJsonImportFile } from "@/lib/seedJsonImport";
 
 const EMPTY_SEED_FORM_VALUES: SeedFormValues = {
   type: null,
@@ -53,11 +49,6 @@ const EMPTY_SEED_FORM_VALUES: SeedFormValues = {
   rng: "",
 };
 
-type ImportTab = "manual" | "json";
-type JsonImportResult = {
-  insertedCount: number;
-  skipCount: number;
-};
 type SeedUploadLeague = Doc<"leagues"> & {
   seedUploadDisabled?: boolean;
   seedUploadDisabledReason?: string;
@@ -80,22 +71,11 @@ function AddSeedDialog({
 }) {
   const importSeeds = useMutation(api.seeds.importSeeds);
 
-  const [activeTab, setActiveTab] = useState<ImportTab>("manual");
   const [manualValues, setManualValues] = useState<SeedFormValues>(() => ({
     ...EMPTY_SEED_FORM_VALUES,
     leagueId: defaultLeagueId,
   }));
   const [manualErrors, setManualErrors] = useState<SeedFormErrors>({});
-  const [jsonFileName, setJsonFileName] = useState("");
-  const [jsonSeeds, setJsonSeeds] = useState<SeedJsonUploadInput[] | null>(
-    null,
-  );
-  const [jsonErrors, setJsonErrors] = useState<string[]>([]);
-  const [jsonImportError, setJsonImportError] = useState<string | null>(null);
-  const [jsonImportResult, setJsonImportResult] =
-    useState<JsonImportResult | null>(null);
-  const [isReadingJson, setIsReadingJson] = useState(false);
-  const [isImportingJson, setIsImportingJson] = useState(false);
   const selectedManualLeague = leagues.find(
     (league) => league._id === manualValues.leagueId,
   );
@@ -103,19 +83,11 @@ function AddSeedDialog({
     selectedManualLeague?.seedUploadDisabledReason;
 
   const resetForm = () => {
-    setActiveTab("manual");
     setManualValues({
       ...EMPTY_SEED_FORM_VALUES,
       leagueId: defaultLeagueId,
     });
     setManualErrors({});
-    setJsonFileName("");
-    setJsonSeeds(null);
-    setJsonErrors([]);
-    setJsonImportError(null);
-    setJsonImportResult(null);
-    setIsReadingJson(false);
-    setIsImportingJson(false);
   };
 
   const closeDialog = () => {
@@ -128,17 +100,6 @@ function AddSeedDialog({
     value: SeedFormValues[Key],
   ) => {
     setManualValues((current) => ({ ...current, [key]: value }));
-  };
-
-  const handleTabChange = (value: unknown) => {
-    if (value !== "manual" && value !== "json") {
-      return;
-    }
-
-    setActiveTab(value);
-    setManualErrors({});
-    setJsonErrors([]);
-    setJsonImportError(null);
   };
 
   const handleManualImport = async (e: FormEvent<HTMLFormElement>) => {
@@ -175,68 +136,6 @@ function AddSeedDialog({
     }
   };
 
-  const handleJsonFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0] ?? null;
-
-    setJsonFileName(file?.name ?? "");
-    setJsonSeeds(null);
-    setJsonErrors([]);
-    setJsonImportError(null);
-    setJsonImportResult(null);
-
-    if (!file) {
-      return;
-    }
-
-    try {
-      setIsReadingJson(true);
-      const result = await parseSeedJsonImportFile(file);
-
-      if (result.success) {
-        setJsonSeeds(result.seeds);
-        return;
-      }
-
-      setJsonErrors(result.errors);
-    } catch {
-      setJsonErrors(["file: Could not read the uploaded file"]);
-    } finally {
-      setIsReadingJson(false);
-    }
-  };
-
-  const handleJsonImport = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setJsonImportError(null);
-    setJsonImportResult(null);
-
-    if (!jsonSeeds) {
-      setJsonErrors(["file: Upload a valid JSONL file before importing"]);
-      return;
-    }
-
-    setIsImportingJson(true);
-
-    try {
-      const seeds = jsonSeeds.map(({ type, overworld, nether, end, rng }) => ({
-        type,
-        overworld,
-        nether,
-        end,
-        rng,
-        leagueId: defaultLeagueId || undefined,
-      }));
-      const result = await importSeeds({ seeds });
-      setJsonImportResult(result);
-    } catch (error) {
-      setJsonImportError(
-        getErrorMessage(error, "Could not import seeds from this file"),
-      );
-    } finally {
-      setIsImportingJson(false);
-    }
-  };
-
   return (
     <DialogContent
       className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl"
@@ -265,262 +164,144 @@ function AddSeedDialog({
             : "Add a seed manually to the league."}
         </DialogDescription>
       </DialogHeader>
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(event) => {
+          void handleManualImport(event);
+        }}
+      >
+        <FieldGroup>
+          <Field data-invalid={Boolean(manualErrors.type)}>
+            <FieldLabel htmlFor="seed-type">Seed type</FieldLabel>
+            <Select
+              value={manualValues.type}
+              itemToStringLabel={(type) => SEED_TYPES[type]}
+              onValueChange={(value) => updateManualValue("type", value)}
+            >
+              <SelectTrigger
+                id="seed-type"
+                aria-invalid={Boolean(manualErrors.type)}
+                className="w-full"
+              >
+                <SelectValue placeholder="Choose seed type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Seed types</SelectLabel>
+                  {seedTypesArray.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {SEED_TYPES[type]}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <FieldError>{manualErrors.type}</FieldError>
+          </Field>
 
-      <Tabs value={activeTab} onValueChange={handleTabChange}>
-        {allowJsonImport && (
-          <TabsList>
-            <TabsTrigger value="manual">Manual input</TabsTrigger>
-            <TabsTrigger value="json">JSONL import</TabsTrigger>
-          </TabsList>
+          <Field data-invalid={Boolean(manualErrors.leagueId)}>
+            <FieldLabel htmlFor="seed-league">League</FieldLabel>
+            <Select
+              disabled={lockLeague}
+              value={manualValues.leagueId}
+              itemToStringLabel={(leagueId) =>
+                leagues.find((league) => league._id === leagueId)?.leagueName ??
+                "Unknown league"
+              }
+              onValueChange={(value) => updateManualValue("leagueId", value)}
+            >
+              <SelectTrigger
+                id="seed-league"
+                aria-invalid={Boolean(manualErrors.leagueId)}
+                className="w-full"
+              >
+                <SelectValue placeholder="No league" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>League assignment</SelectLabel>
+                  {allowUnassigned && (
+                    <SelectItem value={null}>No league</SelectItem>
+                  )}
+                  {leagues.map((league) => (
+                    <SelectItem
+                      key={league._id}
+                      disabled={league.seedUploadDisabled}
+                      value={league._id}
+                    >
+                      {league.seedUploadDisabledReason
+                        ? `${league.leagueName} - unavailable`
+                        : league.leagueName}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <FieldDescription>
+              {selectedLeagueRestriction
+                ? selectedLeagueRestriction
+                : lockLeague
+                  ? "This seed will be assigned to the selected league."
+                  : "Leave unset when the seed is not assigned yet."}
+            </FieldDescription>
+            <FieldError>{manualErrors.leagueId}</FieldError>
+          </Field>
+
+          <FieldGroup className="grid gap-4 sm:grid-cols-2">
+            <SeedNumberField
+              id="overworld-seed"
+              label="Overworld seed"
+              error={manualErrors.overworld}
+              value={manualValues.overworld}
+              onChange={(value) =>
+                updateManualValue("overworld", sanitizeSeedNumber(value))
+              }
+            />
+            <SeedNumberField
+              id="nether-seed"
+              label="Nether seed"
+              error={manualErrors.nether}
+              value={manualValues.nether}
+              onChange={(value) =>
+                updateManualValue("nether", sanitizeSeedNumber(value))
+              }
+            />
+            <SeedNumberField
+              id="end-seed"
+              label="End seed"
+              error={manualErrors.end}
+              value={manualValues.end}
+              onChange={(value) =>
+                updateManualValue("end", sanitizeSeedNumber(value))
+              }
+            />
+            <SeedNumberField
+              id="rng-seed"
+              label="RNG seed"
+              error={manualErrors.rng}
+              value={manualValues.rng}
+              onChange={(value) =>
+                updateManualValue("rng", sanitizeSeedNumber(value))
+              }
+            />
+          </FieldGroup>
+        </FieldGroup>
+
+        {manualErrors.form && (
+          <ErrorAlert title="Seed not saved" message={manualErrors.form} />
         )}
 
-        <TabsContent value="manual">
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={(event) => {
-              void handleManualImport(event);
-            }}
+        <DialogFooter>
+          <DialogClose
+            onClick={closeDialog}
+            render={<Button variant="outline" />}
+            type="button"
           >
-            <FieldGroup>
-              <Field data-invalid={Boolean(manualErrors.type)}>
-                <FieldLabel htmlFor="seed-type">Seed type</FieldLabel>
-                <Select
-                  value={manualValues.type}
-                  itemToStringLabel={(type) => SEED_TYPES[type]}
-                  onValueChange={(value) => updateManualValue("type", value)}
-                >
-                  <SelectTrigger
-                    id="seed-type"
-                    aria-invalid={Boolean(manualErrors.type)}
-                    className="w-full"
-                  >
-                    <SelectValue placeholder="Choose seed type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Seed types</SelectLabel>
-                      {seedTypesArray.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {SEED_TYPES[type]}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <FieldError>{manualErrors.type}</FieldError>
-              </Field>
-
-              <Field data-invalid={Boolean(manualErrors.leagueId)}>
-                <FieldLabel htmlFor="seed-league">League</FieldLabel>
-                <Select
-                  disabled={lockLeague}
-                  value={manualValues.leagueId}
-                  itemToStringLabel={(leagueId) =>
-                    leagues.find((league) => league._id === leagueId)
-                      ?.leagueName ?? "Unknown league"
-                  }
-                  onValueChange={(value) =>
-                    updateManualValue("leagueId", value)
-                  }
-                >
-                  <SelectTrigger
-                    id="seed-league"
-                    aria-invalid={Boolean(manualErrors.leagueId)}
-                    className="w-full"
-                  >
-                    <SelectValue placeholder="No league" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>League assignment</SelectLabel>
-                      {allowUnassigned && (
-                        <SelectItem value={null}>No league</SelectItem>
-                      )}
-                      {leagues.map((league) => (
-                        <SelectItem
-                          key={league._id}
-                          disabled={league.seedUploadDisabled}
-                          value={league._id}
-                        >
-                          {league.seedUploadDisabledReason
-                            ? `${league.leagueName} - unavailable`
-                            : league.leagueName}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <FieldDescription>
-                  {selectedLeagueRestriction
-                    ? selectedLeagueRestriction
-                    : lockLeague
-                      ? "This seed will be assigned to the selected league."
-                      : "Leave unset when the seed is not assigned yet."}
-                </FieldDescription>
-                <FieldError>{manualErrors.leagueId}</FieldError>
-              </Field>
-
-              <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                <SeedNumberField
-                  id="overworld-seed"
-                  label="Overworld seed"
-                  error={manualErrors.overworld}
-                  value={manualValues.overworld}
-                  onChange={(value) =>
-                    updateManualValue("overworld", sanitizeSeedNumber(value))
-                  }
-                />
-                <SeedNumberField
-                  id="nether-seed"
-                  label="Nether seed"
-                  error={manualErrors.nether}
-                  value={manualValues.nether}
-                  onChange={(value) =>
-                    updateManualValue("nether", sanitizeSeedNumber(value))
-                  }
-                />
-                <SeedNumberField
-                  id="end-seed"
-                  label="End seed"
-                  error={manualErrors.end}
-                  value={manualValues.end}
-                  onChange={(value) =>
-                    updateManualValue("end", sanitizeSeedNumber(value))
-                  }
-                />
-                <SeedNumberField
-                  id="rng-seed"
-                  label="RNG seed"
-                  error={manualErrors.rng}
-                  value={manualValues.rng}
-                  onChange={(value) =>
-                    updateManualValue("rng", sanitizeSeedNumber(value))
-                  }
-                />
-              </FieldGroup>
-            </FieldGroup>
-
-            {manualErrors.form && (
-              <ErrorAlert title="Seed not saved" message={manualErrors.form} />
-            )}
-
-            <DialogFooter>
-              <DialogClose
-                onClick={closeDialog}
-                render={<Button variant="outline" />}
-                type="button"
-              >
-                Close
-              </DialogClose>
-              <Button type="submit">Add seed</Button>
-            </DialogFooter>
-          </form>
-        </TabsContent>
-
-        <TabsContent value="json">
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={(event) => {
-              void handleJsonImport(event);
-            }}
-          >
-            <FieldGroup>
-              <Field data-invalid={jsonErrors.length > 0}>
-                <FieldLabel htmlFor="seed-json-file">JSONL file</FieldLabel>
-                <Input
-                  id="seed-json-file"
-                  accept=".jsonl,.ndjson,application/x-ndjson,application/jsonl,text/plain"
-                  aria-invalid={jsonErrors.length > 0}
-                  onChange={(event) => {
-                    void handleJsonFileChange(event);
-                  }}
-                  type="file"
-                />
-                <FieldDescription>
-                  Upload one JSON object per line. Only stored seed fields are
-                  imported, and league fields in the file are ignored. Limit{" "}
-                  {MAX_SEED_IMPORT_COUNT} seeds.
-                </FieldDescription>
-                <FieldError>{jsonErrors[0]}</FieldError>
-              </Field>
-            </FieldGroup>
-
-            {isReadingJson && (
-              <Alert>
-                <AlertCircleIcon />
-                <AlertTitle>Reading JSONL</AlertTitle>
-                <AlertDescription>
-                  Checking the uploaded file before import.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {!isReadingJson && jsonSeeds && !jsonImportResult && (
-              <Alert>
-                <CheckCircle2Icon />
-                <AlertTitle>
-                  {jsonSeeds.length === 1
-                    ? "1 valid seed"
-                    : `${jsonSeeds.length} valid seeds`}
-                </AlertTitle>
-                <AlertDescription>
-                  {jsonFileName} passed validation. Duplicate overworld seeds
-                  already in the database will be skipped.{" "}
-                  {defaultLeagueId
-                    ? `Imported seeds will be assigned to ${leagues.find((l) => l._id === defaultLeagueId)?.leagueName ?? "the league"}.`
-                    : "Imported seeds stay unassigned."}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {jsonErrors.length > 0 && (
-              <ErrorAlert
-                title="JSONL schema errors"
-                message={jsonErrors.join("\n")}
-              />
-            )}
-
-            {jsonImportError && (
-              <ErrorAlert title="Import failed" message={jsonImportError} />
-            )}
-
-            {jsonImportResult && (
-              <Alert>
-                <CheckCircle2Icon />
-                <AlertTitle>Import complete</AlertTitle>
-                <AlertDescription>
-                  {jsonImportResult.insertedCount} seeds imported.{" "}
-                  {jsonImportResult.skipCount} duplicates skipped.{" "}
-                  {defaultLeagueId
-                    ? `Imported seeds are assigned to ${leagues.find((l) => l._id === defaultLeagueId)?.leagueName ?? "the league"}.`
-                    : "Imported seeds are unassigned."}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <DialogFooter>
-              <DialogClose
-                onClick={closeDialog}
-                render={<Button variant="outline" />}
-                type="button"
-              >
-                Close
-              </DialogClose>
-              <Button
-                disabled={
-                  isReadingJson ||
-                  isImportingJson ||
-                  !jsonSeeds ||
-                  Boolean(jsonImportResult)
-                }
-                type="submit"
-              >
-                {isImportingJson ? "Importing" : "Import JSONL"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </TabsContent>
-      </Tabs>
+            Close
+          </DialogClose>
+          <Button type="submit">Add seed</Button>
+        </DialogFooter>
+      </form>
     </DialogContent>
   );
 }

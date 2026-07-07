@@ -1,13 +1,4 @@
 import { useMemo, useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { SeedRatingBadge } from "@/components/SeedRatingBadge";
 import { SeedValueTableCell } from "@/components/SeedValueTableCell";
 import { Badge } from "@/components/ui/badge";
@@ -30,10 +21,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Pencil, Plus, RotateCcw, Sprout, Trash } from "lucide-react";
-import { useMutation, useQuery } from "convex/react";
+import { Pencil, Plus, Sprout, Trash } from "lucide-react";
+import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import type { Id } from "../../../../convex/_generated/dataModel";
 import AddSeedDialog from "@/components/dialogs/AddSeedDialog";
 import { cn, getSeedCountLabel } from "@/lib/utils";
 import { SEED_TYPES, seedTypesArray } from "@/lib/consts";
@@ -44,19 +34,12 @@ export function AdminSeedsPage() {
   const seeds = useQuery(api.seeds.listAllSeeds);
   const badSeeds = useQuery(api.seeds.listBadSeeds);
   const leagues = useQuery(api.leagues.listLeagues);
-  const recycleBadSeed = useMutation(api.seeds.recycleBadSeed);
 
   const isLoading =
     leagues === undefined || seeds === undefined || badSeeds === undefined;
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("active");
-  const [recyclingSeedId, setRecyclingSeedId] = useState<Id<"seeds"> | null>(
-    null,
-  );
-  const [pendingRecycleSeedId, setPendingRecycleSeedId] =
-    useState<Id<"seeds"> | null>(null);
-  const [recycleError, setRecycleError] = useState<string | null>(null);
 
   const closeAddDialog = () => {
     setIsAddDialogOpen(false);
@@ -95,25 +78,6 @@ export function AdminSeedsPage() {
       claimedCount,
     };
   }, [seeds]);
-
-  const handleRecycleSeed = async () => {
-    if (!recyclingSeedId) return;
-
-    const seedId = recyclingSeedId;
-    setPendingRecycleSeedId(seedId);
-    setRecycleError(null);
-
-    try {
-      await recycleBadSeed({ seedId });
-      setRecyclingSeedId(null);
-    } catch (error) {
-      setRecycleError(
-        error instanceof Error ? error.message : "Could not recycle this seed",
-      );
-    } finally {
-      setPendingRecycleSeedId(null);
-    }
-  };
 
   return (
     <section className="flex flex-col gap-5">
@@ -217,52 +181,11 @@ export function AdminSeedsPage() {
             {badSeeds.length === 0 ? (
               <AdminBadSeedsEmptyState />
             ) : (
-              <AdminBadSeedTable
-                pendingRecycleSeedId={pendingRecycleSeedId}
-                seeds={badSeeds}
-                onRecycle={setRecyclingSeedId}
-              />
+              <AdminBadSeedTable seeds={badSeeds} />
             )}
           </TabsContent>
         </Tabs>
       )}
-
-      <AlertDialog
-        open={recyclingSeedId !== null}
-        onOpenChange={(open) => {
-          if (!open && pendingRecycleSeedId === null) {
-            setRecyclingSeedId(null);
-            setRecycleError(null);
-          }
-        }}
-      >
-        <AlertDialogContent className="max-w-lg sm:max-w-lg">
-          <AlertDialogTitle>Recycle this bad seed?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action resets the rating of a seed, putting it back to the
-            untested seed bank and making it available for claiming. BE CAREFUL:
-            This can make it so this seed gets assigned to the league of the
-            uploader who originally marked it as Bad. Ensure that this seed is
-            not recent to prevent them from remembering the details in case they
-            get to play it in the leagues. (Is rare, but possible.)
-          </AlertDialogDescription>
-          {recycleError && (
-            <p className="text-xs text-destructive">{recycleError}</p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={pendingRecycleSeedId !== null}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={pendingRecycleSeedId !== null}
-              onClick={() => void handleRecycleSeed()}
-              variant="destructive"
-            >
-              {pendingRecycleSeedId ? "Recycling" : "Recycle seed"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </section>
   );
 }
@@ -349,15 +272,11 @@ function AdminActiveSeedTable({
 }
 
 function AdminBadSeedTable({
-  pendingRecycleSeedId,
   seeds,
-  onRecycle,
 }: {
-  pendingRecycleSeedId: Id<"seeds"> | null;
   seeds: NonNullable<
     ReturnType<typeof useQuery<typeof api.seeds.listBadSeeds>>
   >;
-  onRecycle: (seedId: Id<"seeds">) => void;
 }) {
   return (
     <div className="overflow-hidden rounded-md border">
@@ -372,7 +291,6 @@ function AdminBadSeedTable({
             <TableHead className="border-r">Created At</TableHead>
             <TableHead className="border-r">Voted At</TableHead>
             <TableHead className="border-r">Voted By</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -395,20 +313,6 @@ function AdminBadSeedTable({
                 {seed.votedByUser?.name ??
                   seed.votedByUser?.discordId ??
                   "Unknown"}
-              </TableCell>
-              <TableCell>
-                <div className="flex justify-end">
-                  <Button
-                    aria-label={`Recycle ${seed.type}`}
-                    disabled={pendingRecycleSeedId === seed._id}
-                    onClick={() => onRecycle(seed._id)}
-                    size="icon-sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <RotateCcw />
-                  </Button>
-                </div>
               </TableCell>
             </TableRow>
           ))}
