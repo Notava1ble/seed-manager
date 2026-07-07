@@ -79,17 +79,18 @@ export const listSeedUploadLeagueOptions = query({
       const canUpload =
         isAdmin ||
         (isUploader && isUploaderLeague) ||
-        (!isUploader && isHost && isHostedLeague);
+        (isHost && isHostedLeague);
 
       return {
         ...league,
         seedUploadDisabled: !canUpload,
-        seedUploadDisabledReason:
-          isUploader && !isUploaderLeague
-            ? "Uploaders cannot place seeds into leagues don't upload for."
-            : !canUpload
+        seedUploadDisabledReason: canUpload
+          ? undefined
+          : isUploader && !isUploaderLeague
+            ? "Uploaders cannot place seeds into leagues they don't upload for."
+            : isHost && !isHostedLeague
               ? "You can only upload seeds for leagues you host."
-              : undefined,
+              : "You do not have permission to upload seeds for this league.",
       };
     });
   },

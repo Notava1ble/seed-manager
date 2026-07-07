@@ -62,6 +62,7 @@ export function AppIndexPage() {
   const user = useQuery(api.users.currentUser);
   const settings = useQuery(api.settings.current);
   const accessableLeagues = useQuery(api.leagues.listSeedUploadLeagueOptions);
+  console.log("accessableLeagues", accessableLeagues);
 
   const isUploader = user?.roles.includes("uploader") ?? false;
   const isAdmin = user?.roles.includes("admin") ?? false;

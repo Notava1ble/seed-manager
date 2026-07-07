@@ -33,8 +33,6 @@ const seedTypeValidator = v.union(
   v.literal("SHIPWRECK"),
 );
 
-const claimTypeValidator = v.union(v.literal("RANDOM"), seedTypeValidator);
-
 const seedUploadValidator = v.object({
   leagueId: v.optional(v.id("leagues")),
   overworld: v.string(),
