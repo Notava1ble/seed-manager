@@ -102,13 +102,10 @@ function AddSeedDialog({
   const handleManualImport = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const preparedData = [
-      {
-        ...manualValues,
-        leagueId: manualValues.leagueId || undefined,
-      },
-    ];
-
+    const preparedData = {
+      ...manualValues,
+      leagueId: manualValues.leagueId || undefined,
+    };
     const validatedData = validateManualSeedForm.safeParse(preparedData);
     if (!validatedData.success) {
       setManualErrors(getManualSeedFormErrors(validatedData.error.issues));
@@ -116,12 +113,7 @@ function AddSeedDialog({
     }
 
     try {
-      const result = await importSeeds({ seeds: validatedData.data });
-
-      if (result.insertedCount === 0) {
-        setManualErrors({ form: "Seed already exists" });
-        return;
-      }
+      await importSeeds({ seed: validatedData.data });
 
       closeDialog();
     } catch (error) {

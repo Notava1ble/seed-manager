@@ -53,7 +53,7 @@ const SEED_TYPE_LABELS: Record<SeedType, string> = {
 };
 
 type SeedUploadInput = {
-  leagueId?: Id<"leagues">;
+  leagueId: Id<"leagues">;
   overworld: string;
   nether: string;
   end: string;
@@ -180,28 +180,16 @@ export const getSeedForLeague = query({
     }
 
     // Hard set for specific id because of accidental user delelion
-    const vouchedByUser = await ctx.db.get("users", seed.claimedBy);
-    const addedBy =
-      (await ctx.db.get("users", seed.addedBy)) ??
-      (seed.addedBy === "k57d7wyp6b7c1zdeyzchf1wc2x85385x"
-        ? {
-            _id: "k57d7wyp6b7c1zdeyzchf1wc2x85385x",
-            name: "Mirai (old)",
-            homeLeagueId: undefined,
-            hostLeagueId: undefined,
-          }
-        : undefined);
-
-    const addedByUser = vouchedByUser ?? addedBy;
+    const addedBy = await ctx.db.get("users", seed.addedBy);
 
     return {
       ...seed,
-      vouchedByUser: addedByUser
+      vouchedByUser: addedBy
         ? {
-            _id: addedByUser._id,
-            name: addedByUser.name,
-            homeLeagueId: addedByUser.homeLeagueId ?? [],
-            hostLeagueId: addedByUser.hostLeagueId ?? [],
+            _id: addedBy._id,
+            name: addedBy.name,
+            homeLeagueId: addedBy.uploaderLeagues ?? [],
+            hostLeagueId: addedBy.hostLeagueId ?? [],
           }
         : null,
     };
@@ -458,7 +446,7 @@ export const changeSeedLeague = mutation({
 
 export const importSeeds = mutation({
   args: {
-    seeds: v.array(seedUploadValidator),
+    seed: seedUploadValidator,
   },
   handler: async (ctx, args) => {
     const user = await requireActiveUser(ctx);
@@ -476,213 +464,86 @@ export const importSeeds = mutation({
         });
       }
 
-      for (const seed of args.seeds) {
-        if (!seed.leagueId) {
-          throw new ConvexError({
-            code: "FORBIDDEN",
-            message: "Hosts must assign seeds to a league",
-          });
-        }
-        if (!hostLeagues.includes(seed.leagueId)) {
-          throw new ConvexError({
-            code: "FORBIDDEN",
-            message: "You can only upload seeds for leagues you host",
-          });
-        }
+      const canUploadAsUploader = uploaderLeagues.includes(args.seed.leagueId);
+      const canUploadAsHost = hostLeagues.includes(args.seed.leagueId);
+      if (!canUploadAsUploader && !canUploadAsHost) {
+        throw new ConvexError({
+          code: "FORBIDDEN",
+          message:
+            "You can only upload seeds for leagues you are an uploader for and for the leagues you host.",
+        });
       }
 
       await requireSeedTestingOpen(ctx);
     }
 
-    const normalizedSeeds = await normalizeSeeds(ctx, args.seeds);
-    const hasAssignedSeeds = normalizedSeeds.some((seed) => seed.leagueId);
-    const settings = hasAssignedSeeds ? await requireSettings(ctx) : null;
-    const uniqueSeeds = new Map<string, SeedUploadInput>();
-    const leagueSeedCounts = new Map<Id<"leagues">, number>();
+    const seed = await normalizeSeed(ctx, args.seed);
+    const settings = await requireSettings(ctx);
 
-    let insertedCount = 0;
-    let skipCount = 0;
+    const existing = await ctx.db
+      .query("seeds")
+      .withIndex("by_owseed", (q) => q.eq("overworld", seed.overworld))
+      .unique();
 
-    for (const seed of normalizedSeeds) {
-      if (uniqueSeeds.has(seed.overworld)) {
-        skipCount += 1;
-        continue;
-      }
-
-      uniqueSeeds.set(seed.overworld, seed);
-    }
-
-    for (const seed of uniqueSeeds.values()) {
-      const existing = await ctx.db
-        .query("seeds")
-        .withIndex("by_owseed", (q) => q.eq("overworld", seed.overworld))
-        .unique();
-
-      if (existing) {
-        skipCount += 1;
-        continue;
-      }
-
-      await ctx.db.insert("seeds", {
-        overworld: seed.overworld,
-        nether: seed.nether,
-        end: seed.end,
-        rng: seed.rng,
-        type: seed.type,
-        isBt: seed.type === "BURIED_TREASURE",
-        ...(seed.leagueId
-          ? {
-              leagueId: seed.leagueId,
-              rating: "Good" as const,
-              isExpired: false,
-              assignedWeekNumber: settings?.currentWeekNumber,
-              ...(isUploader && !isAdmin
-                ? { directUploaderAssignmentBy: user._id }
-                : {}),
-            }
-          : {}),
-        ...(isUploader && !isAdmin ? { uploadedByUploaderId: user._id } : {}),
-        addedBy: user._id,
-        isUsed: false,
-        commentCount: 0,
-      });
-      insertedCount += 1;
-
-      if (seed.leagueId) {
-        leagueSeedCounts.set(
-          seed.leagueId,
-          (leagueSeedCounts.get(seed.leagueId) ?? 0) + 1,
-        );
-      }
-    }
-
-    for (const [leagueId, seedCount] of leagueSeedCounts) {
-      const league = await ctx.db.get("leagues", leagueId);
-
-      if (!league) {
-        throw new ConvexError({
-          code: "LEAGUE_NOT_EXIST",
-          message: "The requested league id does not exist",
-        });
-      }
-
-      await ctx.db.patch("leagues", leagueId, {
-        seedCount: league.seedCount + seedCount,
+    if (existing) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Seed already exists.",
       });
     }
 
-    return { insertedCount, skipCount };
+    await ctx.db.insert("seeds", {
+      overworld: seed.overworld,
+      nether: seed.nether,
+      end: seed.end,
+      rng: seed.rng,
+      type: seed.type,
+      isBt: seed.type === "BURIED_TREASURE",
+
+      leagueId: seed.leagueId,
+      rating: "Good" as const,
+      isExpired: false,
+      assignedWeekNumber: settings?.currentWeekNumber,
+
+      addedBy: user._id,
+      isUsed: false,
+      commentCount: 0,
+    });
+
+    const league = await ctx.db.get("leagues", seed.leagueId);
+
+    if (!league) {
+      throw new ConvexError({
+        code: "LEAGUE_NOT_EXIST",
+        message: "The requested league id does not exist",
+      });
+    }
+
+    await ctx.db.patch("leagues", seed.leagueId, {
+      seedCount: league.seedCount + 1,
+    });
   },
 });
 
-async function normalizeSeeds(ctx: MutationCtx, seeds: SeedUploadInput[]) {
-  if (seeds.length === 0) {
-    throw new ConvexError({
-      code: "EMPTY_SEED_IMPORT",
-      message: "Import at least one seed",
-    });
-  }
+async function normalizeSeed(ctx: MutationCtx, seeds: SeedUploadInput) {
+  const normalizedSeed = {
+    leagueId: seeds.leagueId,
+    type: seeds.type,
+    overworld: validateNumericSeedString(seeds.overworld, "Overworld seed"),
+    nether: validateNumericSeedString(seeds.nether, "Nether seed"),
+    end: validateNumericSeedString(seeds.end, "End seed"),
+    rng: validateNumericSeedString(seeds.rng, "RNG seed"),
+  };
 
-  if (seeds.length > MAX_SEED_IMPORT_COUNT) {
-    throw new ConvexError({
-      code: "SEED_IMPORT_LIMIT_EXCEEDED",
-      message: `Import up to ${MAX_SEED_IMPORT_COUNT} seeds at a time`,
-    });
-  }
-
-  const uniqueLeagueIds = new Set<Id<"leagues">>();
-  const normalizedSeeds = seeds.map((s) => ({
-    ...s,
-    overworld: validateNumericSeedString(s.overworld, "Overworld seed"),
-    nether: validateNumericSeedString(s.nether, "Nether seed"),
-    end: validateNumericSeedString(s.end, "End seed"),
-    rng: validateNumericSeedString(s.rng, "RNG seed"),
-  }));
-
-  for (const seed of normalizedSeeds) {
-    if (seed.leagueId) {
-      uniqueLeagueIds.add(seed.leagueId);
-    }
-  }
-
-  const leagues = await Promise.all(
-    Array.from(uniqueLeagueIds).map((l) => ctx.db.get("leagues", l)),
-  );
-  if (leagues.some((league) => league === null)) {
+  const league = await ctx.db.get("leagues", normalizedSeed.leagueId);
+  if (league === null) {
     throw new ConvexError({
       code: "LEAGUE_NOT_EXIST",
       message: "The requested league id does not exist",
     });
   }
 
-  return normalizedSeeds;
-}
-
-async function requireUploaderSeedAssignmentAllowed(
-  ctx: MutationCtx,
-  seed: Doc<"seeds">,
-  leagueId: Id<"leagues">,
-) {
-  const uploaderId = seed.uploadedByUploaderId;
-
-  if (uploaderId === undefined) {
-    return;
-  }
-
-  const uploader = await ctx.db.get("users", uploaderId);
-
-  if (!uploader) {
-    throw new ConvexError({
-      code: "UPLOADER_NOT_FOUND",
-      message: "An admin must review this uploader-added seed",
-    });
-  }
-
-  if ((uploader.homeLeagueId ?? []).includes(leagueId)) {
-    throw new ConvexError({
-      code: "UPLOADER_HOME_LEAGUE_FORBIDDEN",
-      message:
-        "This seed was uploaded by a player in that league, so an admin must assign it",
-    });
-  }
-}
-
-async function getClaimableSeedByType(ctx: MutationCtx, seedType: SeedType) {
-  return await ctx.db
-    .query("seeds")
-    .withIndex("by_isExpired_and_claimedBy_and_rating_and_type", (q) =>
-      q
-        .eq("isExpired", undefined)
-        .eq("claimedBy", undefined)
-        .eq("rating", undefined)
-        .eq("type", seedType),
-    )
-    .first();
-}
-
-async function getRandomClaimableSeed(
-  ctx: MutationCtx,
-  claimBuriedTreasureSeeds: boolean,
-) {
-  for (const seedType of shuffle(
-    getAllowedRandomSeedTypes(claimBuriedTreasureSeeds),
-  )) {
-    const seed = await getClaimableSeedByType(ctx, seedType);
-
-    if (seed) {
-      return seed;
-    }
-  }
-
-  return null;
-}
-
-function getAllowedRandomSeedTypes(claimBuriedTreasureSeeds: boolean) {
-  if (claimBuriedTreasureSeeds) {
-    return ALL_SEED_TYPES;
-  }
-
-  return ALL_SEED_TYPES.filter((seedType) => seedType !== "BURIED_TREASURE");
+  return normalizedSeed;
 }
 
 async function requireSeedTestingOpen(ctx: MutationCtx) {

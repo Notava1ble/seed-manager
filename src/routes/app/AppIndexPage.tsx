@@ -113,12 +113,10 @@ export function AppIndexPage() {
   const handleManualImport = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const preparedData = [
-      {
-        ...manualValues,
-        leagueId: manualValues.leagueId || undefined,
-      },
-    ];
+    const preparedData = {
+      ...manualValues,
+      leagueId: manualValues.leagueId || undefined,
+    };
 
     const validatedData = validateManualSeedForm.safeParse(preparedData);
     if (!validatedData.success) {
@@ -127,12 +125,7 @@ export function AppIndexPage() {
     }
 
     try {
-      const result = await importSeeds({ seeds: validatedData.data });
-
-      if (result.insertedCount === 0) {
-        setManualErrors({ form: "Seed already exists" });
-        return;
-      }
+      await importSeeds({ seed: validatedData.data });
 
       resetForm();
     } catch (error) {
