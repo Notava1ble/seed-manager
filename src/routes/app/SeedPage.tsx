@@ -166,14 +166,14 @@ export function SeedPage() {
   const canChangeLeagueAssignment =
     leagues !== undefined && canChangeLeague(seed, user);
   const targetLeague = leagues?.find((league) => league._id === targetLeagueId);
-  const vouchedByName = seed.vouchedByUser?.name ?? "an unknown player";
-  const vouchedByHomeLeagues = getLeagueListLabel(
+  const addedByname = seed.addedByUser?.name ?? "an unknown user";
+  const addedByUploadingLeagues = getLeagueListLabel(
     leagues ?? [],
-    seed.vouchedByUser?.homeLeagueId,
+    seed.addedByUser?.uploaderLeagueIds,
   );
-  const vouchedByHostLeagues = getLeagueListLabel(
+  const addedByHostLeagues = getLeagueListLabel(
     leagues ?? [],
-    seed.vouchedByUser?.hostLeagueId,
+    seed.addedByUser?.hostLeagueIds,
   );
   const currentLeagueName = currentLeague?.leagueName ?? "this league";
   const targetLeagueName = targetLeague?.leagueName ?? "the selected league";
@@ -190,9 +190,9 @@ export function SeedPage() {
               <h2 className="min-w-0 text-xl font-semibold leading-tight">
                 {seed.type ? SEED_TYPES[seed.type] : "Unspecified seed"}
               </h2>
-              {user!.roles.includes("admin") && seed.vouchedByUser && (
+              {user!.roles.includes("admin") && seed.addedByUser && (
                 <span className="text-sm text-muted-foreground">
-                  Vouched by {seed.vouchedByUser.name ?? "Unknown user"}
+                  Vouched by {addedByname ?? "Unknown user"}
                 </span>
               )}
             </div>
@@ -300,22 +300,14 @@ export function SeedPage() {
               target league.
             </p>
             <p className="mt-2">
-              Vouched by <b>{vouchedByName}</b>.
+              Added by <b>{addedByname}</b>.
             </p>
             <p className="mt-2">
-              Home leagues: <b>{vouchedByHomeLeagues}</b>.
+              Uploader leagues: <b>{addedByUploadingLeagues}</b>.
             </p>
             <p className="mt-2">
-              Host leagues: <b>{vouchedByHostLeagues}</b>.
+              Host leagues: <b>{addedByHostLeagues}</b>.
             </p>
-            {targetLeagueId &&
-              seed.vouchedByUser?.homeLeagueId.includes(targetLeagueId) && (
-                <p className="mt-4 text-destructive">
-                  Warning: <b>{vouchedByName}</b> is a player in the target
-                  league, so they will play the seed they tested, which is
-                  unfair.
-                </p>
-              )}
           </AlertDialogDescription>
 
           <Select

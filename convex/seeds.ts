@@ -172,10 +172,10 @@ export const getSeedForLeague = query({
       return null;
     }
 
-    if (!user.roles.includes("admin") || seed.claimedBy === undefined) {
+    if (!user.roles.includes("admin")) {
       return {
         ...seed,
-        vouchedByUser: null,
+        addedByUser: null,
       };
     }
 
@@ -184,12 +184,12 @@ export const getSeedForLeague = query({
 
     return {
       ...seed,
-      vouchedByUser: addedBy
+      addedByUser: addedBy
         ? {
             _id: addedBy._id,
             name: addedBy.name,
-            homeLeagueId: addedBy.uploaderLeagues ?? [],
-            hostLeagueId: addedBy.hostLeagueId ?? [],
+            uploaderLeagueIds: addedBy.uploaderLeagues ?? [],
+            hostLeagueIds: addedBy.hostLeagueId ?? [],
           }
         : null,
     };
