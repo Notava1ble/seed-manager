@@ -18,10 +18,6 @@ export function UserIdentitySummary({
       />
       <UserDetailValue label="Status" value={user.status} />
       <UserDetailValue
-        label="Home leagues"
-        value={getLeagueListLabel(leagues, user.homeLeagueId)}
-      />
-      <UserDetailValue
         label="Host leagues"
         value={getLeagueListLabel(leagues, user.hostLeagueId)}
       />

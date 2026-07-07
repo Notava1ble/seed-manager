@@ -189,7 +189,7 @@ export const updateAllUsers = internalMutation({
       v.object({
         discordId: v.string(),
         roles: v.array(v.string()),
-        homeLeagueNumbers: v.optional(v.array(v.number())),
+        uploaderLeagueNumbers: v.optional(v.array(v.number())),
         hostLeagueNumbers: v.optional(v.array(v.number())),
       }),
     ),
@@ -226,10 +226,10 @@ export const updateAllUsers = internalMutation({
         roles: u.roles as typeof user.roles,
       };
 
-      if (u.homeLeagueNumbers !== undefined) {
-        patch.homeLeagueId = await getLeaguesFromNumbers(
+      if (u.uploaderLeagueNumbers !== undefined) {
+        patch.uploaderLeagues = await getLeaguesFromNumbers(
           ctx,
-          u.homeLeagueNumbers,
+          u.uploaderLeagueNumbers,
         );
       }
 

@@ -13,9 +13,9 @@ export function AccountPage() {
   const user = useQuery(api.users.currentUser);
   const leagues = useQuery(api.leagues.listLeagues);
 
-  const homeLeagues =
+  const uploaderleagues =
     leagues
-      ?.filter((l) => user?.homeLeagueId?.includes(l._id))
+      ?.filter((l) => user?.uploaderLeagues?.includes(l._id))
       .map((l) => l.leagueName)
       .join(", ") ?? "None";
   const hostLeagues =
@@ -70,7 +70,9 @@ export function AccountPage() {
                 <UserDetailValue label="Status" value={user.status} />
                 <UserDetailValue
                   label="Home Leagues"
-                  value={homeLeagues.length !== 0 ? homeLeagues : "None"}
+                  value={
+                    uploaderleagues.length !== 0 ? uploaderleagues : "None"
+                  }
                 />
                 <UserDetailValue
                   label="Host Leagues"
