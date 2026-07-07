@@ -49,6 +49,22 @@ export const clearUnusedFields = internalMutation({
   },
 });
 
+export const removeTesterRoles = internalMutation({
+  args: {},
+  handler: async (ctx, args) => {
+    const allUsers = await ctx.db.query("users").collect();
+
+    await Promise.all(
+      allUsers.map((u) => {
+        return ctx.db.patch("users", u._id, {
+          ...u,
+          roles: u.roles.filter((r) => r !== "tester"),
+        });
+      }),
+    );
+  },
+});
+
 function validateWeekNumber(weekNumber: number) {
   if (!Number.isSafeInteger(weekNumber) || weekNumber < 1) {
     throw new ConvexError({
