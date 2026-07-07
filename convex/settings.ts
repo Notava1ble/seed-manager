@@ -84,6 +84,18 @@ export const advanceWeek = mutation({
       });
     }
 
+    // reset host and uploader roles
+    const users = await ctx.db.query("users").collect();
+
+    await Promise.all(
+      users.map((u) =>
+        ctx.db.patch("users", u._id, {
+          hostLeagueId: [],
+          uploaderLeagues: [],
+        }),
+      ),
+    );
+
     await ctx.db.patch("settings", settings._id, {
       currentWeekNumber: settings.currentWeekNumber + 1,
       seedTestingPaused: true,

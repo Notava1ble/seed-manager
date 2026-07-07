@@ -1,8 +1,4 @@
-- [ ] delete the seed claiming system because its outdated
-  - [ ] Make the uploading screen primary
-- [ ] remove tester role and make uploader role specific
-  - [ ] Remove home league
-  - [ ] Add uploading leagues
-  - [ ] Allow user to see only uploading leagues
 - [ ] admin dashboard that shows how many seeds we have in each league + other info
-- [x] change the seed quotas for l4 and l5
+- [ ] add a way to reorder seeds by having a non-global-unique seed number but unique per league
+  - [ ] when reordering I can query the seed in the league that is one number below, increase it by one and lower the current by one. Reverse when its the up arrow
+- [x] clear uploader and host leagues on week advancing
