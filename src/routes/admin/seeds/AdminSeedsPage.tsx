@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { SeedRatingBadge } from "@/components/SeedRatingBadge";
 import { SeedValueTableCell } from "@/components/SeedValueTableCell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
