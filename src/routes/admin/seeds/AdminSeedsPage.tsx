@@ -131,7 +131,6 @@ function AdminActiveSeedTable({
             <TableHead className="border-r">RNG</TableHead>
             <TableHead className="border-r">League</TableHead>
             <TableHead className="border-r">Week</TableHead>
-            <TableHead className="border-r">Rating</TableHead>
             <TableHead className="border-r text-right">Comments</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -152,9 +151,6 @@ function AdminActiveSeedTable({
               </TableCell>
               <TableCell className="border-r text-right tabular-nums">
                 {seed.assignedWeekNumber ?? "None"}
-              </TableCell>
-              <TableCell className="border-r">
-                <SeedRatingBadge rating={seed.rating} />
               </TableCell>
               <TableCell className="border-r text-right tabular-nums">
                 {seed.commentCount}
