@@ -255,7 +255,7 @@ export const updateSeedRating = mutation({
     await requireSeedTestingOpen(ctx);
 
     const canRateAsAdmin = user.roles.includes("admin");
-    const canRateAsOriginalUploader = seed.uploadedByUploaderId === user._id;
+    const canRateAsOriginalUploader = seed.addedBy === user._id;
     const canRateAsHost =
       seed.leagueId !== undefined &&
       user.roles.includes("host") &&

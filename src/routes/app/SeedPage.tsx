@@ -296,7 +296,7 @@ export function SeedPage() {
           <AlertDialogDescription>
             <p>
               Moving a seed means that for the time this seed was in{" "}
-              {currentLeagueName}, it was visible to testers who play in the
+              {currentLeagueName}, it was visible to uploaders who play in the
               target league.
             </p>
             <p className="mt-2">
@@ -370,6 +370,7 @@ function canEditRating(
     leagueId?: Id<"leagues">;
     isExpired?: boolean;
     isUsed: boolean;
+    addedBy: Id<"users">;
   },
   user: {
     _id: Id<"users">;
@@ -389,7 +390,7 @@ function canEditRating(
     return true;
   }
 
-  if (seed.claimedBy === user._id) {
+  if (seed.addedBy === user._id) {
     return true;
   }
 

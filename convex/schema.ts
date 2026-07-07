@@ -50,7 +50,7 @@ export default defineSchema({
   }).index("by_key", ["key"]),
   seeds: defineTable({
     leagueId: v.optional(v.id("leagues")),
-    claimedBy: v.optional(v.id("users")),
+    claimedBy: v.optional(v.id("users")), // remove later
     rating: v.optional(v.union(v.literal("Good"), v.literal("Bad"))),
     overworld: v.string(),
     nether: v.string(),
@@ -75,8 +75,8 @@ export default defineSchema({
     usedAt: v.optional(v.number()), // unix time
     usedBy: v.optional(v.id("users")),
     leagueChangedByAdminId: v.optional(v.id("users")),
-    uploadedByUploaderId: v.optional(v.id("users")),
-    directUploaderAssignmentBy: v.optional(v.id("users")),
+    uploadedByUploaderId: v.optional(v.id("users")), // remove later (no uses)
+    directUploaderAssignmentBy: v.optional(v.id("users")), // remove later (no uses)
     commentCount: v.number(),
   })
     .index("by_owseed", ["overworld"])
