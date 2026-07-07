@@ -1,6 +1,6 @@
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 
-export type ManagedRole = "host" | "uploader" | "tester";
+export type ManagedRole = "host" | "uploader";
 export type UserRole = "admin" | ManagedRole;
 
 export function getLeagueLabel(

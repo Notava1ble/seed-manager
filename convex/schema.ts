@@ -17,15 +17,9 @@ export default defineSchema({
       v.literal("banned"),
     ),
     roles: v.array(
-      v.union(
-        v.literal("admin"),
-        v.literal("host"),
-        v.literal("tester"), // Remove later
-        v.literal("uploader"),
-      ),
+      v.union(v.literal("admin"), v.literal("host"), v.literal("uploader")),
     ),
     uploaderLeagues: v.optional(v.array(v.id("leagues"))),
-    homeLeagueId: v.optional(v.array(v.id("leagues"))),
     hostLeagueId: v.optional(v.array(v.id("leagues"))),
     settings: v.optional(
       v.object({
@@ -50,7 +44,6 @@ export default defineSchema({
   }).index("by_key", ["key"]),
   seeds: defineTable({
     leagueId: v.optional(v.id("leagues")),
-    claimedBy: v.optional(v.id("users")), // remove later
     rating: v.optional(v.union(v.literal("Good"), v.literal("Bad"))),
     overworld: v.string(),
     nether: v.string(),
@@ -75,8 +68,6 @@ export default defineSchema({
     usedAt: v.optional(v.number()), // unix time
     usedBy: v.optional(v.id("users")),
     leagueChangedByAdminId: v.optional(v.id("users")),
-    uploadedByUploaderId: v.optional(v.id("users")), // remove later (no uses)
-    directUploaderAssignmentBy: v.optional(v.id("users")), // remove later (no uses)
     commentCount: v.number(),
   })
     .index("by_owseed", ["overworld"])
