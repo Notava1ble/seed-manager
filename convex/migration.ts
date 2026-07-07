@@ -59,6 +59,7 @@ export const removeTesterRoles = internalMutation({
         return ctx.db.patch("users", u._id, {
           ...u,
           roles: u.roles.filter((r) => r !== "tester"),
+          homeLeagueId: undefined,
         });
       }),
     );
