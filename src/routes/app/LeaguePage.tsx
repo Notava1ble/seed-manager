@@ -103,18 +103,11 @@ export function LeaguePage() {
   const canAddSeedToLeague = useMemo(() => {
     if (!user) return false;
     if (user.roles.includes("admin")) return true;
-    if (
-      user.roles.includes("uploader") &&
-      selectedLeagueId &&
-      (user.homeLeagueId ?? []).includes(selectedLeagueId)
-    ) {
-      return false;
+    if (user.roles.includes("uploader") && selectedLeagueId) {
+      return (user.uploaderLeagues ?? []).includes(selectedLeagueId);
     }
     if (user.roles.includes("host") && selectedLeagueId) {
       return (user.hostLeagueId ?? []).includes(selectedLeagueId);
-    }
-    if (user.roles.includes("uploader") && selectedLeagueId) {
-      return !(user.homeLeagueId ?? []).includes(selectedLeagueId);
     }
     return false;
   }, [user, selectedLeagueId]);
