@@ -7,7 +7,7 @@ export function SeedStatusBadge({ status }: { status: SeedStatus }) {
   }
 
   if (status === "used") {
-    return <Badge variant="outline">Used</Badge>;
+    return <Badge variant="destructive">Used</Badge>;
   }
 
   if (status === "open") {

@@ -1,5 +1,5 @@
-import { useQuery } from "convex/react";
-import { MessageCircle, Plus, Sprout } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
+import { MessageCircle, MoreVertical, Plus, Sprout } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Outlet, useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
@@ -37,6 +37,12 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import AddSeedDialog from "@/components/dialogs/AddSeedDialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 type SeedDistributionRequirement = {
   required: number;
@@ -82,6 +88,8 @@ const LEAGUE_SEED_DISTRIBUTIONS: Partial<
 };
 
 export function LeaguePage() {
+  const moveSeed = useMutation(api.seeds.moveSeed);
+
   const { leagueId } = useParams();
   const navigate = useNavigate();
   const selectedLeagueId = leagueId as Id<"leagues"> | undefined;
@@ -90,7 +98,7 @@ export function LeaguePage() {
   const seeds = useQuery(
     api.seeds.listSeedsByLeague,
     selectedLeagueId ? { leagueId: selectedLeagueId } : "skip",
-  );
+  )?.sort((a, b) => (a.seedNumber ?? 0) - (b.seedNumber ?? 0));
   const league = useMemo(
     () => leagues?.find((item) => item._id === selectedLeagueId),
     [leagues, selectedLeagueId],
@@ -111,6 +119,13 @@ export function LeaguePage() {
     }
     return false;
   }, [user, selectedLeagueId]);
+
+  const moveUp = (id: Id<"seeds">) => {
+    moveSeed({ seedId: id, movement: "UP" });
+  };
+  const moveDown = (id: Id<"seeds">) => {
+    moveSeed({ seedId: id, movement: "DOWN" });
+  };
 
   return (
     <div className="flex h-full min-h-0 min-w-0 gap-6 overflow-hidden">
@@ -160,6 +175,8 @@ export function LeaguePage() {
               onSeedSelect={(selectedId) =>
                 void navigate(`/app/league/${leagueId}/seed/${selectedId}`)
               }
+              moveUp={moveUp}
+              moveDown={moveDown}
             />
           </>
         )}
@@ -281,9 +298,13 @@ function SeedDistributionCard({
 function SeedTable({
   seeds,
   onSeedSelect,
+  moveUp,
+  moveDown,
 }: {
   seeds: Doc<"seeds">[];
   onSeedSelect: (seedId: Id<"seeds">) => void;
+  moveUp: (id: Id<"seeds">) => void;
+  moveDown: (id: Id<"seeds">) => void;
 }) {
   const { seedId } = useParams();
 
@@ -308,19 +329,21 @@ function SeedTable({
       <Table containerClassName="max-h-[calc(100svh-20rem)]">
         <TableHeader>
           <TableRow>
+            <TableHead className="border-r w-6">#</TableHead>
             <TableHead className="border-r text-left">Seed Type</TableHead>
             <TableHead className="border-r">Overworld</TableHead>
             <TableHead className="border-r">Nether</TableHead>
             <TableHead className="border-r">End</TableHead>
             <TableHead className="border-r">RNG</TableHead>
             <TableHead className="w-20 border-r text-center">Status</TableHead>
-            <TableHead className="w-12 text-center">
+            <TableHead className="w-12 border-r text-center">
               <MessageCircle />
             </TableHead>
+            <TableHead className="w-12 " />
           </TableRow>
         </TableHeader>
         <TableBody>
-          {seeds.map((seed) => {
+          {seeds.map((seed, index) => {
             const isSelected = seed._id === seedId;
 
             return (
@@ -329,6 +352,9 @@ function SeedTable({
                 className={cn("cursor-pointer", isSelected && "bg-muted")}
                 onClick={() => onSeedSelect(seed._id)}
               >
+                <TableCell className="border-r text-center tabular-nums">
+                  {seed.seedNumber ?? "-"}
+                </TableCell>
                 <TableCell className="border-r text-left font-medium">
                   <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                     <span>
@@ -336,15 +362,45 @@ function SeedTable({
                     </span>
                   </div>
                 </TableCell>
+
                 <SeedValueTableCell value={seed.overworld} />
                 <SeedValueTableCell value={seed.nether} />
                 <SeedValueTableCell value={seed.end} />
                 <SeedValueTableCell value={seed.rng} />
+
                 <TableCell className="border-r text-center">
                   <SeedStatusBadge status={seed.isUsed ? "used" : "open"} />
                 </TableCell>
-                <TableCell className="text-center tabular-nums">
+
+                <TableCell className="border-r text-center tabular-nums">
                   {seed.commentCount}
+                </TableCell>
+
+                <TableCell className="text-center">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">Open actions</span>
+                        </Button>
+                      }
+                    />
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        disabled={index === 0}
+                        onClick={() => moveUp(seed._id)}
+                      >
+                        Move up
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={index === seeds.length - 1}
+                        onClick={() => moveDown(seed._id)}
+                      >
+                        Move down
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             );

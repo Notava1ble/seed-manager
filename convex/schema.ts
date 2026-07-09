@@ -71,7 +71,7 @@ export default defineSchema({
     leagueChangedByAdminId: v.optional(v.id("users")),
     commentCount: v.number(),
   })
-    .index("by_number", ["seedNumber"])
+    .index("by_number_league_expired", ["seedNumber", "leagueId", "isExpired"])
     .index("by_owseed", ["overworld"])
     .index("by_leagueId", ["leagueId"])
     .index("by_isExpired", ["isExpired"])

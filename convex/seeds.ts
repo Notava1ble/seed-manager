@@ -40,8 +40,6 @@ const seedUploadValidator = v.object({
   type: seedTypeValidator,
 });
 
-const seedRatingValidator = v.union(v.literal("Good"), v.literal("Bad"));
-
 type SeedUploadInput = {
   leagueId: Id<"leagues">;
   overworld: string;
@@ -547,6 +545,76 @@ export const importSeeds = mutation({
     await ctx.db.patch("leagues", seed.leagueId, {
       seedCount: league.seedCount + 1,
     });
+  },
+});
+
+export const moveSeed = mutation({
+  args: {
+    seedId: v.id("seeds"),
+    movement: v.union(v.literal("UP"), v.literal("DOWN")),
+  },
+  handler: async (ctx, args) => {
+    const seed = await ctx.db.get("seeds", args.seedId);
+    if (!seed) {
+      throw new ConvexError({
+        code: "SEED_NOT_FOUND",
+        message: "The requested seed does not exist",
+      });
+    }
+
+    const seedNumber = seed.seedNumber;
+
+    if (!seedNumber) {
+      throw new ConvexError({
+        code: "SEED_NUMBER_UNDEFINED",
+        message: "The seed number wasn't initialized",
+      });
+    }
+
+    if (args.movement === "UP") {
+      if (seedNumber === 1) {
+        return;
+      }
+
+      const seedAbove = await ctx.db
+        .query("seeds")
+        .withIndex("by_number_league_expired", (q) =>
+          q
+            .eq("seedNumber", seedNumber - 1)
+            .eq("leagueId", seed.leagueId)
+            .eq("isExpired", false),
+        )
+        .unique();
+
+      if (!seedAbove) return;
+
+      await ctx.db.patch("seeds", seed._id, {
+        seedNumber: seedNumber - 1,
+      });
+      await ctx.db.patch("seeds", seedAbove._id, {
+        seedNumber: seedNumber,
+      });
+    }
+    if (args.movement === "DOWN") {
+      const seedBelow = await ctx.db
+        .query("seeds")
+        .withIndex("by_number_league_expired", (q) =>
+          q
+            .eq("seedNumber", seedNumber + 1)
+            .eq("leagueId", seed.leagueId)
+            .eq("isExpired", false),
+        )
+        .unique();
+
+      if (!seedBelow) return;
+
+      await ctx.db.patch("seeds", seed._id, {
+        seedNumber: seedNumber + 1,
+      });
+      await ctx.db.patch("seeds", seedBelow._id, {
+        seedNumber: seedNumber,
+      });
+    }
   },
 });
 
