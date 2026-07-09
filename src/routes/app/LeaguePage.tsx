@@ -325,87 +325,85 @@ function SeedTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-md border">
-      <Table containerClassName="max-h-[calc(100svh-20rem)]">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="border-r w-6">#</TableHead>
-            <TableHead className="border-r text-left">Seed Type</TableHead>
-            <TableHead className="border-r">Overworld</TableHead>
-            <TableHead className="border-r">Nether</TableHead>
-            <TableHead className="border-r">End</TableHead>
-            <TableHead className="border-r">RNG</TableHead>
-            <TableHead className="w-20 border-r text-center">Status</TableHead>
-            <TableHead className="w-12 border-r text-center">
-              <MessageCircle />
-            </TableHead>
-            <TableHead className="w-12 " />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {seeds.map((seed, index) => {
-            const isSelected = seed._id === seedId;
+    <Table containerClassName="max-h-[calc(100svh-20rem)] overflow-auto rounded-md border">
+      <TableHeader>
+        <TableRow>
+          <TableHead className="border-r w-6">#</TableHead>
+          <TableHead className="border-r text-left">Seed Type</TableHead>
+          <TableHead className="border-r">Overworld</TableHead>
+          <TableHead className="border-r">Nether</TableHead>
+          <TableHead className="border-r">End</TableHead>
+          <TableHead className="border-r">RNG</TableHead>
+          <TableHead className="w-20 border-r text-center">Status</TableHead>
+          <TableHead className="w-12 border-r text-center">
+            <MessageCircle />
+          </TableHead>
+          <TableHead className="w-12 " />
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {seeds.map((seed, index) => {
+          const isSelected = seed._id === seedId;
 
-            return (
-              <TableRow
-                key={seed._id}
-                className={cn("cursor-pointer", isSelected && "bg-muted")}
-                onClick={() => onSeedSelect(seed._id)}
-              >
-                <TableCell className="border-r text-center tabular-nums">
-                  {seed.seedNumber ?? "-"}
-                </TableCell>
-                <TableCell className="border-r text-left font-medium">
-                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                    <span>
-                      {seed.type ? SEED_TYPES[seed.type] : "Unspecified"}
-                    </span>
-                  </div>
-                </TableCell>
+          return (
+            <TableRow
+              key={seed._id}
+              className={cn("cursor-pointer", isSelected && "bg-muted")}
+              onClick={() => onSeedSelect(seed._id)}
+            >
+              <TableCell className="border-r text-center tabular-nums">
+                {seed.seedNumber ?? "-"}
+              </TableCell>
+              <TableCell className="border-r text-left font-medium">
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  <span>
+                    {seed.type ? SEED_TYPES[seed.type] : "Unspecified"}
+                  </span>
+                </div>
+              </TableCell>
 
-                <SeedValueTableCell value={seed.overworld} />
-                <SeedValueTableCell value={seed.nether} />
-                <SeedValueTableCell value={seed.end} />
-                <SeedValueTableCell value={seed.rng} />
+              <SeedValueTableCell value={seed.overworld} />
+              <SeedValueTableCell value={seed.nether} />
+              <SeedValueTableCell value={seed.end} />
+              <SeedValueTableCell value={seed.rng} />
 
-                <TableCell className="border-r text-center">
-                  <SeedStatusBadge status={seed.isUsed ? "used" : "open"} />
-                </TableCell>
+              <TableCell className="border-r text-center">
+                <SeedStatusBadge status={seed.isUsed ? "used" : "open"} />
+              </TableCell>
 
-                <TableCell className="border-r text-center tabular-nums">
-                  {seed.commentCount}
-                </TableCell>
+              <TableCell className="border-r text-center tabular-nums">
+                {seed.commentCount}
+              </TableCell>
 
-                <TableCell className="text-center">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger>
-                      <div>
-                        <MoreVertical className="h-4 w-4" />
-                        <span className="sr-only">Open actions</span>
-                      </div>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        disabled={index === 0}
-                        onClick={() => moveUp(seed._id)}
-                      >
-                        Move up
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={index === seeds.length - 1}
-                        onClick={() => moveDown(seed._id)}
-                      >
-                        Move down
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
+              <TableCell className="text-center">
+                <DropdownMenu>
+                  <DropdownMenuTrigger>
+                    <div>
+                      <MoreVertical className="h-4 w-4" />
+                      <span className="sr-only">Open actions</span>
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      disabled={index === 0}
+                      onClick={() => moveUp(seed._id)}
+                    >
+                      Move up
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      disabled={index === seeds.length - 1}
+                      onClick={() => moveDown(seed._id)}
+                    >
+                      Move down
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 }
 
