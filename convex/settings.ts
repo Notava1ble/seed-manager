@@ -71,6 +71,7 @@ export const advanceWeek = mutation({
 
     for (const seed of activeSeeds) {
       await ctx.db.patch("seeds", seed._id, {
+        seedNumber: undefined,
         isExpired: true,
       });
       expiredCount += 1;

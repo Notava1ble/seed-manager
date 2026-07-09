@@ -71,11 +71,11 @@ export function SeedPage() {
       ? { leagueId: selectedLeagueId, seedId: selectedSeedId }
       : "skip",
   );
-  const updateSeedRating = useMutation(api.seeds.updateSeedRating);
+  const markSeedAsBad = useMutation(api.seeds.markSeedAsBad);
   const markSeedUsed = useMutation(api.seeds.markSeedUsed);
   const changeSeedLeague = useMutation(api.seeds.changeSeedLeague);
 
-  const handleRatingChange = async (rating: SeedRating) => {
+  const handleRatingChange = async () => {
     if (!selectedSeedId) {
       return;
     }
@@ -83,7 +83,7 @@ export function SeedPage() {
     setRatingError(null);
 
     try {
-      await updateSeedRating({ seedId: selectedSeedId, rating });
+      await markSeedAsBad({ seedId: selectedSeedId });
     } catch (error) {
       setRatingError(
         getErrorMessage(error, "Could not update this seed's rating"),
@@ -235,8 +235,8 @@ export function SeedPage() {
               setUsedError(null);
               setIsMarkUsedDialogOpen(true);
             }}
-            onRatingChange={(rating) => {
-              void handleRatingChange(rating);
+            onRatingChange={() => {
+              void handleRatingChange();
             }}
             rating={seed.rating}
           />

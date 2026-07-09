@@ -183,11 +183,9 @@ export const getSeedForLeague = query({
   },
 });
 
-// Should probably replace with changeRatingToBad because we now dont allow changing bad to good
-export const updateSeedRating = mutation({
+export const markSeedAsBad = mutation({
   args: {
     seedId: v.id("seeds"),
-    rating: seedRatingValidator,
   },
   handler: async (ctx, args) => {
     const user = await requireActiveUser(ctx);
@@ -215,21 +213,7 @@ export const updateSeedRating = mutation({
     }
 
     if (seed.rating === "Bad") {
-      throw new ConvexError({
-        code: "BAD_SEED_FINAL",
-        message: "Bad seeds cannot be marked good again",
-      });
-    }
-
-    if (args.rating === "Good") {
-      if (seed.rating === "Good") {
-        return;
-      }
-
-      throw new ConvexError({
-        code: "BAD_SEED_FINAL",
-        message: "Bad seeds cannot be marked good again",
-      });
+      return;
     }
 
     if (seed.rating !== "Good") {
@@ -261,10 +245,23 @@ export const updateSeedRating = mutation({
         message: "Only assigned seeds can be marked bad",
       });
     }
+
     const league = await ctx.db.get("leagues", seed.leagueId);
 
+    const seedsInLeague = await ctx.db
+      .query("seeds")
+      .withIndex("by_leagueId_and_isExpired", (q) =>
+        q.eq("leagueId", seed.leagueId).eq("isExpired", false),
+      )
+      .collect();
+
+    const remaining = seedsInLeague
+      .filter((s) => s._id !== seed._id)
+      .sort((a, b) => (a.seedNumber ?? 0) - (b.seedNumber ?? 0));
+
     await ctx.db.patch("seeds", seed._id, {
-      rating: args.rating,
+      seedNumber: undefined,
+      rating: "Bad" as const,
       leagueId: undefined,
       isExpired: undefined,
       assignedWeekNumber: undefined,
@@ -272,9 +269,15 @@ export const updateSeedRating = mutation({
       votedBy: user._id,
     });
 
+    await Promise.all(
+      remaining.map((s, i) =>
+        ctx.db.patch("seeds", s._id, { seedNumber: i + 1 }),
+      ),
+    );
+
     if (league) {
       await ctx.db.patch("leagues", seed.leagueId, {
-        seedCount: league.seedCount - 1,
+        seedCount: Math.max(0, league.seedCount - 1),
       });
     }
   },
@@ -414,7 +417,15 @@ export const changeSeedLeague = mutation({
       });
     }
 
+    const seedsAlreadyInTargetLeague = await ctx.db
+      .query("seeds")
+      .withIndex("by_leagueId_and_isExpired", (q) =>
+        q.eq("leagueId", targetLeague._id).eq("isExpired", false),
+      )
+      .collect();
+
     await ctx.db.patch("seeds", seed._id, {
+      seedNumber: seedsAlreadyInTargetLeague.length + 1,
       leagueId: targetLeague._id,
       leagueChangedByAdminId: admin._id,
     });
@@ -428,6 +439,23 @@ export const changeSeedLeague = mutation({
     await ctx.db.patch("leagues", targetLeague._id, {
       seedCount: targetLeague.seedCount + 1,
     });
+
+    // recalculate seed numbers for the previous league
+    const previousId = seed.leagueId;
+    const seedsOnPreviousLeague = await ctx.db
+      .query("seeds")
+      .withIndex("by_leagueId_and_isExpired", (q) =>
+        q.eq("leagueId", previousId).eq("isExpired", false),
+      )
+      .collect();
+
+    const sorted = seedsOnPreviousLeague.sort(
+      (a, b) => (a.seedNumber ?? 0) - (b.seedNumber ?? 0),
+    );
+
+    await Promise.all(
+      sorted.map((s, i) => ctx.db.patch("seeds", s._id, { seedNumber: i + 1 })),
+    );
   },
 });
 
@@ -467,6 +495,16 @@ export const importSeeds = mutation({
     const seed = await normalizeSeed(ctx, args.seed);
     const settings = await requireSettings(ctx);
 
+    // League existance check
+    const league = await ctx.db.get("leagues", seed.leagueId);
+
+    if (!league) {
+      throw new ConvexError({
+        code: "LEAGUE_NOT_EXIST",
+        message: "The requested league id does not exist",
+      });
+    }
+
     const existing = await ctx.db
       .query("seeds")
       .withIndex("by_owseed", (q) => q.eq("overworld", seed.overworld))
@@ -479,7 +517,16 @@ export const importSeeds = mutation({
       });
     }
 
+    const seedsAlreadyInThisLeague = await ctx.db
+      .query("seeds")
+      .withIndex("by_leagueId_and_isExpired", (q) =>
+        q.eq("leagueId", seed.leagueId).eq("isExpired", false),
+      )
+      .collect();
+
     await ctx.db.insert("seeds", {
+      seedNumber: seedsAlreadyInThisLeague.length + 1,
+
       overworld: seed.overworld,
       nether: seed.nether,
       end: seed.end,
@@ -496,15 +543,6 @@ export const importSeeds = mutation({
       isUsed: false,
       commentCount: 0,
     });
-
-    const league = await ctx.db.get("leagues", seed.leagueId);
-
-    if (!league) {
-      throw new ConvexError({
-        code: "LEAGUE_NOT_EXIST",
-        message: "The requested league id does not exist",
-      });
-    }
 
     await ctx.db.patch("leagues", seed.leagueId, {
       seedCount: league.seedCount + 1,

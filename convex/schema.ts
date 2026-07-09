@@ -43,6 +43,7 @@ export default defineSchema({
     seedTestingPaused: v.boolean(),
   }).index("by_key", ["key"]),
   seeds: defineTable({
+    seedNumber: v.optional(v.number()),
     leagueId: v.optional(v.id("leagues")),
     rating: v.optional(v.union(v.literal("Good"), v.literal("Bad"))),
     overworld: v.string(),
@@ -70,6 +71,7 @@ export default defineSchema({
     leagueChangedByAdminId: v.optional(v.id("users")),
     commentCount: v.number(),
   })
+    .index("by_number", ["seedNumber"])
     .index("by_owseed", ["overworld"])
     .index("by_leagueId", ["leagueId"])
     .index("by_isExpired", ["isExpired"])

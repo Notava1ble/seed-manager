@@ -28,6 +28,28 @@ export const initializeSettings = internalMutation({
   },
 });
 
+export const numberSeeds = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const allLeagues = await ctx.db.query("leagues").collect();
+
+    for (const league of allLeagues) {
+      const seedsForLeague = await ctx.db
+        .query("seeds")
+        .withIndex("by_leagueId_and_isExpired", (q) =>
+          q.eq("leagueId", league._id).eq("isExpired", false),
+        )
+        .collect();
+
+      await Promise.all(
+        seedsForLeague.map((s, i) =>
+          ctx.db.patch("seeds", s._id, { seedNumber: i + 1 }),
+        ),
+      );
+    }
+  },
+});
+
 function validateWeekNumber(weekNumber: number) {
   if (!Number.isSafeInteger(weekNumber) || weekNumber < 1) {
     throw new ConvexError({
