@@ -378,14 +378,12 @@ function SeedTable({
 
                 <TableCell className="text-center">
                   <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
-                          <span className="sr-only">Open actions</span>
-                        </Button>
-                      }
-                    />
+                    <DropdownMenuTrigger>
+                      <div>
+                        <MoreVertical className="h-4 w-4" />
+                        <span className="sr-only">Open actions</span>
+                      </div>
+                    </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
                         disabled={index === 0}
