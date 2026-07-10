@@ -1,5 +1,11 @@
 import { useMutation, useQuery } from "convex/react";
-import { MessageCircle, MoreVertical, Plus, Sprout } from "lucide-react";
+import {
+  CircleAlert,
+  MessageCircle,
+  MoreVertical,
+  Plus,
+  Sprout,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { Outlet, useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
@@ -122,10 +128,10 @@ export function LeaguePage() {
   }, [user, selectedLeagueId]);
 
   const moveUp = (id: Id<"seeds">) => {
-    moveSeed({ seedId: id, movement: "UP" });
+    void moveSeed({ seedId: id, movement: "UP" });
   };
   const moveDown = (id: Id<"seeds">) => {
-    moveSeed({ seedId: id, movement: "DOWN" });
+    void moveSeed({ seedId: id, movement: "DOWN" });
   };
 
   return (
@@ -217,14 +223,25 @@ function SeedDistributionCard({
   }
 
   const rows = requirements.map((requirement) => {
-    const count = seeds.filter(
-      (seed) => seed.type && requirement.types.includes(seed.type),
-    ).length;
+    const countsByType = Object.fromEntries(
+      requirement.types.map((type) => [
+        type,
+        seeds.filter((seed) => seed.type === type).length,
+      ]),
+    ) as Record<SeedType, number>;
+    const count = Object.values(countsByType).reduce(
+      (total, typeCount) => total + typeCount,
+      0,
+    );
     const label = requirement.types.map((type) => SEED_TYPES[type]).join(" / ");
+    const missingTypes = requirement.types.filter(
+      (type) => countsByType[type] === 0,
+    );
 
     return {
       count,
       label,
+      missingTypes,
       required: requirement.required,
     };
   });
@@ -233,7 +250,6 @@ function SeedDistributionCard({
     (total, row) => total + Math.min(row.count, row.required),
     0,
   );
-
   return (
     <Card size="sm">
       <CardHeader>
@@ -242,9 +258,7 @@ function SeedDistributionCard({
             <CardTitle>Seed type distribution</CardTitle>
             <CardDescription>{league.leagueName}</CardDescription>
           </div>
-          <Badge
-            variant={filledTotal >= requiredTotal ? "secondary" : "outline"}
-          >
+          <Badge variant={filledTotal >= requiredTotal ? "secondary" : "outline"}>
             {filledTotal} / {requiredTotal} filled
           </Badge>
         </div>
@@ -252,8 +266,11 @@ function SeedDistributionCard({
       <CardContent>
         <div className="grid gap-3 md:grid-cols-3">
           {rows.map((row) => {
-            const isFilled = row.count >= row.required;
+            const isFilled =
+              row.count >= row.required && row.missingTypes.length === 0;
             const isOverfilled = row.count > row.required;
+            const hasMissingTypeWarning =
+              row.count >= row.required - 1 && row.missingTypes.length === 1;
             const progressValue = Math.min(
               Math.round((row.count / row.required) * 100),
               100,
@@ -267,9 +284,16 @@ function SeedDistributionCard({
                 <div className="flex min-w-0 items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{row.label}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {row.required} required
-                    </p>
+                    {hasMissingTypeWarning ? (
+                      <p className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
+                        <CircleAlert className="size-3 shrink-0" />
+                        Missing {SEED_TYPES[row.missingTypes[0]]}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        {row.required} required
+                      </p>
+                    )}
                   </div>
                   <Badge
                     variant={
