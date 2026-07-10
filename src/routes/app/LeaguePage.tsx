@@ -79,7 +79,8 @@ const LEAGUE_SEED_DISTRIBUTIONS: Partial<
   ],
   6: [
     { required: 1, types: ["SHIPWRECK"] },
-    { required: 4, types: ["VILLAGE", "DESERT_TEMPLE"] },
+    { required: 2, types: ["DESERT_TEMPLE"] },
+    { required: 2, types: ["VILLAGE"] },
   ],
   7: [
     { required: 1, types: ["VILLAGE"] },
