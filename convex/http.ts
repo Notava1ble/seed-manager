@@ -10,7 +10,7 @@ import {
 } from "./lib/utils";
 import z from "zod";
 import { internal } from "./_generated/api";
-import { UpdatePlayerRolesSchema } from "./lib/validators";
+import { AdvanceWeekSchema, UpdatePlayerRolesSchema } from "./lib/validators";
 
 type ProtectedRunResult = { ok: true; [key: string]: unknown };
 
@@ -107,8 +107,28 @@ http.route({
     runProtectedJsonRoute({
       request,
       schema: UpdatePlayerRolesSchema,
-      routeLabel: "PATCH /api/write/movements",
-      run: (payload) => ctx.runMutation(internal.users.updateAllUsers, payload),
+      routeLabel: "POST /api/users/discord/roles/update",
+      run: (payload) =>
+        ctx.runMutation(internal.users.updateDiscordRole, payload),
+    }),
+  ),
+});
+
+http.route({
+  path: "/api/week/advance",
+  method: "POST",
+  handler: httpAction(async (ctx, request) =>
+    runProtectedJsonRoute({
+      request,
+      schema: AdvanceWeekSchema,
+      routeLabel: "POST /api/week/advance",
+      run: async () => {
+        const result = await ctx.runMutation(
+          internal.settings.advanceWeekInternal,
+          {},
+        );
+        return { ok: true, ...result };
+      },
     }),
   ),
 });

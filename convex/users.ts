@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 import {
   internalMutation,
   internalQuery,
@@ -183,65 +183,77 @@ export const updateManagedUser = mutation({
   },
 });
 
-export const updateAllUsers = internalMutation({
+export const updateDiscordRole = internalMutation({
   args: {
-    users: v.array(
-      v.object({
-        discordId: v.string(),
-        roles: v.array(v.string()),
-        uploaderLeagueNumbers: v.optional(v.array(v.number())),
-        hostLeagueNumbers: v.optional(v.array(v.number())),
-      }),
-    ),
+    discordId: v.string(),
+    role: managedRoleValidator,
+    leagueNumber: v.number(),
+    operation: v.union(v.literal("add"), v.literal("remove")),
   },
   handler: async (ctx, args) => {
-    for (const u of args.users) {
-      const user = await ctx.db
-        .query("users")
-        .withIndex("by_discordId", (q) => q.eq("discordId", u.discordId))
-        .unique();
+    const discordId = normalizeDiscordId(args.discordId);
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_discordId", (q) => q.eq("discordId", discordId))
+      .unique();
 
-      if (!user) {
-        console.log(
-          `[updateAllUsers] No user found for discordId=${u.discordId}`,
-        );
-        continue;
-      }
-
-      if (user.roles.includes("admin")) {
-        throw new ConvexError({
-          status: 403,
-          error: "Admin users cannot be managed through the API.",
-        });
-      }
-
-      if (user.status !== "active") {
-        throw new ConvexError({
-          status: 403,
-          error: "Only active users can be managed by the API.",
-        });
-      }
-
-      const patch: Partial<Doc<"users">> = {
-        roles: u.roles as typeof user.roles,
-      };
-
-      if (u.uploaderLeagueNumbers !== undefined) {
-        patch.uploaderLeagues = await getLeaguesFromNumbers(
-          ctx,
-          u.uploaderLeagueNumbers,
-        );
-      }
-
-      if (u.hostLeagueNumbers !== undefined) {
-        patch.hostLeagueId = await getLeaguesFromNumbers(
-          ctx,
-          u.hostLeagueNumbers,
-        );
-      }
-
-      await ctx.db.patch("users", user._id, patch);
+    if (!user) {
+      throw new ConvexError({
+        code: "USER_NOT_FOUND",
+        message: "The Discord user has not signed in to Seed Manager",
+      });
     }
+
+    // TODO: Make this later not read only so we can modify admins through discord
+    if (user.roles.includes("admin")) {
+      throw new ConvexError({
+        code: "ADMIN_USER_READ_ONLY",
+        message: "Admin users cannot be managed through the API.",
+      });
+    }
+
+    if (user.status !== "active") {
+      throw new ConvexError({
+        code: "USER_NOT_ACTIVE",
+        message: "Only active users can be managed by the API.",
+      });
+    }
+
+    const league = await ctx.db
+      .query("leagues")
+      .withIndex("by_leagueNumber", (q) =>
+        q.eq("leagueNumber", args.leagueNumber),
+      )
+      .unique();
+
+    if (!league) {
+      throw new ConvexError({
+        code: "LEAGUE_NOT_FOUND",
+        message: `League ${args.leagueNumber} does not exist`,
+      });
+    }
+
+    const leagueField =
+      args.role === "uploader" ? "uploaderLeagues" : "hostLeagueId";
+    const leagueIds = new Set(user[leagueField] ?? []);
+
+    if (args.operation === "add") {
+      leagueIds.add(league._id);
+    } else {
+      leagueIds.delete(league._id);
+    }
+
+    const roles = new Set(user.roles);
+    if (args.operation === "add") {
+      roles.add(args.role);
+    } else if (leagueIds.size === 0) {
+      roles.delete(args.role);
+    }
+
+    await ctx.db.patch("users", user._id, {
+      [leagueField]: Array.from(leagueIds),
+      roles: ALL_ROLE_ORDER.filter((role) => roles.has(role)),
+    });
 
     return { ok: true as const };
   },
@@ -301,23 +313,4 @@ function normalizeManagedRoles(roles: ManagedRole[]) {
   const roleSet = new Set(roles);
 
   return MANAGED_ROLE_ORDER.filter((role) => roleSet.has(role));
-}
-
-async function getLeaguesFromNumbers(
-  ctx: MutationCtx,
-  nums: number[],
-): Promise<Id<"leagues">[]> {
-  const ids: Id<"leagues">[] = [];
-  for (const num of nums) {
-    const league = await ctx.db
-      .query("leagues")
-      .withIndex("by_leagueNumber", (q) => q.eq("leagueNumber", num))
-      .unique();
-    if (league) {
-      ids.push(league._id);
-      continue;
-    }
-    console.error(`404: League ${num} not found`);
-  }
-  return ids;
 }

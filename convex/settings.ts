@@ -1,5 +1,6 @@
 import { ConvexError } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { requireActiveUser, requireAdmin } from "./lib/permissions";
 import { getSettings, requireSettings } from "./lib/settings";
 import { MAX_WEEK_EXPIRATION_COUNT } from "./lib/consts";
@@ -45,10 +46,14 @@ export const resumeSeedTesting = mutation({
   },
 });
 
-export const advanceWeek = mutation({
+type AdvanceWeekResult = {
+  currentWeekNumber: number;
+  expiredCount: number;
+};
+
+export const advanceWeekInternal = internalMutation({
   args: {},
   handler: async (ctx) => {
-    await requireAdmin(ctx);
     const settings = await requireSettings(ctx);
     const activeSeeds = await ctx.db
       .query("seeds")
@@ -106,5 +111,19 @@ export const advanceWeek = mutation({
       currentWeekNumber: settings.currentWeekNumber + 1,
       expiredCount,
     };
+  },
+});
+
+export const advanceWeek = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+
+    const result: AdvanceWeekResult = await ctx.runMutation(
+      internal.settings.advanceWeekInternal,
+      {},
+    );
+
+    return result;
   },
 });
