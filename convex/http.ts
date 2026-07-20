@@ -4,13 +4,18 @@ import { auth } from "./auth";
 import { httpAction } from "./_generated/server";
 import {
   extractRequestBody,
+  extractQueryParams,
   jsonError,
   jsonResponse,
   validateApiKey,
 } from "./lib/utils";
 import z from "zod";
 import { internal } from "./_generated/api";
-import { AdvanceWeekSchema, UpdatePlayerRolesSchema } from "./lib/validators";
+import {
+  AdvanceWeekSchema,
+  DiscordUserInfoQuerySchema,
+  UpdatePlayerRolesSchema,
+} from "./lib/validators";
 
 type ProtectedRunResult = { ok: true; [key: string]: unknown };
 
@@ -51,20 +56,27 @@ async function runProtectedJsonRoute<T>(args: {
   }
 }
 
-async function runReadRoute(args: {
+async function runReadRoute<T extends Record<string, string>>(args: {
   request: Request;
   routeLabel: string;
-  run: (payload: Record<string, string>) => Promise<RouteResult>;
+  schema?: z.ZodType<T>;
+  run: (payload: T) => Promise<RouteResult>;
 }) {
   const authError = await validateApiKey(args.request, "READ_API_KEY_SEEDS");
   if (authError) return authError;
 
-  const payload = Object.fromEntries(
-    new URL(args.request.url).searchParams.entries(),
-  );
+  const payloadResult = args.schema
+    ? extractQueryParams(args.request, args.schema)
+    : {
+        data: Object.fromEntries(
+          new URL(args.request.url).searchParams.entries(),
+        ) as T,
+      };
+
+  if ("errorResponse" in payloadResult) return payloadResult.errorResponse;
 
   try {
-    const result = await args.run(payload);
+    const result = await args.run(payloadResult.data);
 
     if (result.ok === false) {
       return jsonError(result.error, result.status);
@@ -101,6 +113,34 @@ http.route({
 });
 
 http.route({
+  path: "/api/users/discord/info",
+  method: "GET",
+  handler: httpAction(async (ctx, request) =>
+    runReadRoute({
+      request,
+      schema: DiscordUserInfoQuerySchema,
+      routeLabel: "GET /api/users/discord/info",
+      run: async ({ discordId }) => {
+        const result = await ctx.runQuery(
+          internal.users.getDiscordUserInfoAPI,
+          { discordId },
+        );
+
+        if (!result) {
+          return {
+            ok: false as const,
+            status: 404,
+            error: "Seed Manager user not found.",
+          };
+        }
+
+        return { ok: true, result };
+      },
+    }),
+  ),
+});
+
+http.route({
   path: "/api/users/discord/roles/update",
   method: "POST",
   handler: httpAction(async (ctx, request) =>
@@ -109,7 +149,7 @@ http.route({
       schema: UpdatePlayerRolesSchema,
       routeLabel: "POST /api/users/discord/roles/update",
       run: (payload) =>
-        ctx.runMutation(internal.users.updateDiscordRole, payload),
+        ctx.runMutation(internal.users.updateDiscordAccess, payload),
     }),
   ),
 });

@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import {
   internalMutation,
   internalQuery,
@@ -13,6 +13,11 @@ import { getUser, requireActiveUser, requireAdmin } from "./lib/permissions";
 const MAX_USER_LIST_COUNT = 1000;
 
 const managedRoleValidator = v.union(v.literal("host"), v.literal("uploader"));
+const discordRoleValidator = v.union(
+  v.literal("admin"),
+  v.literal("host"),
+  v.literal("uploader"),
+);
 const ALL_ROLE_ORDER = ["admin", "host", "uploader"] as const;
 const MANAGED_ROLE_ORDER = ["host", "uploader"] as const;
 
@@ -64,6 +69,37 @@ export const listActiveUsersAPI = internalQuery({
       .take(MAX_USER_LIST_COUNT);
 
     return users;
+  },
+});
+
+export const getDiscordUserInfoAPI = internalQuery({
+  args: {
+    discordId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const discordId = normalizeDiscordId(args.discordId);
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_discordId", (q) => q.eq("discordId", discordId))
+      .unique();
+
+    if (!user) {
+      return null;
+    }
+
+    const [uploaderLeagues, hostLeagues] = await Promise.all([
+      getLeagueInfo(ctx, user.uploaderLeagues ?? []),
+      getLeagueInfo(ctx, user.hostLeagueId ?? []),
+    ]);
+
+    return {
+      discordId,
+      ...(user.name ? { name: user.name } : {}),
+      status: user.status,
+      roles: user.roles,
+      uploaderLeagues,
+      hostLeagues,
+    };
   },
 });
 
@@ -183,12 +219,12 @@ export const updateManagedUser = mutation({
   },
 });
 
-export const updateDiscordRole = internalMutation({
+export const updateDiscordAccess = internalMutation({
   args: {
     discordId: v.string(),
-    role: managedRoleValidator,
-    leagueNumber: v.number(),
+    role: discordRoleValidator,
     operation: v.union(v.literal("add"), v.literal("remove")),
+    leagueNumbers: v.optional(v.array(v.number())),
   },
   handler: async (ctx, args) => {
     const discordId = normalizeDiscordId(args.discordId);
@@ -204,14 +240,6 @@ export const updateDiscordRole = internalMutation({
       });
     }
 
-    // TODO: Make this later not read only so we can modify admins through discord
-    if (user.roles.includes("admin")) {
-      throw new ConvexError({
-        code: "ADMIN_USER_READ_ONLY",
-        message: "Admin users cannot be managed through the API.",
-      });
-    }
-
     if (user.status !== "active") {
       throw new ConvexError({
         code: "USER_NOT_ACTIVE",
@@ -219,45 +247,81 @@ export const updateDiscordRole = internalMutation({
       });
     }
 
-    const league = await ctx.db
-      .query("leagues")
-      .withIndex("by_leagueNumber", (q) =>
-        q.eq("leagueNumber", args.leagueNumber),
-      )
-      .unique();
+    if (args.leagueNumbers !== undefined) {
+      if (args.role === "admin") {
+        throw new ConvexError({
+          code: "INVALID_LEAGUE_ROLE",
+          message: "The admin role cannot be assigned to leagues",
+        });
+      }
 
-    if (!league) {
-      throw new ConvexError({
-        code: "LEAGUE_NOT_FOUND",
-        message: `League ${args.leagueNumber} does not exist`,
-      });
-    }
+      const leagueNumbers = normalizeLeagueNumbers(args.leagueNumbers);
+      const leagues = await Promise.all(
+        leagueNumbers.map((leagueNumber) =>
+          ctx.db
+            .query("leagues")
+            .withIndex("by_leagueNumber", (q) =>
+              q.eq("leagueNumber", leagueNumber),
+            )
+            .unique(),
+        ),
+      );
 
-    const leagueField =
-      args.role === "uploader" ? "uploaderLeagues" : "hostLeagueId";
-    const leagueIds = new Set(user[leagueField] ?? []);
+      const missingIndex = leagues.findIndex((league) => league === null);
+      if (missingIndex !== -1) {
+        throw new ConvexError({
+          code: "LEAGUE_NOT_FOUND",
+          message: `League ${leagueNumbers[missingIndex]} does not exist`,
+        });
+      }
 
-    if (args.operation === "add") {
-      leagueIds.add(league._id);
-    } else {
-      leagueIds.delete(league._id);
+      const leagueField =
+        args.role === "uploader" ? "uploaderLeagues" : "hostLeagueId";
+      const leagueIds = new Set(user[leagueField] ?? []);
+
+      for (const league of leagues) {
+        leagueIds[args.operation === "add" ? "add" : "delete"](league!._id);
+      }
+
+      if (leagueField === "uploaderLeagues") {
+        await ctx.db.patch("users", user._id, {
+          uploaderLeagues: Array.from(leagueIds),
+          ...(args.operation === "add"
+            ? { roles: addRole(user.roles, args.role) }
+            : {}),
+        });
+      } else {
+        await ctx.db.patch("users", user._id, {
+          hostLeagueId: Array.from(leagueIds),
+          ...(args.operation === "add"
+            ? { roles: addRole(user.roles, args.role) }
+            : {}),
+        });
+      }
+
+      return { ok: true as const };
     }
 
     const roles = new Set(user.roles);
     if (args.operation === "add") {
       roles.add(args.role);
-    } else if (leagueIds.size === 0) {
+    } else {
       roles.delete(args.role);
     }
 
     await ctx.db.patch("users", user._id, {
-      [leagueField]: Array.from(leagueIds),
       roles: ALL_ROLE_ORDER.filter((role) => roles.has(role)),
     });
 
     return { ok: true as const };
   },
 });
+
+function addRole(roles: UserRole[], role: UserRole) {
+  const roleSet = new Set(roles);
+  roleSet.add(role);
+  return ALL_ROLE_ORDER.filter((candidate) => roleSet.has(candidate));
+}
 
 function normalizeDiscordId(discordId: string) {
   const normalizedDiscordId = discordId.trim();
@@ -277,6 +341,38 @@ function normalizeDiscordId(discordId: string) {
   }
 
   return normalizedDiscordId;
+}
+
+function normalizeLeagueNumbers(leagueNumbers: number[]) {
+  const uniqueLeagueNumbers = Array.from(new Set(leagueNumbers));
+
+  if (
+    uniqueLeagueNumbers.some(
+      (leagueNumber) =>
+        !Number.isSafeInteger(leagueNumber) || leagueNumber < 1,
+    )
+  ) {
+    throw new ConvexError({
+      code: "INVALID_LEAGUE_NUMBER",
+      message: "League numbers must be positive whole numbers",
+    });
+  }
+
+  return uniqueLeagueNumbers;
+}
+
+async function getLeagueInfo(
+  ctx: QueryCtx | MutationCtx,
+  leagueIds: Id<"leagues">[],
+) {
+  const leagues = await Promise.all(
+    leagueIds.map((leagueId) => ctx.db.get("leagues", leagueId)),
+  );
+
+  return leagues
+    .filter((league): league is Doc<"leagues"> => league !== null)
+    .sort((first, second) => first.leagueNumber - second.leagueNumber)
+    .map(({ leagueNumber, leagueName }) => ({ leagueNumber, leagueName }));
 }
 
 async function normalizeLeagueIds(

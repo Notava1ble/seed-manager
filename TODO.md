@@ -1,4 +1,6 @@
 - [ ] admin dashboard that shows how many seeds we have in each league + other info
-- [ ] add a way to reorder seeds by having a non-global-unique seed number but unique per league
-  - [ ] when reordering I can query the seed in the league that is one number below, increase it by one and lower the current by one. Reverse when its the up arrow
+- [x] add a way to reorder seeds by having a non-global-unique seed number but unique per league
+  - [x] when reordering I can query the seed in the league that is one number below, increase it by one and lower the current by one. Reverse when its the up arrow
 - [x] clear uploader and host leagues on week advancing
+- [ ] Add api to activate/deactivate user
+- [x] Add command to advance week
