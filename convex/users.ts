@@ -103,6 +103,70 @@ export const getDiscordUserInfoAPI = internalQuery({
   },
 });
 
+export const activateUserByDiscordIdAPI = internalMutation({
+  args: {
+    discordId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const discordId = normalizeDiscordId(args.discordId);
+    const user = await getUserByDiscordId(ctx, discordId);
+
+    if (!user) {
+      throw new ConvexError({
+        code: "USER_NOT_FOUND",
+        message: "The Discord user has not signed in to Seed Manager",
+      });
+    }
+
+    if (user.status === "active") {
+      return { ok: true as const };
+    }
+
+    if (user.status !== "pending") {
+      throw new ConvexError({
+        code: "USER_NOT_ACTIVATABLE",
+        message: "Only pending users can be activated by the API.",
+      });
+    }
+
+    await ctx.db.patch("users", user._id, { status: "active" });
+    return { ok: true as const };
+  },
+});
+
+export const deactivateUserByDiscordIdAPI = internalMutation({
+  args: {
+    discordId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const discordId = normalizeDiscordId(args.discordId);
+    const user = await getUserByDiscordId(ctx, discordId);
+
+    if (!user) {
+      throw new ConvexError({
+        code: "USER_NOT_FOUND",
+        message: "The Discord user has not signed in to Seed Manager",
+      });
+    }
+
+    if (user.status !== "active" && user.status !== "pending") {
+      throw new ConvexError({
+        code: "USER_NOT_DEACTIVATABLE",
+        message: "Only active or pending users can be deactivated by the API.",
+      });
+    }
+
+    await ctx.db.patch("users", user._id, {
+      status: "pending",
+      roles: [],
+      uploaderLeagues: [],
+      hostLeagueId: [],
+    });
+
+    return { ok: true as const };
+  },
+});
+
 export const listPendingUsers = query({
   args: {},
   handler: async (ctx) => {
@@ -321,6 +385,16 @@ function addRole(roles: UserRole[], role: UserRole) {
   const roleSet = new Set(roles);
   roleSet.add(role);
   return ALL_ROLE_ORDER.filter((candidate) => roleSet.has(candidate));
+}
+
+async function getUserByDiscordId(
+  ctx: QueryCtx | MutationCtx,
+  discordId: string,
+) {
+  return await ctx.db
+    .query("users")
+    .withIndex("by_discordId", (q) => q.eq("discordId", discordId))
+    .unique();
 }
 
 function normalizeDiscordId(discordId: string) {

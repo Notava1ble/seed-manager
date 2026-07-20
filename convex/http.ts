@@ -14,6 +14,7 @@ import { internal } from "./_generated/api";
 import {
   AdvanceWeekSchema,
   DiscordUserInfoQuerySchema,
+  DiscordUserStatusSchema,
   UpdatePlayerRolesSchema,
 } from "./lib/validators";
 
@@ -150,6 +151,34 @@ http.route({
       routeLabel: "POST /api/users/discord/roles/update",
       run: (payload) =>
         ctx.runMutation(internal.users.updateDiscordAccess, payload),
+    }),
+  ),
+});
+
+http.route({
+  path: "/api/users/discord/activate",
+  method: "POST",
+  handler: httpAction(async (ctx, request) =>
+    runProtectedJsonRoute({
+      request,
+      schema: DiscordUserStatusSchema,
+      routeLabel: "POST /api/users/discord/activate",
+      run: (payload) =>
+        ctx.runMutation(internal.users.activateUserByDiscordIdAPI, payload),
+    }),
+  ),
+});
+
+http.route({
+  path: "/api/users/discord/deactivate",
+  method: "POST",
+  handler: httpAction(async (ctx, request) =>
+    runProtectedJsonRoute({
+      request,
+      schema: DiscordUserStatusSchema,
+      routeLabel: "POST /api/users/discord/deactivate",
+      run: (payload) =>
+        ctx.runMutation(internal.users.deactivateUserByDiscordIdAPI, payload),
     }),
   ),
 });

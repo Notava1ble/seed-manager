@@ -19,4 +19,8 @@ export const DiscordUserInfoQuerySchema = z.object({
   discordId: z.string().trim().min(1),
 });
 
+export const DiscordUserStatusSchema = z.object({
+  discordId: z.string().trim().min(1),
+});
+
 export const AdvanceWeekSchema = z.object({}).strict();
