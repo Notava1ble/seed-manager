@@ -12,7 +12,6 @@ import {
 import z from "zod";
 import { internal } from "./_generated/api";
 import {
-  AdvanceWeekSchema,
   DiscordUserInfoQuerySchema,
   DiscordUserStatusSchema,
   UpdatePlayerRolesSchema,
@@ -179,25 +178,6 @@ http.route({
       routeLabel: "POST /api/users/discord/deactivate",
       run: (payload) =>
         ctx.runMutation(internal.users.deactivateUserByDiscordIdAPI, payload),
-    }),
-  ),
-});
-
-http.route({
-  path: "/api/week/advance",
-  method: "POST",
-  handler: httpAction(async (ctx, request) =>
-    runProtectedJsonRoute({
-      request,
-      schema: AdvanceWeekSchema,
-      routeLabel: "POST /api/week/advance",
-      run: async () => {
-        const result = await ctx.runMutation(
-          internal.settings.advanceWeekInternal,
-          {},
-        );
-        return { ok: true, ...result };
-      },
     }),
   ),
 });
