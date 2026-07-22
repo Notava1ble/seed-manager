@@ -74,7 +74,7 @@ const LEAGUE_SEED_DISTRIBUTIONS: Partial<
     { required: 2, types: ["RUINED_PORTAL"] },
   ],
   4: [
-    { required: 2, types: ["SHIPWRECK"] },
+    { required: 2, types: ["SHIPWRECK", "BURIED_TREASURE"] },
     { required: 3, types: ["VILLAGE", "DESERT_TEMPLE"] },
     { required: 1, types: ["RUINED_PORTAL"] },
   ],
@@ -85,8 +85,8 @@ const LEAGUE_SEED_DISTRIBUTIONS: Partial<
   ],
   6: [
     { required: 1, types: ["SHIPWRECK"] },
-    { required: 2, types: ["DESERT_TEMPLE"] },
-    { required: 2, types: ["VILLAGE"] },
+    { required: 3, types: ["VILLAGE", "DESERT_TEMPLE"] },
+    { required: 1, types: ["RUINED_PORTAL"] },
   ],
   7: [
     { required: 1, types: ["VILLAGE"] },
@@ -258,7 +258,9 @@ function SeedDistributionCard({
             <CardTitle>Seed type distribution</CardTitle>
             <CardDescription>{league.leagueName}</CardDescription>
           </div>
-          <Badge variant={filledTotal >= requiredTotal ? "secondary" : "outline"}>
+          <Badge
+            variant={filledTotal >= requiredTotal ? "secondary" : "outline"}
+          >
             {filledTotal} / {requiredTotal} filled
           </Badge>
         </div>

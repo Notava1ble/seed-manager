@@ -1,6 +1,7 @@
 - [ ] admin dashboard that shows how many seeds we have in each league + other info
-- [x] add a way to reorder seeds by having a non-global-unique seed number but unique per league
-  - [x] when reordering I can query the seed in the league that is one number below, increase it by one and lower the current by one. Reverse when its the up arrow
-- [x] clear uploader and host leagues on week advancing
-- [ ] Add api to activate/deactivate user
-- [x] Add command to advance week
+- [ ] logging
+- [ ] Public facing page where users can see past seeds
+  - [ ] should allow to browse seeds per week per league
+  - [ ] should show seeds in the current week when they get marked as used
+  - [ ] should allow signed in users to vote on the seeds
+    - [ ] allow votes only from users who have discord id give the a player who played on that week and league.
