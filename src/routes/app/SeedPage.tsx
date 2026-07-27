@@ -54,8 +54,10 @@ export function SeedPage() {
     null,
   );
   const [isMarkingUsed, setIsMarkingUsed] = useState(false);
+  const [isMarkingBad, setIsMarkingBad] = useState(false);
   const [isChangingLeague, setIsChangingLeague] = useState(false);
   const [isMarkUsedDialogOpen, setIsMarkUsedDialogOpen] = useState(false);
+  const [isMarkBadDialogOpen, setIsMarkBadDialogOpen] = useState(false);
   const [isChangeLeagueDialogOpen, setIsChangeLeagueDialogOpen] =
     useState(false);
   const [targetLeagueId, setTargetLeagueId] = useState<Id<"leagues"> | null>(
@@ -75,19 +77,23 @@ export function SeedPage() {
   const markSeedUsed = useMutation(api.seeds.markSeedUsed);
   const changeSeedLeague = useMutation(api.seeds.changeSeedLeague);
 
-  const handleRatingChange = async () => {
+  const handleMarkBad = async () => {
     if (!selectedSeedId) {
       return;
     }
 
     setRatingError(null);
+    setIsMarkingBad(true);
 
     try {
       await markSeedAsBad({ seedId: selectedSeedId });
+      setIsMarkBadDialogOpen(false);
     } catch (error) {
       setRatingError(
         getErrorMessage(error, "Could not update this seed's rating"),
       );
+    } finally {
+      setIsMarkingBad(false);
     }
   };
 
@@ -236,12 +242,13 @@ export function SeedPage() {
               setIsMarkUsedDialogOpen(true);
             }}
             onRatingChange={() => {
-              void handleRatingChange();
+              setRatingError(null);
+              setIsMarkBadDialogOpen(true);
             }}
             rating={seed.rating}
           />
 
-          {ratingError && (
+          {ratingError && !isMarkBadDialogOpen && (
             <p className="text-xs text-destructive">{ratingError}</p>
           )}
           {usedError && !isMarkUsedDialogOpen && (
@@ -282,6 +289,34 @@ export function SeedPage() {
               variant="destructive"
             >
               {isMarkingUsed ? "Marking used" : "Mark used"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={isMarkBadDialogOpen}
+        onOpenChange={setIsMarkBadDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogTitle>Mark this seed as bad?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. The seed will be removed from its
+            league and cannot be marked good again.
+          </AlertDialogDescription>
+          {ratingError && (
+            <p className="text-xs text-destructive">{ratingError}</p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isMarkingBad}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isMarkingBad}
+              onClick={() => void handleMarkBad()}
+              variant="destructive"
+            >
+              {isMarkingBad ? "Marking bad" : "Mark bad"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
