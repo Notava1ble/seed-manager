@@ -5,6 +5,7 @@ import {
   requireActiveUser,
   requireAdmin,
 } from "./lib/permissions";
+import { writeLog } from "./lib/logging";
 
 const MIN_LEAGUE_NAME_LENGTH = 3;
 const MAX_LEAGUE_NAME_LENGTH = 20;
@@ -102,7 +103,7 @@ export const addLeague = mutation({
     leagueName: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const admin = await requireAdmin(ctx);
 
     const leagueName = validateLeagueFields(args);
 
@@ -120,12 +121,24 @@ export const addLeague = mutation({
       });
     }
 
-    return await ctx.db.insert("leagues", {
+    const leagueId = await ctx.db.insert("leagues", {
       seedCount: 0,
       usedSeedCount: 0,
       leagueNumber: args.leagueNumber,
       leagueName,
     });
+
+    await writeLog(ctx, {
+      eventType: "league.created",
+      actor: admin,
+      actorType: "admin",
+      targetType: "league",
+      targetId: leagueId,
+      targetLabel: leagueName,
+      summary: `Created ${leagueName} as league ${args.leagueNumber}.`,
+    });
+
+    return leagueId;
   },
 });
 
@@ -136,7 +149,7 @@ export const updateLeague = mutation({
     leagueName: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const admin = await requireAdmin(ctx);
 
     const league = await ctx.db.get("leagues", args.leagueId);
 
@@ -165,9 +178,31 @@ export const updateLeague = mutation({
       }
     }
 
+    const changes: string[] = [];
+    if (league.leagueNumber !== args.leagueNumber) {
+      changes.push(`number ${league.leagueNumber} to ${args.leagueNumber}`);
+    }
+    if (league.leagueName !== leagueName) {
+      changes.push(`name “${league.leagueName}” to “${leagueName}”`);
+    }
+
+    if (changes.length === 0) {
+      return;
+    }
+
     await ctx.db.patch("leagues", args.leagueId, {
       leagueNumber: args.leagueNumber,
       leagueName,
+    });
+
+    await writeLog(ctx, {
+      eventType: "league.updated",
+      actor: admin,
+      actorType: "admin",
+      targetType: "league",
+      targetId: league._id,
+      targetLabel: leagueName,
+      summary: `Changed ${changes.join(" and ")}.`,
     });
   },
 });
@@ -177,7 +212,7 @@ export const deleteLeague = mutation({
     leagueId: v.id("leagues"),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const admin = await requireAdmin(ctx);
 
     const league = await ctx.db.get("leagues", args.leagueId);
 
@@ -201,5 +236,15 @@ export const deleteLeague = mutation({
     }
 
     await ctx.db.delete("leagues", league._id);
+
+    await writeLog(ctx, {
+      eventType: "league.deleted",
+      actor: admin,
+      actorType: "admin",
+      targetType: "league",
+      targetId: league._id,
+      targetLabel: league.leagueName,
+      summary: `Deleted ${league.leagueName} (league ${league.leagueNumber}).`,
+    });
   },
 });

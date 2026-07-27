@@ -4,6 +4,7 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import { requireActiveUser, requireAdmin } from "./lib/permissions";
 import { getSettings, requireSettings } from "./lib/settings";
 import { MAX_WEEK_EXPIRATION_COUNT } from "./lib/consts";
+import { writeLog } from "./lib/logging";
 
 export const current = query({
   args: {},
@@ -17,7 +18,7 @@ export const current = query({
 export const pauseSeedTesting = mutation({
   args: {},
   handler: async (ctx) => {
-    await requireAdmin(ctx);
+    const admin = await requireAdmin(ctx);
     const settings = await requireSettings(ctx);
 
     if (settings.seedTestingPaused) {
@@ -27,13 +28,23 @@ export const pauseSeedTesting = mutation({
     await ctx.db.patch("settings", settings._id, {
       seedTestingPaused: true,
     });
+
+    await writeLog(ctx, {
+      eventType: "testing.paused",
+      actor: admin,
+      actorType: "admin",
+      targetType: "settings",
+      targetId: settings._id,
+      targetLabel: `Week ${settings.currentWeekNumber} testing`,
+      summary: `Paused seed testing for week ${settings.currentWeekNumber}.`,
+    });
   },
 });
 
 export const resumeSeedTesting = mutation({
   args: {},
   handler: async (ctx) => {
-    await requireAdmin(ctx);
+    const admin = await requireAdmin(ctx);
     const settings = await requireSettings(ctx);
 
     if (!settings.seedTestingPaused) {
@@ -42,6 +53,16 @@ export const resumeSeedTesting = mutation({
 
     await ctx.db.patch("settings", settings._id, {
       seedTestingPaused: false,
+    });
+
+    await writeLog(ctx, {
+      eventType: "testing.resumed",
+      actor: admin,
+      actorType: "admin",
+      targetType: "settings",
+      targetId: settings._id,
+      targetLabel: `Week ${settings.currentWeekNumber} testing`,
+      summary: `Resumed seed testing for week ${settings.currentWeekNumber}.`,
     });
   },
 });
@@ -54,6 +75,7 @@ type AdvanceWeekResult = {
 export const advanceWeekInternal = internalMutation({
   args: {},
   handler: async (ctx) => {
+    const admin = await requireAdmin(ctx);
     const settings = await requireSettings(ctx);
     const activeSeeds = await ctx.db
       .query("seeds")
@@ -92,6 +114,11 @@ export const advanceWeekInternal = internalMutation({
 
     // reset host and uploader roles
     const users = await ctx.db.query("users").collect();
+    const clearedUserCount = users.filter(
+      (user) =>
+        (user.hostLeagueId?.length ?? 0) > 0 ||
+        (user.uploaderLeagues?.length ?? 0) > 0,
+    ).length;
 
     await Promise.all(
       users.map((u) =>
@@ -105,6 +132,16 @@ export const advanceWeekInternal = internalMutation({
     await ctx.db.patch("settings", settings._id, {
       currentWeekNumber: settings.currentWeekNumber + 1,
       seedTestingPaused: true,
+    });
+
+    await writeLog(ctx, {
+      eventType: "week.advanced",
+      actor: admin,
+      actorType: "admin",
+      targetType: "settings",
+      targetId: settings._id,
+      targetLabel: `Week ${settings.currentWeekNumber + 1}`,
+      summary: `Advanced from week ${settings.currentWeekNumber} to week ${settings.currentWeekNumber + 1}, expired ${expiredCount} active ${expiredCount === 1 ? "seed" : "seeds"}, cleared weekly league assignments for ${clearedUserCount} ${clearedUserCount === 1 ? "user" : "users"}, and paused testing.`,
     });
 
     return {

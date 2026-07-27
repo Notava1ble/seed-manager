@@ -1,6 +1,7 @@
 import { type DiscordProfile } from "@auth/core/providers/discord";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { writeLog } from "./logging";
 
 type UserId = Id<"users">;
 
@@ -33,13 +34,26 @@ export async function createPendingDiscordUser(
 ) {
   const userFields = getDiscordUserFields(profile);
 
-  return await ctx.db.insert("users", {
+  const userId = await ctx.db.insert("users", {
     ...userFields,
     status: "pending",
     roles: [],
     uploaderLeagues: [],
     hostLeagueId: [],
   });
+
+  await writeLog(ctx, {
+    eventType: "user.signed_up",
+    actorType: "system",
+    actorName: "Discord authentication",
+    targetType: "user",
+    targetId: userId,
+    targetLabel: userFields.name,
+    summary:
+      "Created a pending account after the user’s first Discord sign-in.",
+  });
+
+  return userId;
 }
 
 export async function updateUserFromDiscordProfile(

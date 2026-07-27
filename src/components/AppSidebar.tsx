@@ -7,6 +7,7 @@ import {
   Home,
   ListTree,
   LogOut,
+  ScrollText,
   Settings,
   ShieldCheck,
   Sprout,
@@ -60,6 +61,12 @@ const adminLinks = [
     label: "Manage Leagues",
     to: "/app/admin/leagues",
     icon: ListTree,
+    exact: false,
+  },
+  {
+    label: "Activity Logs",
+    to: "/app/admin/logs",
+    icon: ScrollText,
     exact: false,
   },
 ] as const;

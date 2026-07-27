@@ -9,6 +9,7 @@ import {
   type QueryCtx,
 } from "./_generated/server";
 import { getUser, requireActiveUser, requireAdmin } from "./lib/permissions";
+import { getUserDisplayName, writeLog } from "./lib/logging";
 
 const MAX_USER_LIST_COUNT = 1000;
 
@@ -37,12 +38,26 @@ export const updateAccountSettings = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireActiveUser(ctx);
+    const previousValue = user.settings?.claimBuriedTreasureSeeds ?? true;
+
+    if (previousValue === args.claimBuriedTreasureSeeds) {
+      return;
+    }
 
     await ctx.db.patch("users", user._id, {
       settings: {
         ...user.settings,
         claimBuriedTreasureSeeds: args.claimBuriedTreasureSeeds,
       },
+    });
+
+    await writeLog(ctx, {
+      eventType: "user.settings_updated",
+      actor: user,
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: getUserDisplayName(user),
+      summary: `Changed buried treasure seed claiming from ${previousValue ? "enabled" : "disabled"} to ${args.claimBuriedTreasureSeeds ? "enabled" : "disabled"}.`,
     });
   },
 });
@@ -130,6 +145,17 @@ export const activateUserByDiscordIdAPI = internalMutation({
     }
 
     await ctx.db.patch("users", user._id, { status: "active" });
+
+    await writeLog(ctx, {
+      eventType: "user.activated",
+      actorType: "system",
+      actorName: "User access API",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: getUserDisplayName(user),
+      summary: "Activated the pending account through the user access API.",
+    });
+
     return { ok: true as const };
   },
 });
@@ -156,11 +182,33 @@ export const deactivateUserByDiscordIdAPI = internalMutation({
       });
     }
 
+    const hadAccess =
+      user.status !== "pending" ||
+      user.roles.length > 0 ||
+      (user.uploaderLeagues?.length ?? 0) > 0 ||
+      (user.hostLeagueId?.length ?? 0) > 0;
+
+    if (!hadAccess) {
+      return { ok: true as const };
+    }
+
+    const previousAccess = await getUserAccessSummary(ctx, user);
+
     await ctx.db.patch("users", user._id, {
       status: "pending",
       roles: [],
       uploaderLeagues: [],
       hostLeagueId: [],
+    });
+
+    await writeLog(ctx, {
+      eventType: "user.deactivated",
+      actorType: "system",
+      actorName: "User access API",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: getUserDisplayName(user),
+      summary: `Deactivated the account through the user access API and cleared ${previousAccess}.`,
     });
 
     return { ok: true as const };
@@ -190,7 +238,7 @@ export const activateUserByDiscordId = mutation({
     hostLeagueId: v.array(v.id("leagues")),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const admin = await requireAdmin(ctx);
 
     const discordId = normalizeDiscordId(args.discordId);
     const user = await ctx.db
@@ -224,12 +272,29 @@ export const activateUserByDiscordId = mutation({
       args.uploaderLeagueIds,
     );
     const hostLeagueId = await normalizeLeagueIds(ctx, args.hostLeagueId);
+    const roles = normalizeRoles(args.roles, args.makeAdmin);
 
     await ctx.db.patch("users", user._id, {
       status: "active",
-      roles: normalizeRoles(args.roles, args.makeAdmin),
+      roles,
       uploaderLeagues: uploaderLeagueIds,
       hostLeagueId,
+    });
+
+    const accessSummary = await getUserAccessSummary(ctx, {
+      roles,
+      uploaderLeagues: uploaderLeagueIds,
+      hostLeagueId,
+    });
+
+    await writeLog(ctx, {
+      eventType: "user.activated",
+      actor: admin,
+      actorType: "admin",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: getUserDisplayName(user),
+      summary: `Activated the account with ${accessSummary}.`,
     });
 
     return user._id;
@@ -244,7 +309,7 @@ export const updateManagedUser = mutation({
     hostLeagueId: v.array(v.id("leagues")),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const admin = await requireAdmin(ctx);
 
     const user = await ctx.db.get("users", args.userId);
 
@@ -274,11 +339,37 @@ export const updateManagedUser = mutation({
       args.uploaderLeagueIds,
     );
     const hostLeagueId = await normalizeLeagueIds(ctx, args.hostLeagueId);
+    const roles = normalizeManagedRoles(args.roles);
 
-    await ctx.db.patch("users", user._id, {
-      roles: normalizeManagedRoles(args.roles),
+    if (
+      arraysEqual(user.roles, roles) &&
+      arraysEqual(user.uploaderLeagues ?? [], uploaderLeagues) &&
+      arraysEqual(user.hostLeagueId ?? [], hostLeagueId)
+    ) {
+      return;
+    }
+
+    const previousAccess = await getUserAccessSummary(ctx, user);
+    const nextAccess = await getUserAccessSummary(ctx, {
+      roles,
       uploaderLeagues,
       hostLeagueId,
+    });
+
+    await ctx.db.patch("users", user._id, {
+      roles,
+      uploaderLeagues,
+      hostLeagueId,
+    });
+
+    await writeLog(ctx, {
+      eventType: "user.access_updated",
+      actor: admin,
+      actorType: "admin",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: getUserDisplayName(user),
+      summary: `Changed access from ${previousAccess} to ${nextAccess}.`,
     });
   },
 });
@@ -341,27 +432,52 @@ export const updateDiscordAccess = internalMutation({
 
       const leagueField =
         args.role === "uploader" ? "uploaderLeagues" : "hostLeagueId";
-      const leagueIds = new Set(user[leagueField] ?? []);
+      const currentLeagueIds = user[leagueField] ?? [];
+      const leagueIds = new Set(currentLeagueIds);
+      const existingLeagues = leagues.filter(
+        (league): league is Doc<"leagues"> => league !== null,
+      );
 
-      for (const league of leagues) {
-        leagueIds[args.operation === "add" ? "add" : "delete"](league!._id);
+      for (const league of existingLeagues) {
+        leagueIds[args.operation === "add" ? "add" : "delete"](league._id);
+      }
+
+      const nextLeagueIds = Array.from(leagueIds);
+      const nextRoles =
+        args.operation === "add" ? addRole(user.roles, args.role) : user.roles;
+
+      if (
+        arraysEqual(currentLeagueIds, nextLeagueIds) &&
+        arraysEqual(user.roles, nextRoles)
+      ) {
+        return { ok: true as const };
       }
 
       if (leagueField === "uploaderLeagues") {
         await ctx.db.patch("users", user._id, {
-          uploaderLeagues: Array.from(leagueIds),
-          ...(args.operation === "add"
-            ? { roles: addRole(user.roles, args.role) }
-            : {}),
+          uploaderLeagues: nextLeagueIds,
+          roles: nextRoles,
         });
       } else {
         await ctx.db.patch("users", user._id, {
-          hostLeagueId: Array.from(leagueIds),
-          ...(args.operation === "add"
-            ? { roles: addRole(user.roles, args.role) }
-            : {}),
+          hostLeagueId: nextLeagueIds,
+          roles: nextRoles,
         });
       }
+
+      const leagueLabel = existingLeagues
+        .map((league) => league.leagueName)
+        .join(", ");
+
+      await writeLog(ctx, {
+        eventType: "user.access_updated",
+        actorType: "system",
+        actorName: "User access API",
+        targetType: "user",
+        targetId: user._id,
+        targetLabel: getUserDisplayName(user),
+        summary: `${args.operation === "add" ? "Added" : "Removed"} ${args.role} access for ${leagueLabel} through the user access API.`,
+      });
 
       return { ok: true as const };
     }
@@ -373,8 +489,22 @@ export const updateDiscordAccess = internalMutation({
       roles.delete(args.role);
     }
 
-    await ctx.db.patch("users", user._id, {
-      roles: ALL_ROLE_ORDER.filter((role) => roles.has(role)),
+    const nextRoles = ALL_ROLE_ORDER.filter((role) => roles.has(role));
+
+    if (arraysEqual(user.roles, nextRoles)) {
+      return { ok: true as const };
+    }
+
+    await ctx.db.patch("users", user._id, { roles: nextRoles });
+
+    await writeLog(ctx, {
+      eventType: "user.access_updated",
+      actorType: "system",
+      actorName: "User access API",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: getUserDisplayName(user),
+      summary: `${args.operation === "add" ? "Added" : "Removed"} the ${args.role} role through the user access API.`,
     });
 
     return { ok: true as const };
@@ -422,8 +552,7 @@ function normalizeLeagueNumbers(leagueNumbers: number[]) {
 
   if (
     uniqueLeagueNumbers.some(
-      (leagueNumber) =>
-        !Number.isSafeInteger(leagueNumber) || leagueNumber < 1,
+      (leagueNumber) => !Number.isSafeInteger(leagueNumber) || leagueNumber < 1,
     )
   ) {
     throw new ConvexError({
@@ -483,4 +612,41 @@ function normalizeManagedRoles(roles: ManagedRole[]) {
   const roleSet = new Set(roles);
 
   return MANAGED_ROLE_ORDER.filter((role) => roleSet.has(role));
+}
+
+function arraysEqual<T extends string>(
+  first: readonly T[],
+  second: readonly T[],
+) {
+  return (
+    first.length === second.length &&
+    first.every((value) => second.includes(value))
+  );
+}
+
+async function getUserAccessSummary(
+  ctx: QueryCtx | MutationCtx,
+  user: Pick<Doc<"users">, "roles" | "uploaderLeagues" | "hostLeagueId">,
+) {
+  const [uploaderLeagues, hostLeagues] = await Promise.all([
+    getLeagueInfo(ctx, user.uploaderLeagues ?? []),
+    getLeagueInfo(ctx, user.hostLeagueId ?? []),
+  ]);
+  const parts: string[] = [];
+
+  if (user.roles.length > 0) {
+    parts.push(`roles ${user.roles.join(", ")}`);
+  }
+  if (uploaderLeagues.length > 0) {
+    parts.push(
+      `uploader leagues ${uploaderLeagues.map((league) => league.leagueName).join(", ")}`,
+    );
+  }
+  if (hostLeagues.length > 0) {
+    parts.push(
+      `host leagues ${hostLeagues.map((league) => league.leagueName).join(", ")}`,
+    );
+  }
+
+  return parts.length > 0 ? parts.join("; ") : "no roles or league assignments";
 }

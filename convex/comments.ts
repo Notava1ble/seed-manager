@@ -4,6 +4,7 @@ import {
   MAX_SEED_COMMENT_BODY_LENGTH,
   MAX_SEED_COMMENT_LIST_COUNT,
 } from "./lib/consts";
+import { writeLog } from "./lib/logging";
 import { getAccessibleSeed, requireActiveUser } from "./lib/permissions";
 
 export const listForSeed = query({
@@ -81,7 +82,7 @@ export const create = mutation({
 
     const body = validateCommentBody(args.body);
 
-    await ctx.db.insert("comments", {
+    const commentId = await ctx.db.insert("comments", {
       seedId: seedAccess.seed._id,
       author: user._id,
       body,
@@ -90,6 +91,17 @@ export const create = mutation({
 
     await ctx.db.patch("seeds", seedAccess.seed._id, {
       commentCount: seedAccess.seed.commentCount + 1,
+    });
+
+    await writeLog(ctx, {
+      eventType: "comment.created",
+      actor: user,
+      targetType: "comment",
+      targetId: commentId,
+      targetLabel: `Comment on seed ${seedAccess.seed.overworld}`,
+      summary: seedAccess.league
+        ? `Posted a comment on the seed in ${seedAccess.league.leagueName}.`
+        : "Posted a comment on an unassigned seed.",
     });
   },
 });

@@ -4,9 +4,11 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import "./index.css";
+import { TooltipProvider } from "./components/ui/tooltip";
 import { AdminLayout } from "./routes/admin/AdminLayout";
 import { AdminIndexPage } from "./routes/admin/AdminIndexPage";
 import { AdminLeaguesPage } from "./routes/admin/leagues/AdminLeaguesPage";
+import { AdminLogsPage } from "./routes/admin/AdminLogsPage";
 import { AdminSeedDetailsPage } from "./routes/admin/seeds/AdminSeedDetailsPage";
 import { AdminSeedsPage } from "./routes/admin/seeds/AdminSeedsPage";
 import { AdminActiveUserDetailsPage } from "./routes/admin/users/AdminActiveUserDetailsPage";
@@ -32,54 +34,60 @@ document.documentElement.style.colorScheme = "dark";
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ConvexAuthProvider client={convex}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<LoginPage />} />
-          <Route path="/pending" element={<PendingPage />} />
+      <TooltipProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<LoginPage />} />
+            <Route path="/pending" element={<PendingPage />} />
 
-          <Route path="/app" element={<AppLayout />}>
-            <Route index element={<AppIndexPage />} />
-            <Route path="account" element={<AccountPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="league" element={<Navigate replace to="/app" />} />
+            <Route path="/app" element={<AppLayout />}>
+              <Route index element={<AppIndexPage />} />
+              <Route path="account" element={<AccountPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="league" element={<Navigate replace to="/app" />} />
 
-            <Route path="league/:leagueId" element={<LeaguePage />}>
-              <Route path="seed" element={<LeagueSeedsRedirect />} />
-              <Route path="seed/:seedId" element={<SeedPage />} />
-            </Route>
-
-            <Route path="admin" element={<AdminLayout />}>
-              <Route index element={<AdminIndexPage />} />
-
-              <Route path="users">
-                <Route
-                  index
-                  element={<Navigate replace to="/app/admin/users/active" />}
-                />
-                <Route path="active" element={<AdminActiveUsersPage />}>
-                  <Route
-                    path=":userId"
-                    element={<AdminActiveUserDetailsPage />}
-                  />
-                </Route>
-                <Route path="pending" element={<AdminPendingUsersPage />}>
-                  <Route
-                    path=":userId"
-                    element={<AdminPendingUserDetailsPage />}
-                  />
-                </Route>
+              <Route path="league/:leagueId" element={<LeaguePage />}>
+                <Route path="seed" element={<LeagueSeedsRedirect />} />
+                <Route path="seed/:seedId" element={<SeedPage />} />
               </Route>
 
-              <Route path="seeds" element={<AdminSeedsPage />} />
-              <Route path="seeds/:seedId" element={<AdminSeedDetailsPage />} />
+              <Route path="admin" element={<AdminLayout />}>
+                <Route index element={<AdminIndexPage />} />
 
-              <Route path="leagues" element={<AdminLeaguesPage />} />
+                <Route path="users">
+                  <Route
+                    index
+                    element={<Navigate replace to="/app/admin/users/active" />}
+                  />
+                  <Route path="active" element={<AdminActiveUsersPage />}>
+                    <Route
+                      path=":userId"
+                      element={<AdminActiveUserDetailsPage />}
+                    />
+                  </Route>
+                  <Route path="pending" element={<AdminPendingUsersPage />}>
+                    <Route
+                      path=":userId"
+                      element={<AdminPendingUserDetailsPage />}
+                    />
+                  </Route>
+                </Route>
+
+                <Route path="seeds" element={<AdminSeedsPage />} />
+                <Route
+                  path="seeds/:seedId"
+                  element={<AdminSeedDetailsPage />}
+                />
+
+                <Route path="leagues" element={<AdminLeaguesPage />} />
+                <Route path="logs" element={<AdminLogsPage />} />
+              </Route>
             </Route>
-          </Route>
 
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </BrowserRouter>
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
     </ConvexAuthProvider>
   </StrictMode>,
 );

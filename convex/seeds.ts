@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import {
   canViewLeague,
@@ -12,6 +12,7 @@ import {
   MAX_LEAGUE_SEED_LIST_COUNT,
   NUMERIC_SEED_PATTERN,
 } from "./lib/consts";
+import { getPrimaryActorType, writeLog } from "./lib/logging";
 
 type ALL_SEED_TYPES = [
   "BURIED_TREASURE",
@@ -278,6 +279,22 @@ export const markSeedAsBad = mutation({
         seedCount: Math.max(0, league.seedCount - 1),
       });
     }
+
+    await writeLog(ctx, {
+      eventType: "seed.marked_bad",
+      actor: user,
+      actorType: canRateAsAdmin
+        ? "admin"
+        : canRateAsHost
+          ? "host"
+          : user.roles.includes("uploader")
+            ? "uploader"
+            : "user",
+      targetType: "seed",
+      targetId: seed._id,
+      targetLabel: getSeedLogLabel(seed),
+      summary: `Changed the rating from Good to Bad and removed the seed from ${league?.leagueName ?? "its deleted league"}.`,
+    });
   },
 });
 
@@ -351,6 +368,16 @@ export const markSeedUsed = mutation({
 
     await ctx.db.patch("leagues", league._id, {
       usedSeedCount: league.usedSeedCount + 1,
+    });
+
+    await writeLog(ctx, {
+      eventType: "seed.marked_used",
+      actor: user,
+      actorType: canMarkAsAdmin ? "admin" : "host",
+      targetType: "seed",
+      targetId: seed._id,
+      targetLabel: getSeedLogLabel(seed),
+      summary: `Marked seed #${seed.seedNumber ?? "unknown"} in ${league.leagueName} as used.`,
     });
   },
 });
@@ -454,6 +481,16 @@ export const changeSeedLeague = mutation({
     await Promise.all(
       sorted.map((s, i) => ctx.db.patch("seeds", s._id, { seedNumber: i + 1 })),
     );
+
+    await writeLog(ctx, {
+      eventType: "seed.league_changed",
+      actor: admin,
+      actorType: "admin",
+      targetType: "seed",
+      targetId: seed._id,
+      targetLabel: getSeedLogLabel(seed),
+      summary: `Moved the seed from ${sourceLeague?.leagueName ?? "a deleted league"} to ${targetLeague.leagueName}; its position changed from #${seed.seedNumber ?? "unknown"} to #${seedsAlreadyInTargetLeague.length + 1}.`,
+    });
   },
 });
 
@@ -466,10 +503,13 @@ export const importSeeds = mutation({
 
     const isAdmin = user.roles.includes("admin");
     const isUploader = user.roles.includes("uploader");
-    if (!isAdmin) {
-      const hostLeagues = user.hostLeagueId ?? [];
-      const uploaderLeagues = user.uploaderLeagues ?? [];
+    const canUploadAsUploader =
+      isUploader && (user.uploaderLeagues ?? []).includes(args.seed.leagueId);
+    const canUploadAsHost =
+      user.roles.includes("host") &&
+      (user.hostLeagueId ?? []).includes(args.seed.leagueId);
 
+    if (!isAdmin) {
       if (!isUploader && !user.roles.includes("host")) {
         throw new ConvexError({
           code: "FORBIDDEN",
@@ -477,8 +517,6 @@ export const importSeeds = mutation({
         });
       }
 
-      const canUploadAsUploader = uploaderLeagues.includes(args.seed.leagueId);
-      const canUploadAsHost = hostLeagues.includes(args.seed.leagueId);
       if (!canUploadAsUploader && !canUploadAsHost) {
         throw new ConvexError({
           code: "FORBIDDEN",
@@ -522,8 +560,9 @@ export const importSeeds = mutation({
       )
       .collect();
 
-    await ctx.db.insert("seeds", {
-      seedNumber: seedsAlreadyInThisLeague.length + 1,
+    const seedNumber = seedsAlreadyInThisLeague.length + 1;
+    const seedId = await ctx.db.insert("seeds", {
+      seedNumber,
 
       overworld: seed.overworld,
       nether: seed.nether,
@@ -545,6 +584,18 @@ export const importSeeds = mutation({
     await ctx.db.patch("leagues", seed.leagueId, {
       seedCount: league.seedCount + 1,
     });
+
+    await writeLog(ctx, {
+      eventType: "seed.uploaded",
+      actor: user,
+      actorType: isAdmin ? "admin" : canUploadAsUploader ? "uploader" : "host",
+      targetType: "seed",
+      targetId: seedId,
+      targetLabel: `Seed ${seed.overworld}`,
+      summary: `Uploaded a ${seed.type.toLowerCase().replace(/_/g, " ")} seed as #${seedNumber} to ${league.leagueName} for week ${settings.currentWeekNumber}.`,
+    });
+
+    return seedId;
   },
 });
 
@@ -554,11 +605,28 @@ export const moveSeed = mutation({
     movement: v.union(v.literal("UP"), v.literal("DOWN")),
   },
   handler: async (ctx, args) => {
+    const user = await requireActiveUser(ctx);
     const seed = await ctx.db.get("seeds", args.seedId);
+
     if (!seed) {
       throw new ConvexError({
         code: "SEED_NOT_FOUND",
         message: "The requested seed does not exist",
+      });
+    }
+
+    if (seed.leagueId === undefined || seed.isExpired !== false) {
+      throw new ConvexError({
+        code: "SEED_NOT_ACTIVE",
+        message: "Only active assigned seeds can be reordered",
+      });
+    }
+
+    const league = await ctx.db.get("leagues", seed.leagueId);
+    if (!league || !canViewLeague(user, league)) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "You cannot reorder seeds in this league",
       });
     }
 
@@ -571,50 +639,39 @@ export const moveSeed = mutation({
       });
     }
 
-    if (args.movement === "UP") {
-      if (seedNumber === 1) {
-        return;
-      }
+    const nextSeedNumber =
+      args.movement === "UP" ? seedNumber - 1 : seedNumber + 1;
 
-      const seedAbove = await ctx.db
-        .query("seeds")
-        .withIndex("by_number_league_expired", (q) =>
-          q
-            .eq("seedNumber", seedNumber - 1)
-            .eq("leagueId", seed.leagueId)
-            .eq("isExpired", false),
-        )
-        .unique();
-
-      if (!seedAbove) return;
-
-      await ctx.db.patch("seeds", seed._id, {
-        seedNumber: seedNumber - 1,
-      });
-      await ctx.db.patch("seeds", seedAbove._id, {
-        seedNumber: seedNumber,
-      });
+    if (nextSeedNumber < 1) {
+      return;
     }
-    if (args.movement === "DOWN") {
-      const seedBelow = await ctx.db
-        .query("seeds")
-        .withIndex("by_number_league_expired", (q) =>
-          q
-            .eq("seedNumber", seedNumber + 1)
-            .eq("leagueId", seed.leagueId)
-            .eq("isExpired", false),
-        )
-        .unique();
 
-      if (!seedBelow) return;
+    const adjacentSeed = await ctx.db
+      .query("seeds")
+      .withIndex("by_number_league_expired", (q) =>
+        q
+          .eq("seedNumber", nextSeedNumber)
+          .eq("leagueId", seed.leagueId)
+          .eq("isExpired", false),
+      )
+      .unique();
 
-      await ctx.db.patch("seeds", seed._id, {
-        seedNumber: seedNumber + 1,
-      });
-      await ctx.db.patch("seeds", seedBelow._id, {
-        seedNumber: seedNumber,
-      });
+    if (!adjacentSeed) {
+      return;
     }
+
+    await ctx.db.patch("seeds", seed._id, { seedNumber: nextSeedNumber });
+    await ctx.db.patch("seeds", adjacentSeed._id, { seedNumber });
+
+    await writeLog(ctx, {
+      eventType: "seed.reordered",
+      actor: user,
+      actorType: getPrimaryActorType(user),
+      targetType: "seed",
+      targetId: seed._id,
+      targetLabel: getSeedLogLabel(seed),
+      summary: `Moved the seed from position #${seedNumber} to #${nextSeedNumber} in ${league.leagueName}.`,
+    });
   },
 });
 
@@ -663,4 +720,8 @@ function validateNumericSeedString(value: string, label: string) {
   }
 
   return trimmedValue;
+}
+
+function getSeedLogLabel(seed: Pick<Doc<"seeds">, "overworld">) {
+  return `Seed ${seed.overworld}`;
 }

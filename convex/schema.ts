@@ -1,6 +1,11 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
+import {
+  logActorTypeValidator,
+  logEventTypeValidator,
+  logTargetTypeValidator,
+} from "./lib/logValues";
 
 export default defineSchema({
   ...authTables,
@@ -83,4 +88,22 @@ export default defineSchema({
     body: v.string(),
     createdAt: v.number(), // unix time
   }).index("by_seedId_and_createdAt", ["seedId", "createdAt"]),
+  logs: defineTable({
+    eventType: logEventTypeValidator,
+    actorId: v.optional(v.id("users")),
+    actorName: v.string(),
+    actorDiscordId: v.optional(v.string()),
+    actorImage: v.optional(v.string()),
+    actorRoles: v.array(
+      v.union(v.literal("admin"), v.literal("host"), v.literal("uploader")),
+    ),
+    actorType: logActorTypeValidator,
+    targetType: logTargetTypeValidator,
+    targetId: v.optional(v.string()),
+    targetLabel: v.string(),
+    summary: v.string(),
+  })
+    .index("by_eventType", ["eventType"])
+    .index("by_actorType", ["actorType"])
+    .index("by_eventType_and_actorType", ["eventType", "actorType"]),
 });
