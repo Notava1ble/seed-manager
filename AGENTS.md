@@ -12,6 +12,10 @@ Prefer using one file per react component, unless it makes sense not to. For hel
 
 When writing ui, check for components to reuse. Also, search the codebase for similar ui that is hard coded. If yes, let me know.
 
+## Testing
+
+For most testing, prefer simple typecheck over writing browser and custom tests for most changes. Only when changing multiple features, files and functionallity, when writing complicated code and when rewriting core app features, consider more testing options.
+
 <!-- convex-ai-start -->
 
 This project uses [Convex](https://convex.dev) as its backend.
