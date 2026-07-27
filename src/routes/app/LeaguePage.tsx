@@ -272,7 +272,9 @@ function SeedDistributionCard({
               row.count >= row.required && row.missingTypes.length === 0;
             const isOverfilled = row.count > row.required;
             const hasMissingTypeWarning =
-              row.count >= row.required - 1 && row.missingTypes.length === 1;
+              row.required > 1 &&
+              row.missingTypes.length === 1 &&
+              row.count >= row.required - 1;
             const progressValue = Math.min(
               Math.round((row.count / row.required) * 100),
               100,
