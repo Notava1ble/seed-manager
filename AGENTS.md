@@ -4,6 +4,8 @@ When prompted to brainstorm, use short, concise and meaningful ideas, rather tha
 
 For project overview and usage, read `seed-manager-routing.plan.md` and `seed-manager-v1.plan.md`.
 
+For new actions, ask me if I want to log it.
+
 ## Code quality
 
 Do not try to create components and abstract function that are only used once.
