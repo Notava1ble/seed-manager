@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
 import {
   Empty,
   EmptyDescription,
@@ -18,36 +17,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useMutation } from "convex/react";
-import { Pencil, Trash, Trophy } from "lucide-react";
+import { Trash, Trophy } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../convex/_generated/api";
 import { type Doc, type Id } from "../../convex/_generated/dataModel";
 import { AlertDialog } from "./ui/alert-dialog";
 import { DeleteAlert } from "./dialogs/DeleteDialog";
-import { EditLeagueDialog } from "./dialogs/EditLeagueDialog";
 
 export function LeagueTable({ leagues }: { leagues: Doc<"leagues">[] }) {
   const deleteLeague = useMutation(api.leagues.deleteLeague);
   const [isLoading, setIsLoading] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedLeagueId, setSelectedLeagueId] =
     useState<Id<"leagues"> | null>(null);
-  const [editingLeagueId, setEditingLeagueId] = useState<Id<"leagues"> | null>(
-    null,
-  );
 
   const selectedLeague = leagues.find(
     (league) => league._id === selectedLeagueId,
   );
-  const editingLeague = leagues.find(
-    (league) => league._id === editingLeagueId,
-  );
-
   const shouldShowAlert =
     isAlertOpen && selectedLeagueId !== null && selectedLeague !== undefined;
-  const shouldShowEditDialog =
-    isEditDialogOpen && editingLeagueId !== null && editingLeague !== undefined;
 
   const deleteSelectedLeague = async () => {
     if (!selectedLeague) return;
@@ -68,20 +56,6 @@ export function LeagueTable({ leagues }: { leagues: Doc<"leagues">[] }) {
       setSelectedLeagueId(null);
       setIsAlertOpen(false);
     }
-  };
-
-  const closeEditDialog = () => {
-    setEditingLeagueId(null);
-    setIsEditDialogOpen(false);
-  };
-
-  const toggleEditDialog = (open: boolean) => {
-    if (!open) {
-      closeEditDialog();
-      return;
-    }
-
-    setIsEditDialogOpen(true);
   };
 
   if (leagues.length === 0) {
@@ -109,11 +83,6 @@ export function LeagueTable({ leagues }: { leagues: Doc<"leagues">[] }) {
           onDelete={() => void deleteSelectedLeague()}
         />
       </AlertDialog>
-      <Dialog open={shouldShowEditDialog} onOpenChange={toggleEditDialog}>
-        {editingLeague ? (
-          <EditLeagueDialog league={editingLeague} onClose={closeEditDialog} />
-        ) : null}
-      </Dialog>
       <Table containerClassName="max-h-[calc(100svh-15rem)]">
         <TableHeader>
           <TableRow>
@@ -148,17 +117,6 @@ export function LeagueTable({ leagues }: { leagues: Doc<"leagues">[] }) {
                 {league._id}
               </TableCell>
               <TableCell className="flex gap-1 justify-end font-mono">
-                <Button
-                  aria-label={`Edit ${league.leagueName}`}
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => {
-                    setEditingLeagueId(league._id);
-                    setIsEditDialogOpen(true);
-                  }}
-                >
-                  <Pencil />
-                </Button>
                 <Button
                   variant="destructive"
                   size="icon-sm"
