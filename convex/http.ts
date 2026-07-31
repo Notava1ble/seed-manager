@@ -14,6 +14,7 @@ import { internal } from "./_generated/api";
 import {
   DiscordUserInfoQuerySchema,
   DiscordUserStatusSchema,
+  SeedHistoryQuerySchema,
   UpdatePlayerRolesSchema,
 } from "./lib/validators";
 
@@ -93,6 +94,35 @@ async function runReadRoute<T extends Record<string, string>>(args: {
 const http = httpRouter();
 
 auth.addHttpRoutes(http);
+
+http.route({
+  path: "/api/seeds/history",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const payloadResult = extractQueryParams(request, SeedHistoryQuerySchema);
+    if ("errorResponse" in payloadResult) return payloadResult.errorResponse;
+
+    try {
+      const result = await ctx.runQuery(
+        internal.seeds.listPublishedHistory,
+        payloadResult.data,
+      );
+
+      if (result.ok === false) {
+        return jsonError(result.error, result.status);
+      }
+
+      return jsonResponse(result.seeds, 200, {
+        "Cache-Control": result.isCurrentWeek
+          ? "public, max-age=30"
+          : "public, max-age=86400",
+      });
+    } catch (error) {
+      console.error("[GET /api/seeds/history] Unhandled error", error);
+      return jsonError("Internal server error.", 500);
+    }
+  }),
+});
 
 http.route({
   path: "/api/users/discord",

@@ -10,12 +10,17 @@ type JsonValue =
 
 type JsonRecord = Record<string, JsonValue | undefined>;
 
-export function jsonResponse(body: unknown, status = 200): Response {
+export function jsonResponse(
+  body: unknown,
+  status = 200,
+  headers?: HeadersInit,
+): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
+      ...Object.fromEntries(new Headers(headers).entries()),
     },
   });
 }

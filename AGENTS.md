@@ -2,6 +2,8 @@ ALWAYS USE BUN WHEN POSSIBLE.
 
 When prompted to brainstorm, use short, concise and meaningful ideas, rather than fully planned responses. Ask questions, and ecourage collaboration. Keep the response relatively short.
 
+Never commit without user approval.
+
 For project overview and usage, read `seed-manager-routing.plan.md` and `seed-manager-v1.plan.md`.
 
 For new actions, ask me if I want to log it.
@@ -10,9 +12,9 @@ For new actions, ask me if I want to log it.
 
 Do not try to create components and abstract function that are only used once.
 
-Prefer using one file per react component, unless it makes sense not to. For helper functions however, try and put them in the lib folder. Do not put everything into one file.
+Prefer using one file per react component, unless it makes sense not to (for example helper components). For helper functions however, try and put them in the lib folder. Do not put everything into one file.
 
-When writing ui, check for components to reuse. Also, search the codebase for similar ui that is hard coded. If yes, let me know.
+When writing ui, check for components to reuse. Also, search the codebase for similar ui that is hard coded. If yes, let me know to extract them.
 
 ## Testing
 

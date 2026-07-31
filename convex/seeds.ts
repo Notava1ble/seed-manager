@@ -1,6 +1,11 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import {
+  internalQuery,
+  mutation,
+  query,
+  type MutationCtx,
+} from "./_generated/server";
 import {
   canViewLeague,
   requireActiveUser,
@@ -49,6 +54,105 @@ type SeedUploadInput = {
   rng: string;
   type: SeedType;
 };
+
+export const listPublishedHistory = internalQuery({
+  args: {
+    leagueNumber: v.number(),
+    weekNumber: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const settings = await requireSettings(ctx);
+
+    if (args.weekNumber > settings.currentWeekNumber) {
+      return {
+        ok: false as const,
+        status: 400,
+        error: "Future tournament weeks are not available.",
+      };
+    }
+
+    const league = await ctx.db
+      .query("leagues")
+      .withIndex("by_leagueNumber", (q) =>
+        q.eq("leagueNumber", args.leagueNumber),
+      )
+      .unique();
+
+    if (!league) {
+      return {
+        ok: false as const,
+        status: 404,
+        error: "League not found.",
+      };
+    }
+
+    if (args.weekNumber < settings.currentWeekNumber) {
+      const seeds = await ctx.db
+        .query("seeds")
+        .withIndex("by_leagueId_and_assignedWeekNumber_and_isExpired", (q) =>
+          q
+            .eq("leagueId", league._id)
+            .eq("assignedWeekNumber", args.weekNumber)
+            .eq("isExpired", true),
+        )
+        .take(MAX_LEAGUE_SEED_LIST_COUNT + 1);
+      return buildPublishedHistoryResult(seeds, false);
+    }
+
+    const seeds = await ctx.db
+      .query("seeds")
+      .withIndex("by_leagueId_and_assignedWeekNumber_and_isUsed", (q) =>
+        q
+          .eq("leagueId", league._id)
+          .eq("assignedWeekNumber", args.weekNumber)
+          .eq("isUsed", true),
+      )
+      .take(MAX_LEAGUE_SEED_LIST_COUNT + 1);
+
+    return buildPublishedHistoryResult(seeds, true);
+  },
+});
+
+function buildPublishedHistoryResult(
+  seeds: Doc<"seeds">[],
+  isCurrentWeek: boolean,
+) {
+  if (seeds.length > MAX_LEAGUE_SEED_LIST_COUNT) {
+    return {
+      ok: false as const,
+      status: 500,
+      error: "Too many published seeds to return.",
+    };
+  }
+
+  return {
+    ok: true as const,
+    isCurrentWeek,
+    seeds: seeds
+      .sort(compareSeedOrder)
+      .map((seed, index) => toPublishedSeed(seed, index)),
+  };
+}
+
+function compareSeedOrder(a: Doc<"seeds">, b: Doc<"seeds">) {
+  if (a.seedNumber !== undefined && b.seedNumber !== undefined) {
+    return a.seedNumber - b.seedNumber || a._creationTime - b._creationTime;
+  }
+  if (a.seedNumber !== undefined) return -1;
+  if (b.seedNumber !== undefined) return 1;
+  return a._creationTime - b._creationTime;
+}
+
+function toPublishedSeed(seed: Doc<"seeds">, index: number) {
+  return {
+    order: index + 1,
+    overworld: seed.overworld,
+    nether: seed.nether,
+    end: seed.end,
+    rng: seed.rng,
+    type: seed.type ?? null,
+  };
+}
 
 export const listAllSeeds = query({
   args: {},
