@@ -15,13 +15,17 @@ export function jsonResponse(
   status = 200,
   headers?: HeadersInit,
 ): Response {
+  const responseHeaders = new Headers({
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+  });
+  new Headers(headers).forEach((value, key) => {
+    responseHeaders.set(key, value);
+  });
+
   return new Response(JSON.stringify(body), {
     status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      ...Object.fromEntries(new Headers(headers).entries()),
-    },
+    headers: responseHeaders,
   });
 }
 
