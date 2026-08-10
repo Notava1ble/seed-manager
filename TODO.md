@@ -1,7 +1,5 @@
 - [ ] admin dashboard that shows how many seeds we have in each league + other info
-- [ ] logging
-- [ ] Public facing page where users can see past seeds
-  - [ ] should allow to browse seeds per week per league
-  - [ ] should show seeds in the current week when they get marked as used
-  - [ ] should allow signed in users to vote on the seeds
-    - [ ] allow votes only from users who have discord id give the a player who played on that week and league.
+- [x] logging
+- [x] Public facing page where users can see past seeds
+  - [x] should allow to browse seeds per week per league
+  - [x] should show seeds in the current week when they get marked as used
