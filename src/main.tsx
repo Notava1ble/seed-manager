@@ -21,7 +21,6 @@ import { AppLayout } from "./routes/app/AppLayout";
 import { LeaguePage } from "./routes/app/LeaguePage";
 import { LeagueSeedsRedirect } from "./routes/app/LeagueSeedsRedirect";
 import { SeedPage } from "./routes/app/SeedPage";
-import { SettingsPage } from "./routes/app/SettingsPage";
 import { NotFoundPage } from "./routes/NotFoundPage";
 import { LoginPage } from "./routes/public/LoginPage";
 import { PendingPage } from "./routes/public/PendingPage";
@@ -43,7 +42,10 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/app" element={<AppLayout />}>
               <Route index element={<AppIndexPage />} />
               <Route path="account" element={<AccountPage />} />
-              <Route path="settings" element={<SettingsPage />} />
+              <Route
+                path="settings"
+                element={<Navigate replace to="/app/account" />}
+              />
               <Route path="league" element={<Navigate replace to="/app" />} />
 
               <Route path="league/:leagueId" element={<LeaguePage />}>

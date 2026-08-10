@@ -32,6 +32,7 @@ export const currentUser = query({
   },
 });
 
+// TODO: Could be removed, but delayed because ill have to remove the option from schema too.
 export const updateAccountSettings = mutation({
   args: {
     claimBuriedTreasureSeeds: v.boolean(),

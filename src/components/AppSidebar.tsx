@@ -8,7 +8,6 @@ import {
   ListTree,
   LogOut,
   ScrollText,
-  Settings,
   ShieldCheck,
   Sprout,
   Trophy,
@@ -228,14 +227,7 @@ export function AppSidebar({
         )}
       </SidebarContent>
       <SidebarFooter>
-        <AccountMenu
-          // isActive={
-          //   isActivePath(location.pathname, "/app/account") ||
-          //   isActivePath(location.pathname, "/app/settings")
-          // }
-          onSignOut={onSignOut}
-          user={user}
-        />
+        <AccountMenu onSignOut={onSignOut} user={user} />
       </SidebarFooter>
     </Sidebar>
   );
@@ -301,10 +293,6 @@ function AccountMenu({
               <DropdownMenuItem render={<NavLink to="/app/account" />}>
                 <UserRound />
                 Account
-              </DropdownMenuItem>
-              <DropdownMenuItem render={<NavLink to="/app/settings" />}>
-                <Settings />
-                Settings
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
