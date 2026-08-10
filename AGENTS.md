@@ -26,4 +26,6 @@ This project uses [Convex](https://convex.dev) as its backend.
 
 When working on Convex code, **always read `convex/_generated/ai/guidelines.md` first** for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
 
+In Convex mutations and internal mutations, always signal failures by throwing a `ConvexError`. Never return an error object or error status from a mutation handler: returning counts as a successful transaction and will not roll back earlier writes.
+
 <!-- convex-ai-end -->
