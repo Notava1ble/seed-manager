@@ -15,6 +15,7 @@ import {
   DiscordUserInfoQuerySchema,
   DiscordUserStatusSchema,
   SeedHistoryQuerySchema,
+  SeedOrderQuerySchema,
   UpdatePlayerRolesSchema,
 } from "./lib/validators";
 
@@ -119,6 +120,33 @@ http.route({
       });
     } catch (error) {
       console.error("[GET /api/seeds/history] Unhandled error", error);
+      return jsonError("Internal server error.", 500);
+    }
+  }),
+});
+
+http.route({
+  path: "/api/seeds/order",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const payloadResult = extractQueryParams(request, SeedOrderQuerySchema);
+    if ("errorResponse" in payloadResult) return payloadResult.errorResponse;
+
+    try {
+      const result = await ctx.runQuery(
+        internal.seeds.listCurrentWeekSeedOrder,
+        payloadResult.data,
+      );
+
+      if (result.ok === false) {
+        return jsonError(result.error, result.status);
+      }
+
+      return jsonResponse(result.seeds, 200, {
+        "Cache-Control": "public, max-age=30",
+      });
+    } catch (error) {
+      console.error("[GET /api/seeds/order] Unhandled error", error);
       return jsonError("Internal server error.", 500);
     }
   }),

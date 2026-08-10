@@ -115,6 +115,52 @@ export const listPublishedHistory = internalQuery({
   },
 });
 
+export const listCurrentWeekSeedOrder = internalQuery({
+  args: {
+    leagueNumber: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await requireSettings(ctx);
+    const league = await ctx.db
+      .query("leagues")
+      .withIndex("by_leagueNumber", (q) =>
+        q.eq("leagueNumber", args.leagueNumber),
+      )
+      .unique();
+
+    if (!league) {
+      return {
+        ok: false as const,
+        status: 404,
+        error: "League not found.",
+      };
+    }
+
+    const seeds = await ctx.db
+      .query("seeds")
+      .withIndex("by_leagueId_and_isExpired", (q) =>
+        q.eq("leagueId", league._id).eq("isExpired", false),
+      )
+      .take(MAX_LEAGUE_SEED_LIST_COUNT + 1);
+
+    if (seeds.length > MAX_LEAGUE_SEED_LIST_COUNT) {
+      return {
+        ok: false as const,
+        status: 500,
+        error: "Too many seeds to return.",
+      };
+    }
+
+    return {
+      ok: true as const,
+      seeds: seeds.sort(compareSeedOrder).map((seed, index) => ({
+        order: index + 1,
+        type: seed.type ?? null,
+      })),
+    };
+  },
+});
+
 function buildPublishedHistoryResult(
   seeds: Doc<"seeds">[],
   isCurrentWeek: boolean,

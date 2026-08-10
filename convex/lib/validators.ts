@@ -29,3 +29,7 @@ export const SeedHistoryQuerySchema = z.object({
   leagueNumber: z.coerce.number().int().positive(),
   weekNumber: z.coerce.number().int().positive(),
 });
+
+export const SeedOrderQuerySchema = z.object({
+  leagueNumber: z.coerce.number().int().positive(),
+});
