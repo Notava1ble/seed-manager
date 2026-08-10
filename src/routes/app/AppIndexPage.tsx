@@ -38,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SEED_TYPES, seedTypesArray } from "@/lib/consts";
+import { getUploadSeedTypes, SEED_TYPES } from "@/lib/consts";
 import { Button } from "@/components/ui/button";
 
 const EMPTY_SEED_FORM_VALUES: SeedFormValues = {
@@ -70,6 +70,14 @@ export function AppIndexPage() {
     user === undefined ||
     accessableLeagues === undefined ||
     settings === undefined;
+  const uploadSeedTypes = getUploadSeedTypes(
+    settings?.enableJunglePyramidSeeds ?? false,
+  );
+  const selectedSeedType =
+    manualValues.type === "JUNGLE_PYRAMID" &&
+    !settings?.enableJunglePyramidSeeds
+      ? null
+      : manualValues.type;
 
   if (isLoading) {
     return (
@@ -115,6 +123,7 @@ export function AppIndexPage() {
 
     const preparedData = {
       ...manualValues,
+      type: selectedSeedType,
       leagueId: manualValues.leagueId || undefined,
     };
 
@@ -154,7 +163,7 @@ export function AppIndexPage() {
               <Field data-invalid={Boolean(manualErrors.type)}>
                 <FieldLabel htmlFor="seed-type">Seed type</FieldLabel>
                 <Select
-                  value={manualValues.type}
+                  value={selectedSeedType}
                   itemToStringLabel={(type) => SEED_TYPES[type]}
                   onValueChange={(value) => updateManualValue("type", value)}
                 >
@@ -168,7 +177,7 @@ export function AppIndexPage() {
                   <SelectContent>
                     <SelectGroup>
                       <SelectLabel>Seed types</SelectLabel>
-                      {seedTypesArray.map((type) => (
+                      {uploadSeedTypes.map((type) => (
                         <SelectItem key={type} value={type}>
                           {SEED_TYPES[type]}
                         </SelectItem>

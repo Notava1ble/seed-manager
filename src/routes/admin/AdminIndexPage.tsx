@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "convex/react";
-import { CalendarClock, PauseCircle, PlayCircle } from "lucide-react";
+import { Beaker, CalendarClock, PauseCircle, PlayCircle } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -23,6 +23,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Switch } from "@/components/ui/switch";
 import { getErrorMessage } from "@/lib/errors";
 
 type AdminWeekAction = "pause" | "resume" | "advance";
@@ -32,12 +41,19 @@ export function AdminIndexPage() {
   const pauseSeedTesting = useMutation(api.settings.pauseSeedTesting);
   const resumeSeedTesting = useMutation(api.settings.resumeSeedTesting);
   const advanceWeek = useMutation(api.settings.advanceWeek);
+  const setJunglePyramidSeedsEnabled = useMutation(
+    api.settings.setJunglePyramidSeedsEnabled,
+  );
 
   const [pendingAction, setPendingAction] = useState<AdminWeekAction | null>(
     null,
   );
   const [error, setError] = useState<string | null>(null);
   const [isAdvanceDialogOpen, setIsAdvanceDialogOpen] = useState(false);
+  const [experimentalError, setExperimentalError] = useState<string | null>(
+    null,
+  );
+  const [isSavingExperimental, setIsSavingExperimental] = useState(false);
 
   const runAction = async (
     action: AdminWeekAction,
@@ -55,6 +71,21 @@ export function AdminIndexPage() {
       setError(getErrorMessage(actionError, "Could not update week settings"));
     } finally {
       setPendingAction(null);
+    }
+  };
+
+  const handleJunglePyramidChange = async (enabled: boolean) => {
+    setExperimentalError(null);
+    setIsSavingExperimental(true);
+
+    try {
+      await setJunglePyramidSeedsEnabled({ enabled });
+    } catch (actionError) {
+      setExperimentalError(
+        getErrorMessage(actionError, "Could not update experimental features"),
+      );
+    } finally {
+      setIsSavingExperimental(false);
     }
   };
 
@@ -207,6 +238,66 @@ export function AdminIndexPage() {
             </AlertDialogContent>
           </AlertDialog>
         </CardFooter>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-md border bg-muted p-2 text-muted-foreground">
+              <Beaker className="size-4" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <CardTitle>Experimental features</CardTitle>
+              <CardDescription>
+                Controll experimental features (not unstable code, just not yet
+                ready to push)
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {settings === undefined ? (
+            <Skeleton className="h-16 w-full" />
+          ) : settings === null ? (
+            <Alert>
+              <PauseCircle />
+              <AlertTitle>Settings not initialized</AlertTitle>
+              <AlertDescription>
+                Initialize global settings before enabling experimental
+                features.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <FieldGroup>
+              <Field
+                orientation="horizontal"
+                data-disabled={isSavingExperimental}
+              >
+                <Switch
+                  id="enable-jungle-pyramid-seeds"
+                  checked={settings.enableJunglePyramidSeeds ?? false}
+                  disabled={isSavingExperimental}
+                  onCheckedChange={(checked) => {
+                    void handleJunglePyramidChange(checked);
+                  }}
+                />
+                <FieldContent>
+                  <FieldLabel htmlFor="enable-jungle-pyramid-seeds">
+                    Enable jungle pyramid seeds
+                  </FieldLabel>
+                  <FieldDescription>
+                    Adds Jungle Pyramid to every seed upload form. Turn it off
+                    to hide and reject new jungle pyramid uploads.
+                  </FieldDescription>
+                </FieldContent>
+              </Field>
+
+              {experimentalError && (
+                <FieldError>{experimentalError}</FieldError>
+              )}
+            </FieldGroup>
+          )}
+        </CardContent>
       </Card>
     </section>
   );

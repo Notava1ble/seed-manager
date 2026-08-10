@@ -46,6 +46,7 @@ export default defineSchema({
     key: v.literal("global"),
     currentWeekNumber: v.number(),
     seedTestingPaused: v.boolean(),
+    enableJunglePyramidSeeds: v.optional(v.boolean()),
   }).index("by_key", ["key"]),
   seeds: defineTable({
     seedNumber: v.optional(v.number()),
@@ -60,6 +61,7 @@ export default defineSchema({
         v.literal("BURIED_TREASURE"),
         v.literal("VILLAGE"),
         v.literal("DESERT_TEMPLE"),
+        v.literal("JUNGLE_PYRAMID"),
         v.literal("RUINED_PORTAL"),
         v.literal("SHIPWRECK"),
       ),

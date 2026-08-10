@@ -23,6 +23,7 @@ type ALL_SEED_TYPES = [
   "BURIED_TREASURE",
   "VILLAGE",
   "DESERT_TEMPLE",
+  "JUNGLE_PYRAMID",
   "RUINED_PORTAL",
   "SHIPWRECK",
 ];
@@ -33,6 +34,7 @@ const seedTypeValidator = v.union(
   v.literal("BURIED_TREASURE"),
   v.literal("VILLAGE"),
   v.literal("DESERT_TEMPLE"),
+  v.literal("JUNGLE_PYRAMID"),
   v.literal("RUINED_PORTAL"),
   v.literal("SHIPWRECK"),
 );
@@ -634,6 +636,13 @@ export const importSeeds = mutation({
 
     const seed = await normalizeSeed(ctx, args.seed);
     const settings = await requireSettings(ctx);
+
+    if (seed.type === "JUNGLE_PYRAMID" && !settings.enableJunglePyramidSeeds) {
+      throw new ConvexError({
+        code: "EXPERIMENTAL_SEED_TYPE_DISABLED",
+        message: "Jungle pyramid seed uploads are not currently enabled",
+      });
+    }
 
     // League existance check
     const league = await ctx.db.get("leagues", seed.leagueId);

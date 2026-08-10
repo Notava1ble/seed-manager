@@ -1,4 +1,4 @@
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { requireActiveUser, requireAdmin } from "./lib/permissions";
@@ -63,6 +63,24 @@ export const resumeSeedTesting = mutation({
       targetId: settings._id,
       targetLabel: `Week ${settings.currentWeekNumber} testing`,
       summary: `Resumed seed testing for week ${settings.currentWeekNumber}.`,
+    });
+  },
+});
+
+export const setJunglePyramidSeedsEnabled = mutation({
+  args: {
+    enabled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const settings = await requireSettings(ctx);
+
+    if ((settings.enableJunglePyramidSeeds ?? false) === args.enabled) {
+      return;
+    }
+
+    await ctx.db.patch("settings", settings._id, {
+      enableJunglePyramidSeeds: args.enabled,
     });
   },
 });

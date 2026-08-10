@@ -6,6 +6,7 @@ export const initializeSettings = internalMutation({
   args: {
     currentWeekNumber: v.number(),
     seedTestingPaused: v.boolean(),
+    enableJunglePyramidSeeds: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     validateWeekNumber(args.currentWeekNumber);
@@ -16,6 +17,10 @@ export const initializeSettings = internalMutation({
       await ctx.db.patch("settings", existing._id, {
         currentWeekNumber: args.currentWeekNumber,
         seedTestingPaused: args.seedTestingPaused,
+        enableJunglePyramidSeeds:
+          args.enableJunglePyramidSeeds ??
+          existing.enableJunglePyramidSeeds ??
+          false,
       });
       return existing._id;
     }
@@ -24,6 +29,7 @@ export const initializeSettings = internalMutation({
       key: SETTINGS_KEY,
       currentWeekNumber: args.currentWeekNumber,
       seedTestingPaused: args.seedTestingPaused,
+      enableJunglePyramidSeeds: args.enableJunglePyramidSeeds ?? false,
     });
   },
 });

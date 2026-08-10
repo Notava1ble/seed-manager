@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SEED_TYPES, seedTypesArray } from "@/lib/consts";
+import { getUploadSeedTypes, SEED_TYPES } from "@/lib/consts";
 import { getErrorMessage } from "@/lib/errors";
 import {
   getManualSeedFormErrors,
@@ -38,7 +38,7 @@ import {
   type SeedFormValues,
 } from "@/lib/seedFormUtils";
 import { validateManualSeedForm } from "@/lib/validators";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 
 const EMPTY_SEED_FORM_VALUES: SeedFormValues = {
@@ -68,6 +68,7 @@ function AddSeedDialog({
   allowUnassigned?: boolean;
 }) {
   const importSeeds = useMutation(api.seeds.importSeeds);
+  const settings = useQuery(api.settings.current);
 
   const [manualValues, setManualValues] = useState<SeedFormValues>(() => ({
     ...EMPTY_SEED_FORM_VALUES,
@@ -79,6 +80,14 @@ function AddSeedDialog({
   );
   const selectedLeagueRestriction =
     selectedManualLeague?.seedUploadDisabledReason;
+  const uploadSeedTypes = getUploadSeedTypes(
+    settings?.enableJunglePyramidSeeds ?? false,
+  );
+  const selectedSeedType =
+    manualValues.type === "JUNGLE_PYRAMID" &&
+    !settings?.enableJunglePyramidSeeds
+      ? null
+      : manualValues.type;
 
   const resetForm = () => {
     setManualValues({
@@ -105,6 +114,7 @@ function AddSeedDialog({
 
     const preparedData = {
       ...manualValues,
+      type: selectedSeedType,
       leagueId: manualValues.leagueId || undefined,
     };
     const validatedData = validateManualSeedForm.safeParse(preparedData);
@@ -162,7 +172,7 @@ function AddSeedDialog({
           <Field data-invalid={Boolean(manualErrors.type)}>
             <FieldLabel htmlFor="seed-type">Seed type</FieldLabel>
             <Select
-              value={manualValues.type}
+              value={selectedSeedType}
               itemToStringLabel={(type) => SEED_TYPES[type]}
               onValueChange={(value) => updateManualValue("type", value)}
             >
@@ -176,7 +186,7 @@ function AddSeedDialog({
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Seed types</SelectLabel>
-                  {seedTypesArray.map((type) => (
+                  {uploadSeedTypes.map((type) => (
                     <SelectItem key={type} value={type}>
                       {SEED_TYPES[type]}
                     </SelectItem>
