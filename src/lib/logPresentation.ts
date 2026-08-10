@@ -53,6 +53,14 @@ export const LOG_EVENT_CONFIG = {
     label: "Seed reordered",
     icon: ArrowUpDown,
   },
+  "seed.updated": {
+    label: "Seed updated",
+    icon: Pencil,
+  },
+  "seed.deleted": {
+    label: "Seed deleted",
+    icon: Trash2,
+  },
   "comment.created": {
     label: "Comment posted",
     icon: MessageSquareText,

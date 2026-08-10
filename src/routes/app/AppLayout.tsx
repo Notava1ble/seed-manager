@@ -5,11 +5,17 @@ import { api } from "../../../convex/_generated/api";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset, SidebarProvider } from "../../components/ui/sidebar";
 import { Loading } from "../Loading";
+import { clearSeedModificationSession } from "@/lib/seedManagement";
 
 export function AppLayout() {
   const { signOut } = useAuthActions();
   const { isAuthenticated, isLoading } = useConvexAuth();
   const user = useQuery(api.users.currentUser);
+
+  const handleSignOut = async () => {
+    clearSeedModificationSession();
+    await signOut();
+  };
 
   if (isLoading || user === undefined) {
     return <Loading label="Loading app" />;
@@ -48,7 +54,7 @@ export function AppLayout() {
       </nav>
 
       <div className="flex min-h-0 flex-1">
-        <AppSidebar onSignOut={signOut} user={user} />
+        <AppSidebar onSignOut={handleSignOut} user={user} />
         <SidebarInset className="min-h-0 overflow-auto">
           <main className="h-full min-h-0 p-6">
             <Outlet />

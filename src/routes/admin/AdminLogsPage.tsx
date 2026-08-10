@@ -226,7 +226,9 @@ export function AdminLogsPage() {
                 const event = LOG_EVENT_CONFIG[log.eventType];
                 const EventIcon = event.icon;
                 const targetHref =
-                  log.targetId && log.targetType === "seed"
+                  log.targetId &&
+                  log.targetType === "seed" &&
+                  log.eventType !== "seed.deleted"
                     ? `/app/admin/seeds/${log.targetId}`
                     : log.targetId && log.targetType === "league"
                       ? `/app/league/${log.targetId}`

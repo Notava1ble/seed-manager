@@ -5,6 +5,7 @@ import { ConvexReactClient } from "convex/react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import "./index.css";
 import { TooltipProvider } from "./components/ui/tooltip";
+import { Toaster } from "./components/ui/sonner";
 import { AdminLayout } from "./routes/admin/AdminLayout";
 import { AdminIndexPage } from "./routes/admin/AdminIndexPage";
 import { AdminLeaguesPage } from "./routes/admin/leagues/AdminLeaguesPage";
@@ -88,6 +89,7 @@ createRoot(document.getElementById("root")!).render(
 
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
+          <Toaster richColors />
         </BrowserRouter>
       </TooltipProvider>
     </ConvexAuthProvider>

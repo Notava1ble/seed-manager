@@ -6,6 +6,8 @@ export const logEventTypeValidator = v.union(
   v.literal("seed.marked_used"),
   v.literal("seed.league_changed"),
   v.literal("seed.reordered"),
+  v.literal("seed.updated"),
+  v.literal("seed.deleted"),
   v.literal("comment.created"),
   v.literal("user.signed_up"),
   v.literal("user.activated"),

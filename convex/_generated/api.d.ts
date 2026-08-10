@@ -22,6 +22,7 @@ import type * as lib_utils from "../lib/utils.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as logs from "../logs.js";
 import type * as migration from "../migration.js";
+import type * as seedManagement from "../seedManagement.js";
 import type * as seeds from "../seeds.js";
 import type * as settings from "../settings.js";
 import type * as users from "../users.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   "lib/validators": typeof lib_validators;
   logs: typeof logs;
   migration: typeof migration;
+  seedManagement: typeof seedManagement;
   seeds: typeof seeds;
   settings: typeof settings;
   users: typeof users;
