@@ -18,10 +18,6 @@ export function SeedStatusBadge({ status }: { status: SeedStatus }) {
     return <Badge variant="secondary">Assigned</Badge>;
   }
 
-  if (status === "rejected") {
-    return <Badge variant="destructive">Rejected</Badge>;
-  }
-
   if (status === "claimed") {
     return <Badge variant="outline">Claimed</Badge>;
   }

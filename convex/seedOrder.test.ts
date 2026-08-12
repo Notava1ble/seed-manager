@@ -30,7 +30,6 @@ describe("public current-week seed order API", () => {
 
       const common = {
         leagueId,
-        rating: "Good" as const,
         nether: "private-nether",
         end: "private-end",
         rng: "private-rng",

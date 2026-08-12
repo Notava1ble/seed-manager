@@ -36,7 +36,6 @@ describe("public seed history API", () => {
       await ctx.db.insert("seeds", {
         seedNumber: 2,
         leagueId,
-        rating: "Good",
         overworld: "used-overworld",
         nether: "used-nether",
         end: "used-end",
@@ -51,7 +50,6 @@ describe("public seed history API", () => {
       await ctx.db.insert("seeds", {
         seedNumber: 1,
         leagueId,
-        rating: "Good",
         overworld: "private-overworld",
         nether: "private-nether",
         end: "private-end",
@@ -108,7 +106,6 @@ describe("public seed history API", () => {
 
       const common = {
         leagueId,
-        rating: "Good" as const,
         nether: "nether",
         end: "end",
         rng: "rng",
@@ -212,7 +209,6 @@ describe("public seed history API", () => {
       });
       const common = {
         leagueId,
-        rating: "Good" as const,
         nether: "nether",
         end: "end",
         rng: "rng",
@@ -402,7 +398,6 @@ describe("public seed history API", () => {
           ctx.db.insert("seeds", {
             seedNumber: index + 1,
             leagueId,
-            rating: "Good",
             overworld: `overworld-${index}`,
             nether: `nether-${index}`,
             end: `end-${index}`,

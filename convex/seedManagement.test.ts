@@ -100,7 +100,6 @@ describe("admin seed management", () => {
 
       const commonSeed = {
         leagueId: selectedLeagueId,
-        rating: "Good" as const,
         nether: "2",
         end: "3",
         rng: "4",
@@ -216,7 +215,6 @@ describe("admin seed management", () => {
       rng: "104",
       type: "BURIED_TREASURE",
       isBt: true,
-      rating: "Good",
       isExpired: true,
       isUsed: true,
       addedBy: adminId,
@@ -274,7 +272,6 @@ describe("admin seed management", () => {
         seedNumber: 1,
         leagueId,
         assignedWeekNumber: 4,
-        rating: "Good",
         overworld: "101",
         nether: "102",
         end: "103",
@@ -290,7 +287,6 @@ describe("admin seed management", () => {
         seedNumber: 1,
         leagueId: otherLeagueId,
         assignedWeekNumber: 4,
-        rating: "Good",
         overworld: "999",
         nether: "2",
         end: "3",
@@ -398,7 +394,6 @@ describe("admin seed management", () => {
         const commonSeed = {
           leagueId,
           assignedWeekNumber: 3,
-          rating: "Good" as const,
           nether: "2",
           end: "3",
           rng: "4",
@@ -486,7 +481,6 @@ describe("admin seed management", () => {
       const commonSeed = {
         leagueId,
         assignedWeekNumber: 4,
-        rating: "Good" as const,
         nether: "2",
         end: "3",
         rng: "4",

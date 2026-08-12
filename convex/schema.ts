@@ -51,6 +51,7 @@ export default defineSchema({
   seeds: defineTable({
     seedNumber: v.optional(v.number()),
     leagueId: v.optional(v.id("leagues")),
+    // Deprecated: remove after running migration:removeSeedRatings.
     rating: v.optional(v.union(v.literal("Good"), v.literal("Bad"))),
     overworld: v.string(),
     nether: v.string(),
@@ -71,8 +72,9 @@ export default defineSchema({
     isUsed: v.boolean(),
     isExpired: v.optional(v.boolean()), // undefined = never assigned, false = active assigned, true = expired
     assignedWeekNumber: v.optional(v.number()),
-    votedAt: v.optional(v.number()), // needed for bad seed marking
-    votedBy: v.optional(v.id("users")), // needed for bad seed marking
+    // Deprecated: remove after running migration:removeSeedRatings.
+    votedAt: v.optional(v.number()),
+    votedBy: v.optional(v.id("users")),
     usedAt: v.optional(v.number()), // unix time
     usedBy: v.optional(v.id("users")),
     leagueChangedByAdminId: v.optional(v.id("users")),
@@ -87,6 +89,7 @@ export default defineSchema({
       "seedNumber",
     ])
     .index("by_isExpired", ["isExpired"])
+    // Deprecated: remove after running migration:removeSeedRatings.
     .index("by_rating", ["rating"])
     .index("by_leagueId_and_isExpired", ["leagueId", "isExpired"])
     .index("by_leagueId_and_assignedWeekNumber_and_isUsed", [

@@ -38,7 +38,7 @@ export const LOG_EVENT_CONFIG = {
     icon: Upload,
   },
   "seed.marked_bad": {
-    label: "Seed marked bad",
+    label: "Seed marked bad (legacy)",
     icon: CircleX,
   },
   "seed.marked_used": {

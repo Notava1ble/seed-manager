@@ -17,6 +17,8 @@ import type * as lib_consts from "../lib/consts.js";
 import type * as lib_logValues from "../lib/logValues.js";
 import type * as lib_logging from "../lib/logging.js";
 import type * as lib_permissions from "../lib/permissions.js";
+import type * as lib_seedDeletion from "../lib/seedDeletion.js";
+import type * as lib_seedOrder from "../lib/seedOrder.js";
 import type * as lib_settings from "../lib/settings.js";
 import type * as lib_utils from "../lib/utils.js";
 import type * as lib_validators from "../lib/validators.js";
@@ -43,6 +45,8 @@ declare const fullApi: ApiFromModules<{
   "lib/logValues": typeof lib_logValues;
   "lib/logging": typeof lib_logging;
   "lib/permissions": typeof lib_permissions;
+  "lib/seedDeletion": typeof lib_seedDeletion;
+  "lib/seedOrder": typeof lib_seedOrder;
   "lib/settings": typeof lib_settings;
   "lib/utils": typeof lib_utils;
   "lib/validators": typeof lib_validators;

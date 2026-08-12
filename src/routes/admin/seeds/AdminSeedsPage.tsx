@@ -15,6 +15,7 @@ import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import { SeedValueTableCell } from "@/components/SeedValueTableCell";
+import { DeleteSeedDialog } from "@/components/DeleteSeedDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,7 +62,6 @@ import { SEED_TYPES } from "@/lib/consts";
 import { getErrorMessage } from "@/lib/errors";
 import { SEED_MODIFICATIONS_SESSION_KEY } from "@/lib/seedManagement";
 import { getSeedCountLabel } from "@/lib/utils";
-import { DeleteManagedSeedDialog } from "./DeleteManagedSeedDialog";
 import { SeedManagementDialog } from "./SeedManagementDialog";
 
 type ManagedSeed = FunctionReturnType<
@@ -483,13 +483,13 @@ export function AdminSeedsPage() {
           weekNumber={selectedWeekNumber}
         />
       )}
-      <DeleteManagedSeedDialog
+      <DeleteSeedDialog
         deleting={isDeleting}
         onConfirm={handleDelete}
         onOpenChange={(open) => {
           if (!open) setDeletingSeed(null);
         }}
-        seed={deletingSeed}
+        open={deletingSeed !== null}
       />
     </section>
   );

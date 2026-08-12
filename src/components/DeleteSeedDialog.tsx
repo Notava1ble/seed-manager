@@ -1,6 +1,4 @@
-import type { FunctionReturnType } from "convex/server";
 import { Trash2 } from "lucide-react";
-import { api } from "../../../../convex/_generated/api";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,39 +12,35 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
 
-type ManagedSeed = FunctionReturnType<
-  typeof api.seedManagement.listSeeds
->[number];
-
-export function DeleteManagedSeedDialog({
+export function DeleteSeedDialog({
   deleting,
+  error,
   onConfirm,
   onOpenChange,
-  seed,
+  open,
 }: {
   deleting: boolean;
+  error?: string | null;
   onConfirm: () => Promise<void>;
   onOpenChange: (open: boolean) => void;
-  seed: ManagedSeed | null;
+  open: boolean;
 }) {
   return (
     <AlertDialog
-      open={seed !== null}
-      onOpenChange={(open) => {
-        if (!deleting) onOpenChange(open);
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!deleting) onOpenChange(nextOpen);
       }}
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogMedia>
-            <Trash2 />
-          </AlertDialogMedia>
-          <AlertDialogTitle>Delete this seed permanently?</AlertDialogTitle>
+          <AlertDialogTitle>Delete this seed?</AlertDialogTitle>
           <AlertDialogDescription>
-            Seed {seed?.overworld ?? "unknown"} and all of its comments will be
-            permanently deleted. The remaining seeds will be renumbered.
+            This permanently deletes the seed and its comments. The remaining
+            seeds will be renumbered. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {error && <p className="text-xs text-destructive">{error}</p>}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
           <AlertDialogAction

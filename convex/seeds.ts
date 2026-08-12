@@ -18,6 +18,8 @@ import {
   NUMERIC_SEED_PATTERN,
 } from "./lib/consts";
 import { getPrimaryActorType, writeLog } from "./lib/logging";
+import { hardDeleteSeed } from "./lib/seedDeletion";
+import { compareSeedOrder } from "./lib/seedOrder";
 
 type ALL_SEED_TYPES = [
   "BURIED_TREASURE",
@@ -182,15 +184,6 @@ function buildPublishedHistoryResult(
   };
 }
 
-function compareSeedOrder(a: Doc<"seeds">, b: Doc<"seeds">) {
-  if (a.seedNumber !== undefined && b.seedNumber !== undefined) {
-    return a.seedNumber - b.seedNumber || a._creationTime - b._creationTime;
-  }
-  if (a.seedNumber !== undefined) return -1;
-  if (b.seedNumber !== undefined) return 1;
-  return a._creationTime - b._creationTime;
-}
-
 function toPublishedSeed(seed: Doc<"seeds">, index: number) {
   return {
     order: index + 1,
@@ -219,48 +212,8 @@ export const listAllSeeds = query({
       .take(MAX_ADMIN_SEED_LIST_COUNT);
 
     return [...neverAssignedSeeds, ...activeAssignedSeeds]
-      .filter((seed) => seed.rating !== "Bad")
       .sort((a, b) => b._creationTime - a._creationTime)
       .slice(0, MAX_ADMIN_SEED_LIST_COUNT);
-  },
-});
-
-export const listBadSeeds = query({
-  args: {},
-  handler: async (ctx) => {
-    await requireAdmin(ctx);
-
-    const badSeeds = await ctx.db
-      .query("seeds")
-      .withIndex("by_rating", (q) => q.eq("rating", "Bad"))
-      .take(MAX_ADMIN_SEED_LIST_COUNT);
-    const voterIds = Array.from(
-      new Set(
-        badSeeds
-          .map((seed) => seed.votedBy)
-          .filter((userId): userId is Id<"users"> => userId !== undefined),
-      ),
-    );
-    const voters = await Promise.all(
-      voterIds.map((userId) => ctx.db.get("users", userId)),
-    );
-    const votersById = new Map(
-      voters
-        .filter((user) => user !== null)
-        .map((user) => [
-          user._id,
-          {
-            _id: user._id,
-            name: user.name,
-            discordId: user.discordId,
-          },
-        ]),
-    );
-
-    return badSeeds.map((seed) => ({
-      ...seed,
-      votedByUser: seed.votedBy ? votersById.get(seed.votedBy) : undefined,
-    }));
   },
 });
 
@@ -334,7 +287,7 @@ export const getSeedForLeague = query({
   },
 });
 
-export const markSeedAsBad = mutation({
+export const deleteSeed = mutation({
   args: {
     seedId: v.id("seeds"),
   },
@@ -363,90 +316,31 @@ export const markSeedAsBad = mutation({
       });
     }
 
-    if (seed.rating === "Bad") {
-      return;
-    }
-
-    if (seed.rating !== "Good") {
+    if (seed.leagueId === undefined || seed.assignedWeekNumber === undefined) {
       throw new ConvexError({
-        code: "INVALID_RATING_CHANGE",
-        message: "Only good seeds can be marked bad",
+        code: "SEED_UNASSIGNED",
+        message: "Only assigned seeds can be deleted",
       });
     }
 
     await requireSeedTestingOpen(ctx);
 
-    const canRateAsAdmin = user.roles.includes("admin");
-    const canRateAsOriginalUploader = seed.addedBy === user._id;
-    const canRateAsHost =
-      seed.leagueId !== undefined &&
+    const canDeleteAsAdmin = user.roles.includes("admin");
+    const canDeleteAsOriginalUploader = seed.addedBy === user._id;
+    const canDeleteAsHost =
       user.roles.includes("host") &&
       (user.hostLeagueId ?? []).includes(seed.leagueId);
 
-    if (!canRateAsAdmin && !canRateAsOriginalUploader && !canRateAsHost) {
+    if (!canDeleteAsAdmin && !canDeleteAsOriginalUploader && !canDeleteAsHost) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "You cannot change this seed's rating",
+        message: "You cannot delete this seed",
       });
     }
 
-    if (seed.leagueId === undefined) {
-      throw new ConvexError({
-        code: "SEED_UNASSIGNED",
-        message: "Only assigned seeds can be marked bad",
-      });
-    }
+    await hardDeleteSeed(ctx, seed, user);
 
-    const league = await ctx.db.get("leagues", seed.leagueId);
-
-    const seedsInLeague = await ctx.db
-      .query("seeds")
-      .withIndex("by_leagueId_and_isExpired", (q) =>
-        q.eq("leagueId", seed.leagueId).eq("isExpired", false),
-      )
-      .collect();
-
-    const remaining = seedsInLeague
-      .filter((s) => s._id !== seed._id)
-      .sort((a, b) => (a.seedNumber ?? 0) - (b.seedNumber ?? 0));
-
-    await ctx.db.patch("seeds", seed._id, {
-      seedNumber: undefined,
-      rating: "Bad" as const,
-      leagueId: undefined,
-      isExpired: undefined,
-      assignedWeekNumber: undefined,
-      votedAt: Date.now(),
-      votedBy: user._id,
-    });
-
-    await Promise.all(
-      remaining.map((s, i) =>
-        ctx.db.patch("seeds", s._id, { seedNumber: i + 1 }),
-      ),
-    );
-
-    if (league) {
-      await ctx.db.patch("leagues", seed.leagueId, {
-        seedCount: Math.max(0, league.seedCount - 1),
-      });
-    }
-
-    await writeLog(ctx, {
-      eventType: "seed.marked_bad",
-      actor: user,
-      actorType: canRateAsAdmin
-        ? "admin"
-        : canRateAsHost
-          ? "host"
-          : user.roles.includes("uploader")
-            ? "uploader"
-            : "user",
-      targetType: "seed",
-      targetId: seed._id,
-      targetLabel: getSeedLogLabel(seed),
-      summary: `Changed the rating from Good to Bad and removed the seed from ${league?.leagueName ?? "its deleted league"}.`,
-    });
+    return null;
   },
 });
 
@@ -476,13 +370,6 @@ export const markSeedUsed = mutation({
       throw new ConvexError({
         code: "SEED_UNASSIGNED",
         message: "Only assigned seeds can be marked used",
-      });
-    }
-
-    if (seed.rating !== "Good") {
-      throw new ConvexError({
-        code: "SEED_NOT_GOOD",
-        message: "Only good seeds can be marked used",
       });
     }
 
@@ -568,13 +455,6 @@ export const changeSeedLeague = mutation({
       throw new ConvexError({
         code: "SEED_ALREADY_USED",
         message: "Used seeds are read-only",
-      });
-    }
-
-    if (seed.rating !== "Good") {
-      throw new ConvexError({
-        code: "SEED_NOT_GOOD",
-        message: "Only good assigned seeds can move to another league",
       });
     }
 
@@ -731,7 +611,6 @@ export const importSeeds = mutation({
       isBt: seed.type === "BURIED_TREASURE",
 
       leagueId: seed.leagueId,
-      rating: "Good" as const,
       isExpired: false,
       assignedWeekNumber: settings?.currentWeekNumber,
 

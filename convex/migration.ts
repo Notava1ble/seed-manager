@@ -56,6 +56,48 @@ export const numberSeeds = internalMutation({
   },
 });
 
+export const removeSeedRatings = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const seeds = await ctx.db.query("seeds").collect();
+    let deletedComments = 0;
+    let deletedSeeds = 0;
+    let updatedSeeds = 0;
+
+    for (const seed of seeds) {
+      if (seed.rating === "Bad") {
+        for await (const comment of ctx.db
+          .query("comments")
+          .withIndex("by_seedId_and_createdAt", (q) =>
+            q.eq("seedId", seed._id),
+          )) {
+          await ctx.db.delete("comments", comment._id);
+          deletedComments += 1;
+        }
+
+        await ctx.db.delete("seeds", seed._id);
+        deletedSeeds += 1;
+        continue;
+      }
+
+      if (
+        seed.rating !== undefined ||
+        seed.votedAt !== undefined ||
+        seed.votedBy !== undefined
+      ) {
+        await ctx.db.patch("seeds", seed._id, {
+          rating: undefined,
+          votedAt: undefined,
+          votedBy: undefined,
+        });
+        updatedSeeds += 1;
+      }
+    }
+
+    return { deletedComments, deletedSeeds, updatedSeeds };
+  },
+});
+
 function validateWeekNumber(weekNumber: number) {
   if (!Number.isSafeInteger(weekNumber) || weekNumber < 1) {
     throw new ConvexError({

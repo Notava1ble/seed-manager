@@ -1,12 +1,11 @@
 import { useMutation, useQuery } from "convex/react";
-import { ArrowRightLeft, Sprout } from "lucide-react";
+import { ArrowRightLeft, CheckCircle2, Sprout, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { DeleteSeedDialog } from "@/components/DeleteSeedDialog";
 import { SeedCommentsSection } from "@/components/SeedCommentsSection";
-import { SeedRatingActions } from "@/components/SeedFeedbackActions";
-import { SeedRating } from "@/lib/seedStatus";
 import { SeedStatusBadge } from "@/components/SeedStatusBadge";
 import { SeedValueDisplay } from "@/components/SeedValueDisplay";
 import {
@@ -48,16 +47,16 @@ import { getLeagueListLabel } from "@/lib/userAccess";
 export function SeedPage() {
   const { leagueId, seedId } = useParams();
   const navigate = useNavigate();
-  const [ratingError, setRatingError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [usedError, setUsedError] = useState<string | null>(null);
   const [leagueChangeError, setLeagueChangeError] = useState<string | null>(
     null,
   );
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isMarkingUsed, setIsMarkingUsed] = useState(false);
-  const [isMarkingBad, setIsMarkingBad] = useState(false);
   const [isChangingLeague, setIsChangingLeague] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isMarkUsedDialogOpen, setIsMarkUsedDialogOpen] = useState(false);
-  const [isMarkBadDialogOpen, setIsMarkBadDialogOpen] = useState(false);
   const [isChangeLeagueDialogOpen, setIsChangeLeagueDialogOpen] =
     useState(false);
   const [targetLeagueId, setTargetLeagueId] = useState<Id<"leagues"> | null>(
@@ -66,6 +65,7 @@ export function SeedPage() {
   const selectedLeagueId = leagueId as Id<"leagues"> | undefined;
   const selectedSeedId = seedId as Id<"seeds"> | undefined;
   const user = useQuery(api.users.currentUser);
+  const settings = useQuery(api.settings.current);
   const leagues = useQuery(api.leagues.listLeagues);
   const seed = useQuery(
     api.seeds.getSeedForLeague,
@@ -73,27 +73,26 @@ export function SeedPage() {
       ? { leagueId: selectedLeagueId, seedId: selectedSeedId }
       : "skip",
   );
-  const markSeedAsBad = useMutation(api.seeds.markSeedAsBad);
+  const deleteSeed = useMutation(api.seeds.deleteSeed);
   const markSeedUsed = useMutation(api.seeds.markSeedUsed);
   const changeSeedLeague = useMutation(api.seeds.changeSeedLeague);
 
-  const handleMarkBad = async () => {
-    if (!selectedSeedId) {
+  const handleDelete = async () => {
+    if (!selectedLeagueId || !selectedSeedId) {
       return;
     }
 
-    setRatingError(null);
-    setIsMarkingBad(true);
+    setDeleteError(null);
+    setIsDeleting(true);
 
     try {
-      await markSeedAsBad({ seedId: selectedSeedId });
-      setIsMarkBadDialogOpen(false);
+      await deleteSeed({ seedId: selectedSeedId });
+      setIsDeleteDialogOpen(false);
+      void navigate(`/app/league/${selectedLeagueId}`, { replace: true });
     } catch (error) {
-      setRatingError(
-        getErrorMessage(error, "Could not update this seed's rating"),
-      );
+      setDeleteError(getErrorMessage(error, "Could not delete this seed"));
     } finally {
-      setIsMarkingBad(false);
+      setIsDeleting(false);
     }
   };
 
@@ -148,7 +147,7 @@ export function SeedPage() {
     }
   };
 
-  if (seed === undefined || user === undefined) {
+  if (seed === undefined || user === undefined || settings === undefined) {
     return <SeedDetailsSkeleton />;
   }
 
@@ -171,6 +170,32 @@ export function SeedPage() {
   const currentLeague = leagues?.find((league) => league._id === seed.leagueId);
   const canChangeLeagueAssignment =
     leagues !== undefined && canChangeLeague(seed, user);
+  let deleteDisabledReason: string | null = null;
+  if (!user) {
+    deleteDisabledReason = "Sign in to delete this seed.";
+  } else if (seed.isExpired) {
+    deleteDisabledReason =
+      "Expired seeds can only be deleted from the admin seed archive.";
+  } else if (seed.isUsed) {
+    deleteDisabledReason =
+      "Used seeds can only be deleted from the admin seed archive.";
+  } else if (!settings) {
+    deleteDisabledReason = "Tournament settings are unavailable.";
+  } else if (settings.seedTestingPaused) {
+    deleteDisabledReason =
+      "Seeds cannot be deleted while seed testing is paused.";
+  } else {
+    const hasDeletePermission =
+      user.roles.includes("admin") ||
+      seed.addedBy === user._id ||
+      (seed.leagueId !== undefined &&
+        user.roles.includes("host") &&
+        (user.hostLeagueId ?? []).includes(seed.leagueId));
+
+    if (!hasDeletePermission) {
+      deleteDisabledReason = "You do not have permission to delete this seed.";
+    }
+  }
   const targetLeague = leagues?.find((league) => league._id === targetLeagueId);
   const addedByname = seed.addedByUser?.name ?? "an unknown user";
   const addedByUploadingLeagues = getLeagueListLabel(
@@ -232,24 +257,52 @@ export function SeedPage() {
             <SeedValueDisplay label="RNG" value={seed.rng} />
           </div>
 
-          <SeedRatingActions
-            canEditRating={canEditRating(seed, user)}
-            canMarkUsed={canMarkUsed(seed, user)}
-            isMarkingUsed={isMarkingUsed}
-            isUsed={seed.isUsed}
-            onMarkUsed={() => {
-              setUsedError(null);
-              setIsMarkUsedDialogOpen(true);
-            }}
-            onRatingChange={() => {
-              setRatingError(null);
-              setIsMarkBadDialogOpen(true);
-            }}
-            rating={seed.rating}
-          />
+          <div className="flex w-full items-center justify-end gap-2">
+            {canMarkUsed(seed, user) && (
+              <Button
+                aria-label={
+                  seed.isUsed ? "Seed already used" : "Mark seed as used"
+                }
+                disabled={seed.isUsed || isMarkingUsed}
+                onClick={() => {
+                  setUsedError(null);
+                  setIsMarkUsedDialogOpen(true);
+                }}
+                size="lg"
+                type="button"
+              >
+                <CheckCircle2 data-icon="inline-start" />
+                {seed.isUsed
+                  ? "Seed used"
+                  : isMarkingUsed
+                    ? "Marking used"
+                    : "Mark as used"}
+              </Button>
+            )}
+            <Tooltip>
+              <TooltipTrigger render={<span className="inline-flex" />}>
+                <Button
+                  aria-label="Delete seed"
+                  disabled={deleteDisabledReason !== null || isDeleting}
+                  onClick={() => {
+                    setDeleteError(null);
+                    setIsDeleteDialogOpen(true);
+                  }}
+                  size="icon-lg"
+                  type="button"
+                  variant="destructive"
+                >
+                  <Trash2 />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {deleteDisabledReason ?? "Delete seed"}
+              </TooltipContent>
+            </Tooltip>
+          </div>
 
-          {ratingError && !isMarkBadDialogOpen && (
-            <p className="text-xs text-destructive">{ratingError}</p>
+          {deleteError && !isDeleteDialogOpen && (
+            <p className="text-xs text-destructive">{deleteError}</p>
           )}
           {usedError && !isMarkUsedDialogOpen && (
             <p className="text-xs text-destructive">{usedError}</p>
@@ -275,8 +328,8 @@ export function SeedPage() {
         <AlertDialogContent>
           <AlertDialogTitle>Mark this seed as used?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. Used seeds stay visible in history,
-            but they leave active league selection.
+            Warning: Marking a seed as used publishes it immediately. Only
+            admins can reverse this action.
           </AlertDialogDescription>
           {usedError && <p className="text-xs text-destructive">{usedError}</p>}
           <AlertDialogFooter>
@@ -286,7 +339,6 @@ export function SeedPage() {
             <AlertDialogAction
               disabled={isMarkingUsed}
               onClick={() => void handleMarkUsed()}
-              variant="destructive"
             >
               {isMarkingUsed ? "Marking used" : "Mark used"}
             </AlertDialogAction>
@@ -294,33 +346,16 @@ export function SeedPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog
-        open={isMarkBadDialogOpen}
-        onOpenChange={setIsMarkBadDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogTitle>Mark this seed as bad?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. The seed will be removed from its
-            league and cannot be marked good again.
-          </AlertDialogDescription>
-          {ratingError && (
-            <p className="text-xs text-destructive">{ratingError}</p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isMarkingBad}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={isMarkingBad}
-              onClick={() => void handleMarkBad()}
-              variant="destructive"
-            >
-              {isMarkingBad ? "Marking bad" : "Mark bad"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteSeedDialog
+        deleting={isDeleting}
+        error={deleteError}
+        onConfirm={handleDelete}
+        onOpenChange={(open) => {
+          setIsDeleteDialogOpen(open);
+          if (!open) setDeleteError(null);
+        }}
+        open={isDeleteDialogOpen}
+      />
 
       <AlertDialog
         open={isChangeLeagueDialogOpen}
@@ -399,60 +434,18 @@ export function SeedPage() {
   );
 }
 
-function canEditRating(
-  seed: {
-    leagueId?: Id<"leagues">;
-    isExpired?: boolean;
-    isUsed: boolean;
-    addedBy: Id<"users">;
-  },
-  user: {
-    _id: Id<"users">;
-    roles: Array<"admin" | "host" | "tester" | "uploader">;
-    hostLeagueId?: Id<"leagues">[];
-  } | null,
-) {
-  if (!user) {
-    return false;
-  }
-
-  if (seed.isExpired || seed.isUsed) {
-    return false;
-  }
-
-  if (user.roles.includes("admin")) {
-    return true;
-  }
-
-  if (seed.addedBy === user._id) {
-    return true;
-  }
-
-  return (
-    seed.leagueId !== undefined &&
-    user.roles.includes("host") &&
-    (user.hostLeagueId ?? []).includes(seed.leagueId)
-  );
-}
-
 function canMarkUsed(
   seed: {
     leagueId?: Id<"leagues">;
     isExpired?: boolean;
     isUsed: boolean;
-    rating?: SeedRating;
   },
   user: {
-    roles: Array<"admin" | "host" | "tester" | "uploader">;
+    roles: Array<"admin" | "host" | "uploader">;
     hostLeagueId?: Id<"leagues">[];
   } | null,
 ) {
-  if (
-    !user ||
-    seed.leagueId === undefined ||
-    seed.isExpired ||
-    seed.rating !== "Good"
-  ) {
+  if (!user || seed.leagueId === undefined || seed.isExpired) {
     return false;
   }
 
@@ -471,18 +464,16 @@ function canChangeLeague(
     leagueId?: Id<"leagues">;
     isExpired?: boolean;
     isUsed: boolean;
-    rating?: SeedRating;
   },
   user: {
-    roles: Array<"admin" | "host" | "tester" | "uploader">;
+    roles: Array<"admin" | "host" | "uploader">;
   } | null,
 ) {
   return (
     Boolean(user?.roles.includes("admin")) &&
     seed.leagueId !== undefined &&
     seed.isExpired !== true &&
-    !seed.isUsed &&
-    seed.rating === "Good"
+    !seed.isUsed
   );
 }
 

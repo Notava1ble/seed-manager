@@ -4,6 +4,8 @@ import { mutation, query } from "./_generated/server";
 import { MAX_LEAGUE_SEED_LIST_COUNT, NUMERIC_SEED_PATTERN } from "./lib/consts";
 import { writeLog } from "./lib/logging";
 import { requireAdmin } from "./lib/permissions";
+import { hardDeleteSeed } from "./lib/seedDeletion";
+import { compareSeedOrder } from "./lib/seedOrder";
 import { requireSettings } from "./lib/settings";
 
 const seedTypeValidator = v.union(
@@ -104,7 +106,6 @@ export const addSeed = mutation({
       seedNumber,
       leagueId: league._id,
       assignedWeekNumber: args.weekNumber,
-      rating: "Good",
       isExpired: true,
       isUsed: true,
       isBt: values.type === "BURIED_TREASURE",
@@ -285,7 +286,6 @@ export const deleteSeed = mutation({
   },
   handler: async (ctx, args) => {
     const admin = await requireAdmin(ctx);
-    const settings = await requireSettings(ctx);
     const seed = await ctx.db.get("seeds", args.seedId);
     if (!seed) {
       throw new ConvexError({
@@ -300,51 +300,7 @@ export const deleteSeed = mutation({
       });
     }
 
-    const [league, group] = await Promise.all([
-      ctx.db.get("leagues", seed.leagueId),
-      getSeedGroup(ctx, seed.leagueId, seed.assignedWeekNumber),
-    ]);
-    const remaining = group.filter((item) => item._id !== seed._id);
-    for (const [index, item] of remaining.entries()) {
-      const seedNumber = index + 1;
-      if (item.seedNumber !== seedNumber) {
-        await ctx.db.patch("seeds", item._id, { seedNumber });
-      }
-    }
-
-    let deletedCommentCount = 0;
-    for await (const comment of ctx.db
-      .query("comments")
-      .withIndex("by_seedId_and_createdAt", (q) => q.eq("seedId", seed._id))) {
-      await ctx.db.delete("comments", comment._id);
-      deletedCommentCount += 1;
-    }
-
-    await ctx.db.delete("seeds", seed._id);
-
-    if (
-      league &&
-      seed.assignedWeekNumber === settings.currentWeekNumber &&
-      seed.isExpired === false
-    ) {
-      await ctx.db.patch("leagues", league._id, {
-        seedCount: Math.max(0, league.seedCount - 1),
-        usedSeedCount: Math.max(
-          0,
-          league.usedSeedCount - (seed.isUsed ? 1 : 0),
-        ),
-      });
-    }
-
-    await writeLog(ctx, {
-      eventType: "seed.deleted",
-      actor: admin,
-      actorType: "admin",
-      targetType: "seed",
-      targetId: seed._id,
-      targetLabel: `Seed ${seed.overworld}`,
-      summary: `Deleted seed #${seed.seedNumber ?? "unknown"} from ${league?.leagueName ?? "its deleted league"} week ${seed.assignedWeekNumber}${deletedCommentCount > 0 ? ` with ${deletedCommentCount} ${deletedCommentCount === 1 ? "comment" : "comments"}` : ""}.`,
-    });
+    await hardDeleteSeed(ctx, seed, admin);
 
     return null;
   },
@@ -452,13 +408,4 @@ function getChangedFields(
 function formatFieldList(fields: string[]) {
   if (fields.length === 1) return fields[0];
   return `${fields.slice(0, -1).join(", ")} and ${fields[fields.length - 1]}`;
-}
-
-function compareSeedOrder(a: Doc<"seeds">, b: Doc<"seeds">) {
-  if (a.seedNumber !== undefined && b.seedNumber !== undefined) {
-    return a.seedNumber - b.seedNumber || a._creationTime - b._creationTime;
-  }
-  if (a.seedNumber !== undefined) return -1;
-  if (b.seedNumber !== undefined) return 1;
-  return a._creationTime - b._creationTime;
 }
