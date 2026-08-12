@@ -27,7 +27,7 @@ export function SeedValueDisplay({
   return (
     <button
       type="button"
-      onClick={handleCopy}
+      onClick={() => void handleCopy()}
       className={cn(
         "group flex min-w-0 flex-col gap-1 rounded-md text-left transition-colors",
         "hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
